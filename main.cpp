@@ -1,6 +1,55 @@
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <cmath>
+
+template <class float_type>
+void write_vtk (const std::string &filename, const float_type dx, const unsigned int nx, const float_type *e, const float_type *h)
+{
+  (void)e;
+  std::ofstream vtk (filename);
+
+  vtk << "# vtk DataFile Version 3.0\n";
+  vtk << "vtk output\n";
+  vtk << "ASCII\n";
+  vtk << "DATASET UNSTRUCTURED_GRID\n";
+
+  vtk << "POINTS " << nx * 4 << " double\n";
+
+  const float_type dy = dx;
+  for (unsigned int i = 0; i < nx; i++)
+  {
+    vtk << dx * (i + 0) << " " << 0  << " 0.0\n";
+    vtk << dx * (i + 1) << " " << 0  << " 0.0\n";
+    vtk << dx * (i + 1) << " " << dy << " 0.0\n";
+    vtk << dx * (i + 0) << " " << dy << " 0.0\n";
+  }
+
+  vtk << "CELLS " << nx << " " << nx * 5 << "\n";
+
+  for (unsigned int i = 0; i < nx; i++)
+  {
+    vtk << "4 ";
+    for (unsigned int j = 0; j < 4; j++)
+      vtk << i * 4 + j << " ";
+    vtk << "\n";
+  }
+
+  vtk << "CELL_TYPES " << nx << "\n";
+  for (unsigned int i = 0; i < nx; i++)
+    vtk << "9\n";
+
+  vtk << "CELL_DATA " << nx << "\n";
+  vtk << "SCALARS Ey double 1\n";
+  vtk << "LOOKUP_TABLE default\n";
+  for (unsigned int i = 0; i < nx; i++)
+    vtk << e[i] << "\n";
+
+  vtk << "SCALARS Hx double 1\n";
+  vtk << "LOOKUP_TABLE default\n";
+  for (unsigned int i = 0; i < nx; i++)
+    vtk << h[i] << "\n";
+}
 
 template <class float_type>
 class fdtd
@@ -51,7 +100,7 @@ public:
       m_hx[i] = c0 * dt / hr[i];
 
     // tst
-    ey[5] = 1.0;
+    ey[50] = 1.0;
   }
 
   void calculate (unsigned int steps)
@@ -66,22 +115,19 @@ public:
       for (unsigned int i = 1; i < nx; i++)
         ey[i] += m_ey[i] * (hx[i] - hx[i - 1]) / dx;
 
-      std::cout << "E" << step << ": ";
-      for (unsigned int i = 0; i < nx; i++)
-        std::cout << ey[i] << " ";
-      std::cout << "\n";
+      write_vtk ("output_" + std::to_string (step) + ".vtk", dx, nx, ey.get (), hx.get ());
     }
   }
 };
 
 int main()
 {
-  const double dt = 1e-30;
+  const double dt = 1e-22;
   const double plane_size_x = 1e-10;
   const double plane_size_y = 1e-10;
 
-  fdtd simulation (10, 1, dt, plane_size_x, plane_size_y);
-  simulation.calculate (10);
+  fdtd simulation (300, 1, dt, plane_size_x, plane_size_y);
+  simulation.calculate (1000);
 
   return 0;
 }
