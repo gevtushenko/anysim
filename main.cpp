@@ -3,6 +3,8 @@
 #include <memory>
 #include <cmath>
 
+constexpr double C0 = 299792458; /// Speed of light [metres per second]
+
 template <class float_type>
 void write_vtk (const std::string &filename, const float_type dx, const unsigned int nx, const float_type *e, const float_type *h)
 {
@@ -52,11 +54,50 @@ void write_vtk (const std::string &filename, const float_type dx, const unsigned
 }
 
 template <class float_type>
+float_type gaussian_pulse (float_type t, float_type t_0, float_type tau)
+{
+  return std::exp (-(((t - t_0) / tau) * (t - t_0) / tau));
+}
+
+template <class float_type>
+float_type soft_source (float_type frequency, float_type t)
+{
+  const float_type tau = 0.5 / frequency;
+  const float_type t_0 = 6 * tau;
+  return gaussian_pulse (t, t_0, tau);
+}
+
+template <class float_type>
+class source
+{
+private:
+  const float_type frequency;
+  const float_type tau;
+  const float_type t_0;
+
+  const unsigned int x_position;
+public:
+  source () = delete;
+  source (
+      float_type frequency_arg, unsigned int x_position_arg)
+    : frequency (frequency_arg)
+    , tau (0.5 / frequency)
+    , t_0 (6 * tau)
+    , x_position (x_position_arg)
+  { }
+
+  void update_source (float_type t, float_type *e)
+  {
+    const float_type source_value = gaussian_pulse (t, t_0, tau);
+    e[x_position] += source_value;
+  }
+};
+
+template <class float_type>
 class fdtd
 {
-  const float_type e0 = 8.85418781762039e-12; /// Electrical permeability in vacuum [Farad/Meter]
-  const float_type u0 = 1.25663706143592e-6;  /// Magnetic permeability in vacuum [Newton / Amper^{2}]
-  const float_type c0;          /// Speed of light [Meter/Second]
+  // const float_type e0 = 8.85418781762039e-12; /// Electrical permeability in vacuum [Farad/Meter]
+  // const float_type u0 = 1.25663706143592e-6;  /// Magnetic permeability in vacuum [Newton / Amper^{2}]
 
   const unsigned int nx, ny;
   const float_type dx, dy;
@@ -73,12 +114,11 @@ public:
       unsigned int ny_arg,
       float_type plane_size_x,
       float_type plane_size_y)
-    : c0 (std::sqrt (1.0 / (e0 * u0)))
-    , nx (nx_arg)
+    : nx (nx_arg)
     , ny (ny_arg)
     , dx (plane_size_x / nx)
     , dy (plane_size_y / ny)
-    , dt (std::min (dx, dy) / c0 / 2.0)
+    , dt (std::min (dx, dy) / C0 / 2.0)
     , m_ey (new float_type[nx * ny])
     , m_hx (new float_type[nx * ny])
     , ey   (new float_type[nx * ny])
@@ -97,53 +137,55 @@ public:
     std::fill_n (ey.get (), nx * ny, 0.0);
 
     for (unsigned int i = 0; i < nx * ny; i++)
-      m_ey[i] = c0 * dt / er[i];
+      m_ey[i] = C0 * dt / er[i];
     for (unsigned int i = 0; i < nx * ny; i++)
-      m_hx[i] = c0 * dt / hr[i];
+      m_hx[i] = C0 * dt / hr[i];
   }
 
-  void calculate (unsigned int steps)
+  void calculate (unsigned int steps, source<float_type> &s)
   {
     std::cout << "Time step: " << dt << std::endl;
 
-    float_type h_3, h_2, h_1;
-    float_type e_3, e_2, e_1;
+    // float_type h_3, h_2, h_1;
+    // float_type e_3, e_2, e_1;
 
-    h_1 = h_2 = h_3 = float_type ();
-    e_1 = e_2 = e_3 = float_type ();
+    // h_1 = h_2 = h_3 = float_type ();
+    // e_1 = e_2 = e_3 = float_type ();
+
+    float_type t = 0.0;
 
     for (unsigned int step = 0; step < steps; step++)
     {
-      if (step == 10)
-        ey[nx / 2] += 1.0;
-
       for (unsigned int i = 0; i < nx - 1; i++)
         hx[i] += m_hx[i] * (ey[i + 1] - ey[i]) / dx;
 
       // PBC
-      hx[nx - 1] += m_hx[nx - 1] * (e_3 - ey[nx - 1]) / dx;
-      h_3 = h_2; h_2 = h_1; h_1 = hx[0];
+      // hx[nx - 1] += m_hx[nx - 1] * (e_3 - ey[nx - 1]) / dx;
+      // h_3 = h_2; h_2 = h_1; h_1 = hx[0];
 
-      ey[0] += m_ey[0] * (hx[0] - h_3) / dx;
+      // ey[0] += m_ey[0] * (hx[0] - h_3) / dx;
 
       // Mirror boundary condition (ideal conductor)
-      // hx[nx - 1] += m_hx[nx - 1] * (0.0 - ey[nx - 1]) / dx;
-      // ey[0] += m_ey[0] * (hx[0]) / dx;
+      hx[nx - 1] += m_hx[nx - 1] * (0.0 - ey[nx - 1]) / dx;
+      ey[0] += m_ey[0] * (hx[0]) / dx;
 
       // Periodic boundary condition (ideal conductor)
       // hx[nx - 1] += m_hx[nx - 1] * (ey[0] - ey[nx - 1]) / dx;
       // ey[0] += m_ey[0] * (hx[0] - hx[nx - 1]) / dx;
 
-      // Perfect boundary condition
-
-
       for (unsigned int i = 1; i < nx; i++)
         ey[i] += m_ey[i] * (hx[i] - hx[i - 1]) / dx;
 
       // PBC
-      e_3 = e_2; e_2 = e_1; e_1 = ey[nx - 1];
+      // e_3 = e_2; e_2 = e_1; e_1 = ey[nx - 1];
 
-      write_vtk ("output_" + std::to_string (step) + ".vtk", dx, nx, ey.get (), hx.get ());
+      // Apply source
+      s.update_source (t, ey.get ());
+
+      if (step % 10 == 0)
+        write_vtk ("output_" + std::to_string (step) + ".vtk", dx, nx, ey.get (), hx.get ());
+
+      t += dt;
     }
   }
 };
@@ -151,11 +193,19 @@ public:
 int main()
 {
   // const double dt = 1e-22;
-  const double plane_size_x = 1e-10;
-  const double plane_size_y = 1e-10;
+  const double frequency = 2e+9;
+  // const double lambda_min = C0 / frequency;
+  // const size_t optimal_dx = lambda_min / 20;
+  // std::cout << optimal_dx << std::endl;
 
-  fdtd simulation (300, 1, plane_size_x, plane_size_y);
-  simulation.calculate (1000);
+  const double plane_size_x = 5;
+  const double plane_size_y = 5;
+
+  const unsigned int nx = 2000;
+  source soft_source (frequency, nx/2);
+
+  fdtd simulation (nx, 1, plane_size_x, plane_size_y);
+  simulation.calculate (9000, soft_source);
 
   return 0;
 }
