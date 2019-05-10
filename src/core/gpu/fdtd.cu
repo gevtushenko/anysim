@@ -3,42 +3,6 @@
 
 #include "core/common/sources.h"
 
-/**
- * Calculate curl of Ex with periodic boundary condition
- * @param i Column index
- * @param j Row index
- */
-template <typename float_type>
-__device__ static float_type update_curl_ex (
-    unsigned int i, unsigned int j,
-    const unsigned int nx,
-    const unsigned int ny,
-    const float_type dy,
-    const float_type * __restrict__ ez)
-{
-  // TODO For now assume that only periodic boundary conditions exist
-  const unsigned int curr_idx   = (j + 0) * nx + i;
-  const unsigned int next_idx_j = j < ny - 1 ? (j + 1) * nx + i : 0 * nx + i;
-  return (ez[next_idx_j] - ez[curr_idx]) / dy;
-}
-
-/**
- * @param i Column index
- * @param j Row index
- */
-template <typename float_type>
-__device__ static float_type update_curl_ey (
-    unsigned int i, unsigned int j,
-    const unsigned int nx,
-    const float_type dx,
-    const float_type * __restrict__ ez)
-{
-  // TODO For now assume that only periodic boundary conditions exist
-  const unsigned int curr_idx   = (j + 0) * nx + i;
-  const unsigned int next_idx_i = i < nx - 1 ? j * nx + i + 1 : j * nx + 0;
-  return -(ez[next_idx_i] - ez[curr_idx]) / dx;
-}
-
 template <typename float_type>
 __global__ void fdtd_update_h_kernel (
     unsigned int nx, unsigned int ny,
@@ -52,10 +16,30 @@ __global__ void fdtd_update_h_kernel (
   const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
   const unsigned int idx = j * nx + i;
 
+  __shared__ float_type cache[33 * 33];
+
+  const unsigned int si = threadIdx.x;
+  const unsigned int sj = threadIdx.y;
+  const unsigned int sidx = sj * (blockDim.x + 1) + si;
+
   if (j < ny && i < nx)
   {
-    const float_type cex = update_curl_ex (i, j, nx, ny, dy, ez);
-    const float_type cey = update_curl_ey (i, j, nx, dx, ez);
+    cache[sidx] = ez[idx];
+
+    if (sj == blockDim.y - 1 || j == ny - 1)
+      cache[(sj + 1) * (blockDim.x + 1) + si] = j < ny - 1 ? ez[(j + 1) * nx + i] : ez[0 * nx + i];
+
+    if (si == blockDim.x - 1 || i == nx - 1)
+      cache[sidx + 1] = i < nx - 1 ? ez[idx + 1] : ez[j * nx + 0];
+  }
+
+  __syncthreads ();
+
+  if (j < ny && i < nx)
+  {
+    const float_type cez = cache[sidx];
+    const float_type cex =  (cache[(sj + 1) * (blockDim.x + 1) + si] - cez) / dy;
+    const float_type cey = -(cache[sidx + 1] - cez) / dx;
 
     // update_h
     hx[idx] -= mh[idx] * cex;
@@ -76,7 +60,7 @@ __device__ static float_type update_curl_h (
 {
   // TODO For now assume that only periodic boundary conditions exist
   const unsigned int curr_idx   = (j + 0) * nx + i;
-  const unsigned int prev_idx_i = i > 0 ? (j + 0) * nx + i - 1 : j * nx + 0;
+  const unsigned int prev_idx_i = i > 0 ? (j + 0) * nx + i - 1 : j * nx + nx - 1;
   const unsigned int prev_idx_j = j > 0 ? (j - 1) * nx + i     : (ny - 1) * nx + i;
 
   return (hy[curr_idx] - hy[prev_idx_i]) / dx
