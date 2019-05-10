@@ -27,7 +27,7 @@ public:
     , ny (ny_arg)
   { }
 
-  virtual void fill_region (float_type *er, float_type *hr) = 0;
+  virtual void fill_region (float_type *er, float_type *hr) const = 0;
 
 protected:
   const unsigned int nx, ny;
@@ -44,21 +44,23 @@ public:
       unsigned int region_i_start_arg,
       unsigned int region_j_start_arg,
       unsigned int width_arg,
+      unsigned int height_arg,
       float_type er_value_arg,
       float_type hr_value_arg)
     : region_initializer<float_type> (nx, ny)
     , region_i_start (region_i_start_arg)
     , region_j_start (region_j_start_arg)
     , width (width_arg)
+    , height (height_arg)
     , er_value (er_value_arg)
     , hr_value (hr_value_arg)
   { }
 
-  void fill_region (float_type *er, float_type *hr) final
+  void fill_region (float_type *er, float_type *hr) const final
   {
     using ri = region_initializer<float_type>;
 
-    for (unsigned int j = region_j_start; j < region_j_start + width; j++)
+    for (unsigned int j = region_j_start; j < region_j_start + height; j++)
     {
       for (unsigned int i = region_i_start; i < region_i_start + width; i++)
       {
@@ -69,7 +71,7 @@ public:
   }
 
 protected:
-  const unsigned int region_i_start, region_j_start, width;
+  const unsigned int region_i_start, region_j_start, width, height;
   const float_type er_value, hr_value;
 };
 
@@ -100,7 +102,7 @@ public:
       boundary_condition bottom_boundary_condition,
       boundary_condition right_boundary_condition,
       boundary_condition top_boundary_condition,
-      region_initializer<float_type> &initializer)
+      const std::vector<region_initializer<float_type>*> &initializers)
       : left_bc (left_boundary_condition)
       , bottom_bc (bottom_boundary_condition)
       , right_bc (right_boundary_condition)
@@ -131,7 +133,8 @@ public:
     std::fill_n (ez.get (), nx * ny, 0.0);
     std::fill_n (dz.get (), nx * ny, 0.0);
 
-    initializer.fill_region (er.get (), hr.get ());
+    for (auto &initializer: initializers)
+      initializer->fill_region (er.get (), hr.get ());
 
     for (unsigned int i = 0; i < nx * ny; i++)
       m_e[i] = C0 * dt / er[i];
@@ -396,11 +399,11 @@ public:
       const std::chrono::duration<double> duration = end - begin;
       std::cout << "in " << duration.count () << "s\n";
 
-      // if (step % 500 == 0)
-      // {
-      //   cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
-      //   write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
-      // }
+      if (step % 40 == 0)
+      {
+        cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
+        write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
+      }
     }
 
     cudaFree (d_mh);
@@ -414,7 +417,7 @@ public:
   /// Ez mode
   void calculate (unsigned int steps, const sources_holder<float_type> &s)
   {
-    bool calculate_on_gpu = false;
+    bool calculate_on_gpu = true;
 
     std::cout << "Time step: " << dt << std::endl;
     std::cout << "Nx: " << nx << "; Ny: " << ny << std::endl;
@@ -435,20 +438,39 @@ int main()
   const double plane_size_x = 5;
 
   // const double dt = 1e-22;
-  const double frequency = 2e+9;
+  const double frequency = 4e+9;
   const double lambda_min = C0 / frequency;
-  const double dx = lambda_min / 120;
+  const double dx = lambda_min / 20;
   const auto optimal_nx = static_cast<unsigned int> (std::ceil (plane_size_x / dx));
   const auto optimal_ny = optimal_nx;
   const double plane_size_y = dx * optimal_ny;
 
   sources_holder<double> soft_source;
 
-  for (unsigned int j = 0; j < 3; j++)
-    for (unsigned int i = 0; i < 3; i++)
-      soft_source.append_source (frequency, ((j + 1) * optimal_ny/4) * optimal_nx + (i + 1) * optimal_nx / 4);
+  // for (unsigned int j = 0; j < 3; j++)
+  //   for (unsigned int i = 0; i < 3; i++)
+  //     soft_source.append_source (frequency, ((j + 1) * optimal_ny/4) * optimal_nx + (i + 1) * optimal_nx / 4);
+  soft_source.append_source (frequency, (optimal_ny/2) * optimal_nx + optimal_nx / 4);
 
-  rectangular_region_initializer rectangle (optimal_nx, optimal_ny, optimal_nx / 2, optimal_ny / 4, optimal_nx / 2, 2.0, 2.0);
+  unsigned int slit_width = optimal_ny / 40;
+  unsigned int slit_height = slit_width / 2;
+  unsigned int distance_between_slits = slit_height * 4;
+
+  unsigned int mid = optimal_ny / 2;
+  unsigned int mid_rec_top = mid + distance_between_slits / 2;
+  unsigned int mid_rec_bottom = mid - distance_between_slits / 2;
+  unsigned int top_rec_bottom = mid_rec_top + slit_height;
+  unsigned int bottom_rec_top = mid_rec_bottom - slit_height;
+
+  unsigned int top_rec_height = optimal_ny - top_rec_bottom;
+  unsigned int bottom_rec_height = bottom_rec_top;
+
+  double er = 100.0;
+  double mr = 100.0;
+
+  rectangular_region_initializer top_rectangle (optimal_nx, optimal_ny, optimal_nx / 2, top_rec_bottom, slit_width, top_rec_height, er, mr);
+  rectangular_region_initializer mid_rectangle (optimal_nx, optimal_ny, optimal_nx / 2, mid_rec_bottom, slit_width, distance_between_slits, er, mr);
+  rectangular_region_initializer bot_rectangle (optimal_nx, optimal_ny, optimal_nx / 2, 0,              slit_width, bottom_rec_height, er, mr);
 
   fdtd_2d simulation (
       optimal_nx, optimal_ny,
@@ -457,8 +479,8 @@ int main()
       boundary_condition::periodic,
       boundary_condition::periodic,
       boundary_condition::periodic,
-      rectangle);
-  simulation.calculate (1001, soft_source);
+      { &top_rectangle, &mid_rectangle, &bot_rectangle });
+  simulation.calculate (3001, soft_source);
 
   return 0;
 }
