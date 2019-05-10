@@ -9,6 +9,9 @@
 #include <cmath>
 
 template <class float_type>
+#ifdef __CUDACC__
+__device__ __host__
+#endif
 float_type gaussian_pulse (float_type t, float_type t_0, float_type tau)
 {
   return std::exp (-(((t - t_0) / tau) * (t - t_0) / tau));
@@ -25,7 +28,7 @@ public:
     sources_count++;
   }
 
-  void update_sources (float_type t, float_type *e)
+  void update_sources (float_type t, float_type *e) const
   {
     for (unsigned int source = 0; source < sources_count; source++)
       {
@@ -34,6 +37,10 @@ public:
         e[offsets[source]] += gaussian_pulse (t, t_0, tau);
       }
   }
+
+  unsigned int get_sources_count () const { return sources_count; }
+  const unsigned int *get_sources_offsets () const { return offsets.data (); }
+  const float_type *get_sources_frequencies () const { return frequencies.data (); }
 
 private:
   unsigned int sources_count = 0;

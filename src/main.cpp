@@ -4,7 +4,11 @@
 #include <cmath>
 
 #include "core/sources.h"
+#include "core/gpu/fdtd_gpu_interface.h"
 #include "io/vtk.h"
+
+// TODO Extract
+#include <cuda_runtime.h>
 
 constexpr double C0 = 299792458; /// Speed of light [metres per second]
 
@@ -308,15 +312,10 @@ public:
     }
   }
 
-  /// Ez mode
-  void calculate (unsigned int steps, sources_holder<float_type> &s)
+  void calculate_cpu (unsigned int steps, const sources_holder<float_type> &s)
   {
-    std::cout << "Time step: " << dt << std::endl;
-    std::cout << "Nx: " << nx << "; Ny: " << ny << std::endl;
-
     float_type t = 0.0;
 
-    const auto calculation_begin = std::chrono::high_resolution_clock::now ();
     for (unsigned int step = 0; step < steps; t += dt, step++)
     {
       const auto begin = std::chrono::high_resolution_clock::now ();
@@ -337,10 +336,94 @@ public:
       const std::chrono::duration<double> duration = end - begin;
       std::cout << "in " << duration.count () << "s\n";
 
-      if (step % 5 == 0)
-        write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
+      //if (step % 5 == 0)
+      //  write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
+    }
+  }
+
+  void calculate_gpu (unsigned int steps, const sources_holder<float_type> &s)
+  {
+    (void) s;
+
+    cudaSetDevice (0);
+
+    float_type t = 0.0;
+
+    float_type *d_mh = nullptr;
+    float_type *d_er = nullptr;
+    float_type *d_ez = nullptr;
+    float_type *d_dz = nullptr;
+    float_type *d_hx = nullptr;
+    float_type *d_hy = nullptr;
+
+    const unsigned int sources_count = s.get_sources_count ();
+    float_type *d_sources_frequencies = nullptr;
+    unsigned int *d_sources_offsets = nullptr;
+
+    cudaMalloc (&d_mh, nx * ny * sizeof (float_type));
+    cudaMalloc (&d_er, nx * ny * sizeof (float_type));
+    cudaMalloc (&d_ez, nx * ny * sizeof (float_type));
+    cudaMalloc (&d_dz, nx * ny * sizeof (float_type));
+    cudaMalloc (&d_hx, nx * ny * sizeof (float_type));
+    cudaMalloc (&d_hy, nx * ny * sizeof (float_type));
+    cudaMalloc (&d_sources_frequencies, sources_count * sizeof (float_type));
+    cudaMalloc (&d_sources_offsets, sources_count * sizeof (unsigned int));
+
+    cudaMemcpy (d_mh, m_h.get (), nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
+    cudaMemcpy (d_er, er.get (),  nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
+
+    cudaMemcpy (d_sources_frequencies, s.get_sources_frequencies (), sources_count * sizeof (float_type), cudaMemcpyHostToDevice);
+    cudaMemcpy (d_sources_offsets, s.get_sources_offsets (), sources_count * sizeof (unsigned int), cudaMemcpyHostToDevice);
+
+    cudaMemset (d_ez, 0, nx * ny * sizeof (float_type));
+    cudaMemset (d_hx, 0, nx * ny * sizeof (float_type));
+    cudaMemset (d_hy, 0, nx * ny * sizeof (float_type));
+
+    for (unsigned int step = 0; step < steps; t += dt, step++)
+    {
+      const auto begin = std::chrono::high_resolution_clock::now();
+      std::cout << "step: " << step << "; t: " << t << " ";
+
+      fdtd_step (t, dt, nx, ny, dx, dy, d_mh, d_er, d_ez, d_dz, d_hx, d_hy, sources_count, d_sources_frequencies, d_sources_offsets);
+
+      if (cudaGetLastError () != cudaSuccess)
+      {
+        std::cout << "Error on GPU!" << std::endl;
+        return;
+      }
+
+      const auto end = std::chrono::high_resolution_clock::now ();
+      const std::chrono::duration<double> duration = end - begin;
+      std::cout << "in " << duration.count () << "s\n";
+
+      // if (step % 500 == 0)
+      // {
+      //   cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
+      //   write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
+      // }
     }
 
+    cudaFree (d_mh);
+    cudaFree (d_er);
+    cudaFree (d_ez);
+    cudaFree (d_dz);
+    cudaFree (d_hx);
+    cudaFree (d_hy);
+  }
+
+  /// Ez mode
+  void calculate (unsigned int steps, const sources_holder<float_type> &s)
+  {
+    bool calculate_on_gpu = false;
+
+    std::cout << "Time step: " << dt << std::endl;
+    std::cout << "Nx: " << nx << "; Ny: " << ny << std::endl;
+
+    const auto calculation_begin = std::chrono::high_resolution_clock::now ();
+    if (calculate_on_gpu)
+      calculate_gpu (steps, s);
+    else
+      calculate_cpu (steps, s);
     const auto calculation_end = std::chrono::high_resolution_clock::now ();
     const std::chrono::duration<double> duration = calculation_end - calculation_begin;
     std::cout << "Computation completed in " << duration.count () << "s\n";
@@ -354,7 +437,7 @@ int main()
   // const double dt = 1e-22;
   const double frequency = 2e+9;
   const double lambda_min = C0 / frequency;
-  const double dx = lambda_min / 15;
+  const double dx = lambda_min / 120;
   const auto optimal_nx = static_cast<unsigned int> (std::ceil (plane_size_x / dx));
   const auto optimal_ny = optimal_nx;
   const double plane_size_y = dx * optimal_ny;
@@ -370,12 +453,12 @@ int main()
   fdtd_2d simulation (
       optimal_nx, optimal_ny,
       plane_size_x, plane_size_y,
-      boundary_condition::dirichlet,
-      boundary_condition::dirichlet,
-      boundary_condition::dirichlet,
-      boundary_condition::dirichlet,
+      boundary_condition::periodic,
+      boundary_condition::periodic,
+      boundary_condition::periodic,
+      boundary_condition::periodic,
       rectangle);
-  simulation.calculate (1000, soft_source);
+  simulation.calculate (1001, soft_source);
 
   return 0;
 }

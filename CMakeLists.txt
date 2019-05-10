@@ -6,4 +6,20 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wconversion -Wsig
 
 include_directories(src)
 
-add_executable(FDTD src/main.cpp src/io/vtk.h src/core/sources.h)
+find_package(CUDA)
+set(GPU_SOURCES
+        src/core/gpu/fdtd.cu
+        src/core/gpu/fdtd.cuh)
+
+add_executable(FDTD
+        src/main.cpp
+        src/io/vtk.h
+        src/core/sources.h
+        src/core/gpu/fdtd_gpu_interface.h
+        src/core/gpu/fdtd_gpu_interface.cpp)
+
+if(CUDA_FOUND)
+    add_compile_definitions(GPU_BUILD)
+    cuda_add_library(FDTD_GPU ${GPU_SOURCES})
+    target_link_libraries(FDTD FDTD_GPU)
+endif()
