@@ -1,21 +1,14 @@
 //
-// Created by egi on 5/10/19.
+// Created by egi on 5/11/19.
 //
 
-#ifndef FDTD_SOURCES_H
-#define FDTD_SOURCES_H
+#ifndef FDTD_SOURCES_HOLDER_H
+#define FDTD_SOURCES_HOLDER_H
+
+#include "core/common/sources.h"
 
 #include <vector>
 #include <cmath>
-
-template <class float_type>
-#ifdef __CUDACC__
-__device__ __host__
-#endif
-float_type gaussian_pulse (float_type t, float_type t_0, float_type tau)
-{
-  return std::exp (-(((t - t_0) / tau) * (t - t_0) / tau));
-}
 
 template <class float_type>
 class sources_holder
@@ -31,11 +24,7 @@ public:
   void update_sources (float_type t, float_type *e) const
   {
     for (unsigned int source = 0; source < sources_count; source++)
-      {
-        const float_type tau = 0.5 / frequencies[source];
-        const float_type t_0 = 6 * tau;
-        e[offsets[source]] += gaussian_pulse (t, t_0, tau);
-      }
+      e[offsets[source]] += calculate_source (t, frequencies[source]);
   }
 
   unsigned int get_sources_count () const { return sources_count; }
@@ -48,4 +37,4 @@ private:
   std::vector<float_type> frequencies;
 };
 
-#endif //FDTD_SOURCES_H
+#endif //FDTD_SOURCES_HOLDER_H

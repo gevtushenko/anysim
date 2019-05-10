@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-#include "core/sources.h"
+#include "core/common/sources.h"
 
 /**
  * Calculate curl of Ex with periodic boundary condition
@@ -113,14 +113,8 @@ __global__ void fdtd_update_e_kernel (
 
     // TODO Extract into separate kernel
     for (unsigned int source_id = 0; source_id < sources_count; source_id++)
-    {
       if (sources_offsets[source_id] == idx)
-      {
-        const float_type tau = 0.5 / sources_frequencies[source_id];
-        const float_type t_0 = 6 * tau;
-        dz[idx] += gaussian_pulse (t, t_0, tau);
-      }
-    }
+        dz[idx] += calculate_source (t, sources_frequencies[source_id]);
 
     ez[idx] = dz[idx] / er[idx]; // update e
   }

@@ -3,7 +3,7 @@
 #include <memory>
 #include <cmath>
 
-#include "core/sources.h"
+#include "core/cpu/sources_holder.h"
 #include "core/gpu/fdtd_gpu_interface.h"
 #include "io/vtk.h"
 
@@ -480,7 +480,7 @@ int main()
       boundary_condition::periodic,
       boundary_condition::periodic,
       { &top_rectangle, &mid_rectangle, &bot_rectangle });
-  simulation.calculate (3001, soft_source);
+  simulation.calculate (1000, soft_source);
 
   return 0;
 }
