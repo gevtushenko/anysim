@@ -441,7 +441,7 @@ int main (int argc, char *argv[])
   const double plane_size_x = 5;
 
   // const double dt = 1e-22;
-  const double frequency = 4e+9;
+  const double frequency = 1e+9;
   const double lambda_min = C0 / frequency;
   const double dx = lambda_min / 20;
   const auto optimal_nx = static_cast<unsigned int> (std::ceil (plane_size_x / dx));
@@ -455,7 +455,7 @@ int main (int argc, char *argv[])
   //     soft_source.append_source (frequency, ((j + 1) * optimal_ny/4) * optimal_nx + (i + 1) * optimal_nx / 4);
   soft_source.append_source (frequency, (optimal_ny/2) * optimal_nx + optimal_nx / 4);
 
-  unsigned int slit_width = optimal_ny / 40;
+  unsigned int slit_width = optimal_ny / 10;
   unsigned int slit_height = slit_width / 2;
   unsigned int distance_between_slits = slit_height * 4;
 
@@ -487,7 +487,9 @@ int main (int argc, char *argv[])
 
   QApplication app (argc, argv);
 
-  main_window window (optimal_nx, optimal_ny);
+  main_window window(
+      optimal_nx, optimal_ny,
+      static_cast<float>(plane_size_x), static_cast<float>(plane_size_y));
   window.resize (QSize (800, 800));
   window.show ();
 

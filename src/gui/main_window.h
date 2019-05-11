@@ -14,7 +14,7 @@ class main_window : public QMainWindow
   Q_OBJECT
 
 public:
-  main_window (unsigned int nx, unsigned int ny);
+  main_window (unsigned int nx, unsigned int ny, float x_size, float y_size);
   ~main_window () override;
 
   opengl_widget *gl;

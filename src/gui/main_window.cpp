@@ -7,8 +7,8 @@
 #include "main_window.h"
 #include "gui/opengl_widget.h"
 
-main_window::main_window(unsigned int nx, unsigned int ny)
-  : gl (new opengl_widget (nx, ny))
+main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y_size)
+  : gl (new opengl_widget (nx, ny, x_size, y_size))
 {
   // Set OpenGL Version information
   // Note: This format must be set before show() is called.

@@ -4,6 +4,8 @@
 
 #include "opengl_widget.h"
 
+#include <iostream>
+
 const char *vs_source =
     //"#version 100\n"  // OpenGL ES 2.0
     //"#version 120\n"  // OpenGL 2.1
@@ -23,10 +25,47 @@ const char *fs_source =
     "  gl_FragColor = vec4(f_color.r, f_color.g, f_color.b, 1.0); "
     "}";
 
-opengl_widget::opengl_widget (unsigned int nx, unsigned int ny)
+opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, float y_size)
   : elements_count (nx * ny)
+  , colors (new GLfloat[color_data_per_element * elements_count])
+  , vertices (new GLfloat[vertex_data_per_element * elements_count])
 {
+  const GLfloat l_x = -0.8f;
+  const GLfloat r_x =  0.8f;
+  const GLfloat b_y = -0.8f;
+  const GLfloat t_y =  0.8f;
 
+  GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
+  GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
+
+  GLfloat dx = max_width / static_cast<GLfloat> (nx);
+  GLfloat dy = max_height / static_cast<GLfloat> (ny);
+
+  static GLfloat _colors[] =
+      {
+          1.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+          1.0, 0.0, 0.0,
+          1.0, 0.0, 1.0,
+      };
+
+  for (unsigned int j = 0; j < ny; j++)
+  {
+    for (unsigned int i = 0; i < nx; i++)
+    {
+      const unsigned int vert_offset = static_cast<unsigned int> (vertex_data_per_element) * (j * nx + i);
+
+      vertices[vert_offset + 0] = l_x + dx * (i + 0); vertices[vert_offset + 1] = b_y + dy * (j + 1);
+      vertices[vert_offset + 2] = l_x + dx * (i + 0); vertices[vert_offset + 3] = b_y + dy * (j + 0);
+      vertices[vert_offset + 4] = l_x + dx * (i + 1); vertices[vert_offset + 5] = b_y + dy * (j + 0);
+      vertices[vert_offset + 6] = l_x + dx * (i + 1); vertices[vert_offset + 7] = b_y + dy * (j + 1);
+
+      const unsigned int color_offset = static_cast<unsigned int> (color_data_per_element) * (j * nx + i);
+      std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
+    }
+  }
+
+  std::cout << max_width << " - " << max_height << std::endl;
 }
 
 opengl_widget::~opengl_widget ()
@@ -47,26 +86,34 @@ void opengl_widget::initializeGL()
 
   /// VBO Handling
   const int glfloat_size = sizeof (GLfloat);
-  const int vertices_per_element = 4;
-  const int coords_per_vertex = 2;
-  const int vertex_data_per_element = vertices_per_element * coords_per_vertex;
   const long int vertices_array_size = elements_count * vertex_data_per_element * glfloat_size;
   glGenBuffers (1, &vbo_vertices);
   glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
   glBufferData (GL_ARRAY_BUFFER, vertices_array_size, vertices.get (), GL_DYNAMIC_DRAW);
 
-  const int colors_per_vertex = 3;
-  const int color_data_per_element = colors_per_vertex * vertices_per_element;
   const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
   glGenBuffers (1, &vbo_colors);
   glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
   glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+
+  initialized = true;
 }
 
 void opengl_widget::resizeGL(int width, int height)
 {
   (void) width;
   (void) height;
+
+  if (!initialized)
+    return;
+
+  const int glfloat_size = sizeof (GLfloat);
+  const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
+
+  for (unsigned int i = 0; i < colors_array_size / glfloat_size; i++)
+    colors[i] *= 0.9;
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
+  glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
 }
 
 void opengl_widget::paintGL()

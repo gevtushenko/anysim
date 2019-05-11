@@ -17,7 +17,7 @@ class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 
 public:
   opengl_widget () = delete;
-  opengl_widget (unsigned int nx, unsigned int ny);
+  opengl_widget (unsigned int nx, unsigned int ny, float x_size, float y_size);
   ~opengl_widget () override;
 
 protected:
@@ -30,9 +30,16 @@ private:
   GLint attribute_coord2d, attribute_v_color;
   GLuint vbo_vertices, vbo_colors;
 
+  bool initialized = false;
+  const long int elements_count;
+  const int vertices_per_element = 4;
+  const int coords_per_vertex = 2;
+  const int vertex_data_per_element = vertices_per_element * coords_per_vertex;
+  const int colors_per_vertex = 3;
+  const int color_data_per_element = colors_per_vertex * vertices_per_element;
+
   std::unique_ptr<GLfloat[]> colors;
   std::unique_ptr<GLfloat[]> vertices;
-  const long int elements_count;
 };
 
 

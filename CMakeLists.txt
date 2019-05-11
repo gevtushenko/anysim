@@ -18,7 +18,7 @@ find_package(Qt5OpenGL)
 
 include_directories(${Qt5Widgets_INCLUDES} ${Qt5OpenGL_INCLUDES} ${Boost_INCLUDE_DIRS})
 add_definitions(${Qt5Widgets_DEFINITIONS} ${Qt5OpenGL_DEFINITIONS})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wconversion -Wsign-conversion -O3 ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wsign-conversion ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 
 add_executable(FDTD
         src/main.cpp
