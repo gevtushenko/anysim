@@ -25,6 +25,6 @@ void render_thread::run()
     render_action (colors);
     emit rendered ();
 
-    msleep (10);
+    // msleep (10);
   }
 }

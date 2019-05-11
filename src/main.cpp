@@ -448,7 +448,7 @@ int main (int argc, char *argv[])
   // const double dt = 1e-22;
   const double frequency = 1e+9;
   const double lambda_min = C0 / frequency;
-  const double dx = lambda_min / 20;
+  const double dx = lambda_min / 30;
   const auto optimal_nx = static_cast<unsigned int> (std::ceil (plane_size_x / dx));
   const auto optimal_ny = optimal_nx;
   const double plane_size_y = dx * optimal_ny;
@@ -476,9 +476,9 @@ int main (int argc, char *argv[])
   double er = 100.0;
   double mr = 100.0;
 
-  rectangular_region_initializer top_rectangle (optimal_nx, optimal_ny, optimal_nx / 2, top_rec_bottom, slit_width, top_rec_height, er, mr);
-  rectangular_region_initializer mid_rectangle (optimal_nx, optimal_ny, optimal_nx / 2, mid_rec_bottom, slit_width, distance_between_slits, er, mr);
-  rectangular_region_initializer bot_rectangle (optimal_nx, optimal_ny, optimal_nx / 2, 0,              slit_width, bottom_rec_height, er, mr);
+  rectangular_region_initializer top_rectangle (optimal_nx, optimal_ny, 2 * optimal_nx / 3, top_rec_bottom, slit_width, top_rec_height, er, mr);
+  rectangular_region_initializer mid_rectangle (optimal_nx, optimal_ny, 2 * optimal_nx / 3, mid_rec_bottom, slit_width, distance_between_slits, er, mr);
+  rectangular_region_initializer bot_rectangle (optimal_nx, optimal_ny, 2 * optimal_nx / 3, 0,              slit_width, bottom_rec_height, er, mr);
 
   fdtd_2d simulation (
       optimal_nx, optimal_ny,
@@ -499,7 +499,7 @@ int main (int argc, char *argv[])
       static_cast<float>(plane_size_x), static_cast<float>(plane_size_y),
       [&simulation, &optimal_nx, &optimal_ny, &soft_source] (GLfloat *colors)
       {
-        simulation.calculate (1, soft_source);
+        simulation.calculate (4, soft_source);
         auto ez = simulation.get_ez ();
 
         for (unsigned int j = 0; j < optimal_ny; j++)

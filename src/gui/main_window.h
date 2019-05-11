@@ -23,7 +23,16 @@ public:
       std::function<void(GLfloat *)> render_action);
   ~main_window () override;
 
+private slots:
+  void start_simulation ();
+
+private:
+  void create_actions ();
+
+private:
   opengl_widget *gl;
+  QAction *run_action = nullptr;
+  QAction *stop_action = nullptr;
   render_thread renderer;
 };
 
