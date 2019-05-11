@@ -344,6 +344,11 @@ public:
     }
   }
 
+  const float_type *get_ez () const
+  {
+    return ez.get ();
+  }
+
   void calculate_gpu (unsigned int steps, const sources_holder<float_type> &s)
   {
     (void) s;
@@ -402,7 +407,7 @@ public:
       if (step % 40 == 0)
       {
         cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
-        write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
+        // write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
       }
     }
 
@@ -489,7 +494,37 @@ int main (int argc, char *argv[])
 
   main_window window(
       optimal_nx, optimal_ny,
-      static_cast<float>(plane_size_x), static_cast<float>(plane_size_y));
+      static_cast<float>(plane_size_x), static_cast<float>(plane_size_y),
+      [&simulation, &optimal_nx, &optimal_ny, &soft_source] (GLfloat *colors)
+      {
+        simulation.calculate (500, soft_source);
+        auto ez = simulation.get_ez ();
+
+        for (unsigned int j = 0; j < optimal_ny; j++)
+        {
+          for (unsigned int i = 0; i < optimal_nx; i++)
+          {
+            auto ezv = ez[j * optimal_nx + i] * 100;
+            if (ezv < 0.0)
+              ezv = 0.0;
+            if (ezv > 1.0)
+              ezv = 1.0;
+
+            colors[3 * 4 * (j * optimal_nx + i) + 0] = ezv;
+            colors[3 * 4 * (j * optimal_nx + i) + 1] = 0.0f;
+            colors[3 * 4 * (j * optimal_nx + i) + 2] = 0.0f;
+            colors[3 * 4 * (j * optimal_nx + i) + 3] = ezv;
+            colors[3 * 4 * (j * optimal_nx + i) + 4] = 0.0f;
+            colors[3 * 4 * (j * optimal_nx + i) + 5] = 0.0f;
+            colors[3 * 4 * (j * optimal_nx + i) + 6] = ezv;
+            colors[3 * 4 * (j * optimal_nx + i) + 7] = 0.0f;
+            colors[3 * 4 * (j * optimal_nx + i) + 8] = 0.0f;
+            colors[3 * 4 * (j * optimal_nx + i) + 9] = ezv;
+            colors[3 * 4 * (j * optimal_nx + i) + 10] = 0.0f;
+            colors[3 * 4 * (j * optimal_nx + i) + 11] = 0.0f;
+          }
+        }
+      });
   window.resize (QSize (800, 800));
   window.show ();
 

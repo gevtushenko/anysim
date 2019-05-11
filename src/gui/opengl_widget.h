@@ -20,6 +20,11 @@ public:
   opengl_widget (unsigned int nx, unsigned int ny, float x_size, float y_size);
   ~opengl_widget () override;
 
+  GLfloat *get_colors ();
+
+public slots:
+  void update_colors ();
+
 protected:
   void initializeGL () override;
   void resizeGL (int width, int height) override;

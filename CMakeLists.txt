@@ -31,7 +31,7 @@ add_executable(FDTD
         src/gui/main_window.cpp
         src/gui/main_window.h
         src/gui/opengl_widget.cpp
-        src/gui/opengl_widget.h)
+        src/gui/opengl_widget.h src/gui/render_thread.cpp src/gui/render_thread.h)
 target_link_libraries(FDTD Qt5::Widgets Qt5::OpenGL)
 
 if(CUDA_FOUND)

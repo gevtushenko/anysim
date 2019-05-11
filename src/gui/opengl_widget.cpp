@@ -74,6 +74,11 @@ opengl_widget::~opengl_widget ()
   glDeleteBuffers (1, &vbo_colors);
 }
 
+GLfloat *opengl_widget::get_colors ()
+{
+  return colors.get ();
+}
+
 void opengl_widget::initializeGL()
 {
   initializeOpenGLFunctions ();
@@ -106,14 +111,16 @@ void opengl_widget::resizeGL(int width, int height)
 
   if (!initialized)
     return;
+}
 
+void opengl_widget::update_colors()
+{
   const int glfloat_size = sizeof (GLfloat);
   const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
 
-  for (unsigned int i = 0; i < colors_array_size / glfloat_size; i++)
-    colors[i] *= 0.9;
   glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
   glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+  update ();
 }
 
 void opengl_widget::paintGL()
@@ -132,4 +139,6 @@ void opengl_widget::paintGL()
   glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
   glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
   program->release();
+
+  std::cout << "painted" << std::endl;
 }
