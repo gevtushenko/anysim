@@ -433,7 +433,10 @@ public:
   }
 };
 
-int main()
+#include <QApplication>
+#include "gui/main_window.h"
+
+int main (int argc, char *argv[])
 {
   const double plane_size_x = 5;
 
@@ -480,7 +483,13 @@ int main()
       boundary_condition::periodic,
       boundary_condition::periodic,
       { &top_rectangle, &mid_rectangle, &bot_rectangle });
-  simulation.calculate (1000, soft_source);
+  // simulation.calculate (1000, soft_source);
 
-  return 0;
+  QApplication app (argc, argv);
+
+  main_window window (optimal_nx, optimal_ny);
+  window.resize (QSize (800, 800));
+  window.show ();
+
+  return app.exec ();
 }
