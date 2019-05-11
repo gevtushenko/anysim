@@ -20,6 +20,11 @@ void render_thread::render()
 
 void render_thread::run()
 {
-  render_action (colors);
-  emit rendered ();
+  for (unsigned int i = 0; i < 9000; i++)
+  {
+    render_action (colors);
+    emit rendered ();
+
+    msleep (10);
+  }
 }

@@ -83,6 +83,7 @@ class fdtd_2d
   const unsigned int nx, ny;
   const float_type dx, dy;
   const float_type dt;
+  float_type t = 0.0;
 
   std::unique_ptr<float_type[]> m_e, m_h;  /// Compute update coefficients
   std::unique_ptr<float_type[]> cex, cey;  /// Curl E components
@@ -90,6 +91,17 @@ class fdtd_2d
   std::unique_ptr<float_type[]> dz;
   std::unique_ptr<float_type[]> ez, hx, hy;
   std::unique_ptr<float_type[]> er, hr; /// Materials properties (for now assume mu_xx = mu_yy)
+
+  float_type *d_mh = nullptr;
+  float_type *d_er = nullptr;
+  float_type *d_ez = nullptr;
+  float_type *d_dz = nullptr;
+  float_type *d_hx = nullptr;
+  float_type *d_hy = nullptr;
+
+  unsigned int sources_count = 0;
+  float_type *d_sources_frequencies = nullptr;
+  unsigned int *d_sources_offsets = nullptr;
 
 public:
   fdtd_2d () = delete;
@@ -317,8 +329,6 @@ public:
 
   void calculate_cpu (unsigned int steps, const sources_holder<float_type> &s)
   {
-    float_type t = 0.0;
-
     for (unsigned int step = 0; step < steps; t += dt, step++)
     {
       const auto begin = std::chrono::high_resolution_clock::now ();
@@ -349,24 +359,11 @@ public:
     return ez.get ();
   }
 
-  void calculate_gpu (unsigned int steps, const sources_holder<float_type> &s)
+  void preprocess_gpu (const sources_holder<float_type> &s)
   {
-    (void) s;
-
     cudaSetDevice (0);
 
-    float_type t = 0.0;
-
-    float_type *d_mh = nullptr;
-    float_type *d_er = nullptr;
-    float_type *d_ez = nullptr;
-    float_type *d_dz = nullptr;
-    float_type *d_hx = nullptr;
-    float_type *d_hy = nullptr;
-
-    const unsigned int sources_count = s.get_sources_count ();
-    float_type *d_sources_frequencies = nullptr;
-    unsigned int *d_sources_offsets = nullptr;
+    sources_count = s.get_sources_count ();
 
     cudaMalloc (&d_mh, nx * ny * sizeof (float_type));
     cudaMalloc (&d_er, nx * ny * sizeof (float_type));
@@ -386,7 +383,10 @@ public:
     cudaMemset (d_ez, 0, nx * ny * sizeof (float_type));
     cudaMemset (d_hx, 0, nx * ny * sizeof (float_type));
     cudaMemset (d_hy, 0, nx * ny * sizeof (float_type));
+  }
 
+  void calculate_gpu (unsigned int steps)
+  {
     for (unsigned int step = 0; step < steps; t += dt, step++)
     {
       const auto begin = std::chrono::high_resolution_clock::now();
@@ -404,13 +404,13 @@ public:
       const std::chrono::duration<double> duration = end - begin;
       std::cout << "in " << duration.count () << "s\n";
 
-      if (step % 40 == 0)
-      {
-        cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
-        // write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
-      }
     }
 
+    cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
+  }
+
+  void postprocess_gpu ()
+  {
     cudaFree (d_mh);
     cudaFree (d_er);
     cudaFree (d_ez);
@@ -429,7 +429,7 @@ public:
 
     const auto calculation_begin = std::chrono::high_resolution_clock::now ();
     if (calculate_on_gpu)
-      calculate_gpu (steps, s);
+      calculate_gpu (steps);
     else
       calculate_cpu (steps, s);
     const auto calculation_end = std::chrono::high_resolution_clock::now ();
@@ -490,6 +490,8 @@ int main (int argc, char *argv[])
       { &top_rectangle, &mid_rectangle, &bot_rectangle });
   // simulation.calculate (1000, soft_source);
 
+  simulation.preprocess_gpu (soft_source);
+
   QApplication app (argc, argv);
 
   main_window window(
@@ -497,7 +499,7 @@ int main (int argc, char *argv[])
       static_cast<float>(plane_size_x), static_cast<float>(plane_size_y),
       [&simulation, &optimal_nx, &optimal_ny, &soft_source] (GLfloat *colors)
       {
-        simulation.calculate (500, soft_source);
+        simulation.calculate (1, soft_source);
         auto ez = simulation.get_ez ();
 
         for (unsigned int j = 0; j < optimal_ny; j++)
@@ -513,12 +515,15 @@ int main (int argc, char *argv[])
             colors[3 * 4 * (j * optimal_nx + i) + 0] = ezv;
             colors[3 * 4 * (j * optimal_nx + i) + 1] = 0.0f;
             colors[3 * 4 * (j * optimal_nx + i) + 2] = 0.0f;
+
             colors[3 * 4 * (j * optimal_nx + i) + 3] = ezv;
             colors[3 * 4 * (j * optimal_nx + i) + 4] = 0.0f;
             colors[3 * 4 * (j * optimal_nx + i) + 5] = 0.0f;
+
             colors[3 * 4 * (j * optimal_nx + i) + 6] = ezv;
             colors[3 * 4 * (j * optimal_nx + i) + 7] = 0.0f;
             colors[3 * 4 * (j * optimal_nx + i) + 8] = 0.0f;
+
             colors[3 * 4 * (j * optimal_nx + i) + 9] = ezv;
             colors[3 * 4 * (j * optimal_nx + i) + 10] = 0.0f;
             colors[3 * 4 * (j * optimal_nx + i) + 11] = 0.0f;
@@ -528,5 +533,8 @@ int main (int argc, char *argv[])
   window.resize (QSize (800, 800));
   window.show ();
 
-  return app.exec ();
+  int ret_code = app.exec ();
+  simulation.postprocess_gpu ();
+
+  return ret_code;
 }
