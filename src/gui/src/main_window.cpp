@@ -3,9 +3,11 @@
 //
 
 #include <QtWidgets>
+#include <QCheckBox>
+#include <QComboBox>
 
-#include "main_window.h"
-#include "gui/opengl_widget.h"
+#include "gui/include/main_window.h"
+#include "gui/include/opengl_widget.h"
 
 main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y_size,
     std::function<void(GLfloat *)> render_action)
@@ -20,8 +22,8 @@ main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y
   gl->setFormat(format);
 
   setCentralWidget (gl);
-  connect (&renderer, SIGNAL (rendered ()), gl, SLOT (update_colors ()));
-  // renderer.render ();
+  connect (&renderer, SIGNAL (steps_completed ()), gl, SLOT (update_colors ()));
+  connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));
 
   create_actions ();
   statusBar ()->showMessage ("Ready");
@@ -32,8 +34,17 @@ main_window::~main_window() = default;
 void main_window::start_simulation()
 {
   run_action->setEnabled (false);
-  renderer.render ();
+  renderer.render (use_gpu->isChecked (), gpu_names->currentData ().toInt ());
 }
+
+void main_window::simulation_completed()
+{
+  run_action->setEnabled (true);
+}
+
+#ifdef GPU_BUILD
+#include <cuda_runtime.h>
+#endif
 
 void main_window::create_actions()
 {
@@ -50,6 +61,28 @@ void main_window::create_actions()
 
   control_tool_bar->addAction (stop_action);
   control_tool_bar->addAction (run_action);
+
+#ifdef GPU_BUILD
+  use_gpu = new QCheckBox ("Use GPU");
+  use_gpu->setChecked (true);
+  use_gpu->setLayoutDirection (Qt::RightToLeft);
+
+  gpu_names = new QComboBox ();
+
+  int gpus_count = 0;
+  cudaGetDeviceCount (&gpus_count);
+
+  for (int gpu_id = 0; gpu_id < gpus_count; gpu_id++)
+  {
+    cudaDeviceProp device;
+    cudaGetDeviceProperties (&device, gpu_id);
+    gpu_names->addItem (device.name, QVariant (gpu_id));
+  }
+
+  control_tool_bar->addSeparator ();
+  control_tool_bar->addWidget (use_gpu);
+  control_tool_bar->addWidget (gpu_names);
+#endif
 
   connect (run_action, SIGNAL (triggered ()), this, SLOT (start_simulation ()));
 }

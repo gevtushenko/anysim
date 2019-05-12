@@ -2,7 +2,7 @@
 // Created by egi on 5/11/19.
 //
 
-#include "opengl_widget.h"
+#include "gui/include/opengl_widget.h"
 
 #include <iostream>
 

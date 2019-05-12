@@ -1,42 +1,40 @@
 cmake_minimum_required(VERSION 3.14)
-project(FDTD)
+project(anysim)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_AUTOMOC ON)
 
 include_directories(src)
 
-find_package(CUDA)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wsign-conversion")
 
-set(GPU_SOURCES
-        src/core/gpu/fdtd.cu
-        src/core/gpu/fdtd.cuh)
-
-find_package(Qt5Widgets)
-find_package(Qt5Gui)
-find_package(Qt5OpenGL)
-
-include_directories(${Qt5Widgets_INCLUDES} ${Qt5OpenGL_INCLUDES} ${Boost_INCLUDE_DIRS})
-add_definitions(${Qt5Widgets_DEFINITIONS} ${Qt5OpenGL_DEFINITIONS})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wsign-conversion ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
-
-add_executable(FDTD
+set(SOURCES
         src/main.cpp
         src/io/vtk.h
         src/core/common/sources.h
         src/core/gpu/fdtd_gpu_interface.h
         src/core/gpu/fdtd_gpu_interface.cpp
         src/core/common/common_defs.h
-        src/core/cpu/sources_holder.h
-        src/gui/main_window.cpp
-        src/gui/main_window.h
-        src/gui/opengl_widget.cpp
-        src/gui/opengl_widget.h src/gui/render_thread.cpp src/gui/render_thread.h)
-target_link_libraries(FDTD Qt5::Widgets Qt5::OpenGL)
+        src/core/cpu/sources_holder.h)
 
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+
+find_package(CUDA)
 if(CUDA_FOUND)
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 -lineinfo")
+    set(GPU_SOURCES
+            src/core/gpu/fdtd.cu
+            src/core/gpu/fdtd.cuh)
     add_compile_definitions(GPU_BUILD)
-    cuda_add_library(FDTD_GPU ${GPU_SOURCES})
-    target_link_libraries(FDTD FDTD_GPU)
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 -lineinfo")
+    cuda_add_library(${CMAKE_PROJECT_NAME}_gpu ${GPU_SOURCES})
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_gpu)
 endif()
+
+find_package(Qt5Widgets)
+if(Qt5Widgets_FOUND)
+    message("1 => ${Qt5Widgets_INCLUDES} ${Qt5OpenGL_INCLUDES}")
+    add_compile_definitions(GUI_BUILD)
+    include_directories(src/gui/include)
+    add_subdirectory(src/gui)
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_gui)
+endif()
+

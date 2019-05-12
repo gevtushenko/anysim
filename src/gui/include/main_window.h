@@ -9,7 +9,10 @@
 
 #include <functional>
 
-#include "gui/render_thread.h"
+#include "render_thread.h"
+
+class QCheckBox;
+class QComboBox;
 
 class opengl_widget;
 
@@ -25,6 +28,7 @@ public:
 
 private slots:
   void start_simulation ();
+  void simulation_completed ();
 
 private:
   void create_actions ();
@@ -33,6 +37,8 @@ private:
   opengl_widget *gl;
   QAction *run_action = nullptr;
   QAction *stop_action = nullptr;
+  QCheckBox *use_gpu = nullptr;
+  QComboBox *gpu_names = nullptr;
   render_thread renderer;
 };
 

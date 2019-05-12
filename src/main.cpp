@@ -438,8 +438,9 @@ public:
   }
 };
 
-#include <QApplication>
-#include "gui/main_window.h"
+#ifdef GUI_BUILD
+#include "gui_simulation_manager.h"
+#endif
 
 int main (int argc, char *argv[])
 {
@@ -492,48 +493,42 @@ int main (int argc, char *argv[])
 
   simulation.preprocess_gpu (soft_source);
 
-  QApplication app (argc, argv);
+  auto render_function = [&simulation, &optimal_nx, &optimal_ny, &soft_source] (float *colors)
+  {
+    simulation.calculate (4, soft_source);
+    auto ez = simulation.get_ez ();
 
-  main_window window(
-      optimal_nx, optimal_ny,
-      static_cast<float>(plane_size_x), static_cast<float>(plane_size_y),
-      [&simulation, &optimal_nx, &optimal_ny, &soft_source] (GLfloat *colors)
+    for (unsigned int j = 0; j < optimal_ny; j++)
+    {
+      for (unsigned int i = 0; i < optimal_nx; i++)
       {
-        simulation.calculate (4, soft_source);
-        auto ez = simulation.get_ez ();
+        auto ezv = ez[j * optimal_nx + i] * 100;
+        if (ezv < 0.0)
+          ezv = 0.0;
+        if (ezv > 1.0)
+          ezv = 1.0;
 
-        for (unsigned int j = 0; j < optimal_ny; j++)
-        {
-          for (unsigned int i = 0; i < optimal_nx; i++)
-          {
-            auto ezv = ez[j * optimal_nx + i] * 100;
-            if (ezv < 0.0)
-              ezv = 0.0;
-            if (ezv > 1.0)
-              ezv = 1.0;
+        colors[3 * 4 * (j * optimal_nx + i) + 0] = ezv;
+        colors[3 * 4 * (j * optimal_nx + i) + 1] = 0.0f;
+        colors[3 * 4 * (j * optimal_nx + i) + 2] = 0.0f;
 
-            colors[3 * 4 * (j * optimal_nx + i) + 0] = ezv;
-            colors[3 * 4 * (j * optimal_nx + i) + 1] = 0.0f;
-            colors[3 * 4 * (j * optimal_nx + i) + 2] = 0.0f;
+        colors[3 * 4 * (j * optimal_nx + i) + 3] = ezv;
+        colors[3 * 4 * (j * optimal_nx + i) + 4] = 0.0f;
+        colors[3 * 4 * (j * optimal_nx + i) + 5] = 0.0f;
 
-            colors[3 * 4 * (j * optimal_nx + i) + 3] = ezv;
-            colors[3 * 4 * (j * optimal_nx + i) + 4] = 0.0f;
-            colors[3 * 4 * (j * optimal_nx + i) + 5] = 0.0f;
+        colors[3 * 4 * (j * optimal_nx + i) + 6] = ezv;
+        colors[3 * 4 * (j * optimal_nx + i) + 7] = 0.0f;
+        colors[3 * 4 * (j * optimal_nx + i) + 8] = 0.0f;
 
-            colors[3 * 4 * (j * optimal_nx + i) + 6] = ezv;
-            colors[3 * 4 * (j * optimal_nx + i) + 7] = 0.0f;
-            colors[3 * 4 * (j * optimal_nx + i) + 8] = 0.0f;
+        colors[3 * 4 * (j * optimal_nx + i) + 9] = ezv;
+        colors[3 * 4 * (j * optimal_nx + i) + 10] = 0.0f;
+        colors[3 * 4 * (j * optimal_nx + i) + 11] = 0.0f;
+      }
+    }
+  };
 
-            colors[3 * 4 * (j * optimal_nx + i) + 9] = ezv;
-            colors[3 * 4 * (j * optimal_nx + i) + 10] = 0.0f;
-            colors[3 * 4 * (j * optimal_nx + i) + 11] = 0.0f;
-          }
-        }
-      });
-  window.resize (QSize (800, 800));
-  window.show ();
-
-  int ret_code = app.exec ();
+  gui_simulation_manager simulation_manager (argc, argv, optimal_nx, optimal_ny, plane_size_x, plane_size_y, render_function);
+  int ret_code = simulation_manager.run ();
   simulation.postprocess_gpu ();
 
   return ret_code;

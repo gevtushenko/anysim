@@ -18,10 +18,11 @@ public:
   explicit render_thread (GLfloat *colors_arg, std::function<void(GLfloat *)>, QObject *parent = nullptr);
   ~render_thread () override;
 
-  void render ();
+  void render (bool use_gpu, int gpu_num);
 
 signals:
-  void rendered ();
+  void steps_completed ();
+  void simulation_completed ();
 
 protected:
   void run () override;
