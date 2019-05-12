@@ -76,7 +76,7 @@ __device__ static float_type update_curl_h (
 {
   // TODO For now assume that only periodic boundary conditions exist
   const unsigned int curr_idx   = (j + 0) * nx + i;
-  const unsigned int prev_idx_i = i > 0 ? (j + 0) * nx + i - 1 : j * nx + 0;
+  const unsigned int prev_idx_i = i > 0 ? (j + 0) * nx + i - 1 : j * nx + nx - 1;
   const unsigned int prev_idx_j = j > 0 ? (j - 1) * nx + i     : (ny - 1) * nx + i;
 
   return (hy[curr_idx] - hy[prev_idx_i]) / dx
