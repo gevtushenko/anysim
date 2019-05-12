@@ -30,10 +30,10 @@ opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, fl
   , colors (new GLfloat[color_data_per_element * elements_count])
   , vertices (new GLfloat[vertex_data_per_element * elements_count])
 {
-  const GLfloat l_x = -0.8f;
-  const GLfloat r_x =  0.8f;
-  const GLfloat b_y = -0.8f;
-  const GLfloat t_y =  0.8f;
+  const GLfloat l_x = -0.9f;
+  const GLfloat r_x =  0.9f;
+  const GLfloat b_y = -0.9f;
+  const GLfloat t_y =  0.9f;
 
   GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
   GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
@@ -70,13 +70,34 @@ opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, fl
 
 opengl_widget::~opengl_widget ()
 {
+  cudaGraphicsUnregisterResource (colors_res);
   glDeleteBuffers (1, &vbo_vertices);
   glDeleteBuffers (1, &vbo_colors);
 }
 
-GLfloat *opengl_widget::get_colors ()
+// GLfloat *opengl_widget::get_colors ()
+// {
+//   return colors.get ();
+// }
+
+float* opengl_widget::preprocess_before_colors_fill()
 {
-  return colors.get ();
+  size_t size = 0;
+  float *colors_ptr = nullptr;
+  cudaGraphicsMapResources (1, &colors_res);
+  cudaGraphicsResourceGetMappedPointer ((void**) &colors_ptr, &size, colors_res);
+
+  auto error = cudaGetLastError ();
+
+  if (error != cudaSuccess)
+    std::cout << cudaGetErrorString (error) << std::endl;
+
+  return colors_ptr;
+}
+
+void opengl_widget::postprocess_after_colors_fill()
+{
+  cudaGraphicsUnmapResources (1, &colors_res);
 }
 
 void opengl_widget::initializeGL()
@@ -101,7 +122,22 @@ void opengl_widget::initializeGL()
   glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
   glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
 
+  cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
+
+  d_colors = preprocess_before_colors_fill ();
+  postprocess_after_colors_fill ();
+
+  auto error = cudaGetLastError ();
+
+  if (error != cudaSuccess)
+    std::cout << cudaGetErrorString (error) << std::endl;
+
   initialized = true;
+}
+
+float *opengl_widget::get_gpu_colors()
+{
+  return d_colors;
 }
 
 void opengl_widget::resizeGL(int width, int height)
@@ -115,11 +151,11 @@ void opengl_widget::resizeGL(int width, int height)
 
 void opengl_widget::update_colors()
 {
-  const int glfloat_size = sizeof (GLfloat);
-  const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
+  // const int glfloat_size = sizeof (GLfloat);
+  // const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
 
-  glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
-  glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+  // glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
+  // glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
   update ();
 }
 

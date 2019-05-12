@@ -14,6 +14,7 @@ public:
     int argc_arg, char *argv_arg[],
     unsigned int nx_arg, unsigned int ny_arg,
     float x_size_arg, float y_size_arg,
+    std::function<void(void)> compute_action_arg,
     std::function<void(float *)> render_action_arg);
 
   int run ();
@@ -23,6 +24,7 @@ private:
   char **argv;
   unsigned int nx, ny;
   float x_size, y_size;
+  std::function<void()> compute_action;
   std::function<void(float *)> render_action;
 };
 

@@ -10,6 +10,9 @@
 #include <QOpenGLShaderProgram>
 
 #include <memory>
+#include <functional>
+
+#include <cuda_gl_interop.h>
 
 class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -17,10 +20,17 @@ class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 
 public:
   opengl_widget () = delete;
-  opengl_widget (unsigned int nx, unsigned int ny, float x_size, float y_size);
+  opengl_widget(unsigned int nx,
+                unsigned int ny,
+                float x_size,
+                float y_size);
   ~opengl_widget () override;
 
-  GLfloat *get_colors ();
+  // GLfloat *get_colors ();
+  float *get_gpu_colors ();
+
+  float * preprocess_before_colors_fill ();
+  void postprocess_after_colors_fill ();
 
 public slots:
   void update_colors ();
@@ -43,8 +53,12 @@ private:
   const int colors_per_vertex = 3;
   const int color_data_per_element = colors_per_vertex * vertices_per_element;
 
+  cudaGraphicsResource_t colors_res;
+
   std::unique_ptr<GLfloat[]> colors;
   std::unique_ptr<GLfloat[]> vertices;
+
+  float *d_colors = nullptr;
 };
 
 

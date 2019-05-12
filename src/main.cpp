@@ -9,6 +9,7 @@
 
 // TODO Extract
 #include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
 
 constexpr double C0 = 299792458; /// Speed of light [metres per second]
 
@@ -359,6 +360,11 @@ public:
     return ez.get ();
   }
 
+  const float_type *get_d_ez () const
+  {
+    return d_ez;
+  }
+
   void preprocess_gpu (const sources_holder<float_type> &s)
   {
     cudaSetDevice (0);
@@ -406,7 +412,7 @@ public:
 
     }
 
-    cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
+    // cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
   }
 
   void postprocess_gpu ()
@@ -442,79 +448,16 @@ public:
 #include "gui_simulation_manager.h"
 #endif
 
-/*
- * H(Hue): 0 - 360 degree (integer)
- * S(Saturation): 0 - 1.00 (double)
- * V(Value): 0 - 1.00 (double)
- */
-float map (float x, float in_min, float in_max, float out_min, float out_max)
-{
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-void hsv_to_rgb (int h, double s, double v, float output[3])
-{
-  float c = s * v;
-  float x = c * (1 - std::abs (fmod (h / 60.0, 2) - 1));
-  float m = v - c;
-  float Rs, Gs, Bs;
-
-  if (h >= 0 && h < 60)
-  {
-    Rs = c;
-    Gs = x;
-    Bs = 0;
-  }
-  else if (h >= 60 && h < 120)
-  {
-    Rs = x;
-    Gs = c;
-    Bs = 0;
-  }
-  else if (h >= 120 && h < 180)
-  {
-    Rs = 0;
-    Gs = c;
-    Bs = x;
-  }
-  else if (h >= 180 && h < 240)
-  {
-    Rs = 0;
-    Gs = x;
-    Bs = c;
-  }
-  else if (h >= 240 && h < 300)
-  {
-    Rs = x;
-    Gs = 0;
-    Bs = c;
-  }
-  else
-  {
-    Rs = c;
-    Gs = 0;
-    Bs = x;
-  }
-
-  output[0] = Rs + m;
-  output[1] = Gs + m;
-  output[2] = Bs + m;
-}
-
-void fill_vertex_color (float ez, float *colors)
-{
-  int hue = map (ez, 0.0, 0.01, 180.0, 360.0);
-  hsv_to_rgb (hue, 0.6, 1.0, colors);
-}
+#include "core/gpu/coloring.cuh"
 
 int main (int argc, char *argv[])
 {
   const double plane_size_x = 5;
 
   // const double dt = 1e-22;
-  const double frequency = 1e+9;
+  const double frequency = 3e+9;
   const double lambda_min = C0 / frequency;
-  const double dx = lambda_min / 30;
+  const double dx = lambda_min / 130;
   const auto optimal_nx = static_cast<unsigned int> (std::ceil (plane_size_x / dx));
   const auto optimal_ny = optimal_nx;
   const double plane_size_y = dx * optimal_ny;
@@ -558,18 +501,31 @@ int main (int argc, char *argv[])
 
   simulation.preprocess_gpu (soft_source);
 
-  auto render_function = [&simulation, &optimal_nx, &optimal_ny, &soft_source] (float *colors)
+  auto compute_function = [&simulation, &soft_source] ()
   {
-    simulation.calculate (4, soft_source);
-    auto ez = simulation.get_ez ();
-
-    for (unsigned int j = 0; j < optimal_ny; j++)
-      for (unsigned int i = 0; i < optimal_nx; i++)
-        for (unsigned int k = 0; k < 4; k++)
-          fill_vertex_color (ez[j * optimal_nx + i], colors + 3 * 4 * (j * optimal_nx + i) + 3 * k);
+    simulation.calculate (90, soft_source);
   };
 
-  gui_simulation_manager simulation_manager (argc, argv, optimal_nx, optimal_ny, plane_size_x, plane_size_y, render_function);
+  auto render_function = [&simulation, &optimal_nx, &optimal_ny] (float *colors)
+  {
+    const auto coloring_begin = std::chrono::high_resolution_clock::now ();
+    fill_colors (optimal_nx, optimal_ny, simulation.get_d_ez (), colors);
+    const auto coloring_end = std::chrono::high_resolution_clock::now ();
+    const std::chrono::duration<double> duration = coloring_end - coloring_begin;
+    std::cout << "Coloring completed in " << duration.count () << "s\n";
+
+    // auto ez = simulation.get_ez ();
+    // for (unsigned int j = 0; j < optimal_ny; j++)
+    //   for (unsigned int i = 0; i < optimal_nx; i++)
+    //     for (unsigned int k = 0; k < 4; k++)
+    //       fill_vertex_color (ez[j * optimal_nx + i], colors + 3 * 4 * (j * optimal_nx + i) + 3 * k);
+  };
+
+  gui_simulation_manager simulation_manager (
+      argc, argv,
+      optimal_nx, optimal_ny,
+      plane_size_x, plane_size_y,
+      compute_function, render_function);
   int ret_code = simulation_manager.run ();
   simulation.postprocess_gpu ();
 

@@ -6,19 +6,22 @@
 #define FDTD_RENDER_THREAD_H
 
 #include <QThread>
-#include <QOpenGLWidget>
 
 #include <functional>
+#include <mutex>
+
+class opengl_widget;
 
 class render_thread : public QThread
 {
   Q_OBJECT
 
 public:
-  explicit render_thread (GLfloat *colors_arg, std::function<void(GLfloat *)>, QObject *parent = nullptr);
+  explicit render_thread (opengl_widget *gl_arg, std::function<void()>, std::function<void(float *)>, QObject *parent = nullptr);
   ~render_thread () override;
 
   void render (bool use_gpu, int gpu_num);
+  void halt ();
 
 signals:
   void steps_completed ();
@@ -28,8 +31,11 @@ protected:
   void run () override;
 
 protected:
-  GLfloat *colors;
-  std::function<void(GLfloat *)> render_action;
+  std::mutex lock;
+  bool halt_execution;
+  opengl_widget *gl = nullptr;
+  std::function<void()> compute_action;
+  std::function<void(float *)> render_action;
 };
 
 #endif //FDTD_RENDER_THREAD_H

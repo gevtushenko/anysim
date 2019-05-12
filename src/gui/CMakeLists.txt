@@ -8,7 +8,6 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 
-message("2 => ${Qt5Widgets_INCLUDES} - ${Qt5OpenGL_INCLUDES} - ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS} - ${Qt5Widgets_DEFINITIONS} - ${Qt5OpenGL_DEFINITIONS}")
 include_directories(include ${Qt5Widgets_INCLUDES} ${Qt5OpenGL_INCLUDES})
 add_definitions(${Qt5Widgets_DEFINITIONS} ${Qt5OpenGL_DEFINITIONS})
 

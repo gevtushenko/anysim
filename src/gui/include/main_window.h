@@ -23,12 +23,14 @@ class main_window : public QMainWindow
 public:
   main_window () = delete;
   main_window (unsigned int nx, unsigned int ny, float x_size, float y_size,
-      std::function<void(GLfloat *)> render_action);
+      std::function<void()> compute_action,
+      std::function<void(float *)> render_action);
   ~main_window () override;
 
 private slots:
   void start_simulation ();
   void simulation_completed ();
+  void halt_simulation ();
 
 private:
   void create_actions ();

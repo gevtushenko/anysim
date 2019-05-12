@@ -10,9 +10,10 @@
 #include "gui/include/opengl_widget.h"
 
 main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y_size,
-    std::function<void(GLfloat *)> render_action)
+    std::function<void()> compute_action,
+    std::function<void(float *)> render_action)
   : gl (new opengl_widget (nx, ny, x_size, y_size))
-  , renderer (gl->get_colors (), render_action)
+  , renderer (gl, compute_action, render_action)
 {
   // Set OpenGL Version information
   // Note: This format must be set before show() is called.
@@ -34,12 +35,22 @@ main_window::~main_window() = default;
 void main_window::start_simulation()
 {
   run_action->setEnabled (false);
+  stop_action->setEnabled (true);
   renderer.render (use_gpu->isChecked (), gpu_names->currentData ().toInt ());
 }
 
-void main_window::simulation_completed()
+void main_window::simulation_completed ()
 {
   run_action->setEnabled (true);
+  stop_action->setEnabled (false);
+}
+
+void main_window::halt_simulation()
+{
+  renderer.halt ();
+
+  run_action->setEnabled (true);
+  stop_action->setEnabled (false);
 }
 
 #ifdef GPU_BUILD
@@ -54,7 +65,7 @@ void main_window::create_actions()
   run_action = new QAction (run_icon, "Run");
   run_action->setStatusTip ("Run simulation");
 
-  const QIcon stop_icon = style ()->standardIcon (QStyle::SP_MediaStop);
+  const QIcon stop_icon = style ()->standardIcon (QStyle::SP_MediaPause);
   stop_action = new QAction (stop_icon, "Stop");
   stop_action->setStatusTip ("Stop simulation");
   stop_action->setEnabled (false);
@@ -85,4 +96,5 @@ void main_window::create_actions()
 #endif
 
   connect (run_action, SIGNAL (triggered ()), this, SLOT (start_simulation ()));
+  connect (stop_action, SIGNAL (triggered ()), this, SLOT (halt_simulation ()));
 }

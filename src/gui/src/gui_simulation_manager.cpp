@@ -15,6 +15,7 @@ gui_simulation_manager::gui_simulation_manager(
     unsigned int ny_arg,
     float x_size_arg,
     float y_size_arg,
+    std::function<void()> compute_action_arg,
     std::function<void(float *)> render_action_arg)
     : argc (argc_arg)
     , argv (argv_arg)
@@ -22,6 +23,7 @@ gui_simulation_manager::gui_simulation_manager(
     , ny (ny_arg)
     , x_size (x_size_arg)
     , y_size (y_size_arg)
+    , compute_action (compute_action_arg)
     , render_action (render_action_arg)
 {
 }
@@ -32,7 +34,7 @@ int gui_simulation_manager::run()
 
   main_window window(
       nx, ny,
-      static_cast<float>(x_size), static_cast<float>(y_size), render_action);
+      static_cast<float>(x_size), static_cast<float>(y_size), compute_action, render_action);
   window.resize (QSize (800, 800));
   window.show ();
 

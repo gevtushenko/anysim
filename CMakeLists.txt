@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 include_directories(src)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wsign-conversion")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wsign-conversion -O3")
 
 set(SOURCES
         src/main.cpp
@@ -21,6 +21,8 @@ add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 find_package(CUDA)
 if(CUDA_FOUND)
     set(GPU_SOURCES
+            src/core/gpu/coloring.cuh
+            src/core/gpu/coloring.cu
             src/core/gpu/fdtd.cu
             src/core/gpu/fdtd.cuh)
     add_compile_definitions(GPU_BUILD)
@@ -31,7 +33,6 @@ endif()
 
 find_package(Qt5Widgets)
 if(Qt5Widgets_FOUND)
-    message("1 => ${Qt5Widgets_INCLUDES} ${Qt5OpenGL_INCLUDES}")
     add_compile_definitions(GUI_BUILD)
     include_directories(src/gui/include)
     add_subdirectory(src/gui)
