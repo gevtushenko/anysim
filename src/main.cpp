@@ -442,6 +442,71 @@ public:
 #include "gui_simulation_manager.h"
 #endif
 
+/*
+ * H(Hue): 0 - 360 degree (integer)
+ * S(Saturation): 0 - 1.00 (double)
+ * V(Value): 0 - 1.00 (double)
+ */
+float map (float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void hsv_to_rgb (int h, double s, double v, float output[3])
+{
+  float c = s * v;
+  float x = c * (1 - std::abs (fmod (h / 60.0, 2) - 1));
+  float m = v - c;
+  float Rs, Gs, Bs;
+
+  if (h >= 0 && h < 60)
+  {
+    Rs = c;
+    Gs = x;
+    Bs = 0;
+  }
+  else if (h >= 60 && h < 120)
+  {
+    Rs = x;
+    Gs = c;
+    Bs = 0;
+  }
+  else if (h >= 120 && h < 180)
+  {
+    Rs = 0;
+    Gs = c;
+    Bs = x;
+  }
+  else if (h >= 180 && h < 240)
+  {
+    Rs = 0;
+    Gs = x;
+    Bs = c;
+  }
+  else if (h >= 240 && h < 300)
+  {
+    Rs = x;
+    Gs = 0;
+    Bs = c;
+  }
+  else
+  {
+    Rs = c;
+    Gs = 0;
+    Bs = x;
+  }
+
+  output[0] = Rs + m;
+  output[1] = Gs + m;
+  output[2] = Bs + m;
+}
+
+void fill_vertex_color (float ez, float *colors)
+{
+  int hue = map (ez, 0.0, 0.01, 180.0, 360.0);
+  hsv_to_rgb (hue, 0.6, 1.0, colors);
+}
+
 int main (int argc, char *argv[])
 {
   const double plane_size_x = 5;
@@ -499,32 +564,9 @@ int main (int argc, char *argv[])
     auto ez = simulation.get_ez ();
 
     for (unsigned int j = 0; j < optimal_ny; j++)
-    {
       for (unsigned int i = 0; i < optimal_nx; i++)
-      {
-        auto ezv = ez[j * optimal_nx + i] * 100;
-        if (ezv < 0.0)
-          ezv = 0.0;
-        if (ezv > 1.0)
-          ezv = 1.0;
-
-        colors[3 * 4 * (j * optimal_nx + i) + 0] = ezv;
-        colors[3 * 4 * (j * optimal_nx + i) + 1] = 0.0f;
-        colors[3 * 4 * (j * optimal_nx + i) + 2] = 0.0f;
-
-        colors[3 * 4 * (j * optimal_nx + i) + 3] = ezv;
-        colors[3 * 4 * (j * optimal_nx + i) + 4] = 0.0f;
-        colors[3 * 4 * (j * optimal_nx + i) + 5] = 0.0f;
-
-        colors[3 * 4 * (j * optimal_nx + i) + 6] = ezv;
-        colors[3 * 4 * (j * optimal_nx + i) + 7] = 0.0f;
-        colors[3 * 4 * (j * optimal_nx + i) + 8] = 0.0f;
-
-        colors[3 * 4 * (j * optimal_nx + i) + 9] = ezv;
-        colors[3 * 4 * (j * optimal_nx + i) + 10] = 0.0f;
-        colors[3 * 4 * (j * optimal_nx + i) + 11] = 0.0f;
-      }
-    }
+        for (unsigned int k = 0; k < 4; k++)
+          fill_vertex_color (ez[j * optimal_nx + i], colors + 3 * 4 * (j * optimal_nx + i) + 3 * k);
   };
 
   gui_simulation_manager simulation_manager (argc, argv, optimal_nx, optimal_ny, plane_size_x, plane_size_y, render_function);
