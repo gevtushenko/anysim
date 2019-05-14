@@ -23,8 +23,7 @@ class main_window : public QMainWindow
 public:
   main_window () = delete;
   main_window (unsigned int nx, unsigned int ny, float x_size, float y_size,
-      std::function<void()> compute_action,
-      std::function<void(float *)> render_action);
+      compute_action_type, render_action_type);
   ~main_window () override;
 
 private slots:

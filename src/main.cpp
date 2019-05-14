@@ -426,15 +426,13 @@ public:
   }
 
   /// Ez mode
-  void calculate (unsigned int steps, const sources_holder<float_type> &s)
+  void calculate (unsigned int steps, const sources_holder<float_type> &s, bool use_gpu)
   {
-    bool calculate_on_gpu = true;
-
     std::cout << "Time step: " << dt << std::endl;
     std::cout << "Nx: " << nx << "; Ny: " << ny << std::endl;
 
     const auto calculation_begin = std::chrono::high_resolution_clock::now ();
-    if (calculate_on_gpu)
+    if (use_gpu)
       calculate_gpu (steps);
     else
       calculate_cpu (steps, s);
@@ -455,9 +453,9 @@ int main (int argc, char *argv[])
   const double plane_size_x = 5;
 
   // const double dt = 1e-22;
-  const double frequency = 3e+9;
+  const double frequency = 2e+9;
   const double lambda_min = C0 / frequency;
-  const double dx = lambda_min / 130;
+  const double dx = lambda_min / 30;
   const auto optimal_nx = static_cast<unsigned int> (std::ceil (plane_size_x / dx));
   const auto optimal_ny = optimal_nx;
   const double plane_size_y = dx * optimal_ny;
@@ -501,24 +499,31 @@ int main (int argc, char *argv[])
 
   simulation.preprocess_gpu (soft_source);
 
-  auto compute_function = [&simulation, &soft_source] ()
+  auto compute_function = [&simulation, &soft_source] (bool use_gpu)
   {
-    simulation.calculate (90, soft_source);
+    simulation.calculate (10, soft_source, use_gpu);
   };
 
-  auto render_function = [&simulation, &optimal_nx, &optimal_ny] (float *colors)
+  auto render_function = [&simulation, &optimal_nx, &optimal_ny] (bool use_gpu, float *colors)
   {
     const auto coloring_begin = std::chrono::high_resolution_clock::now ();
-    fill_colors (optimal_nx, optimal_ny, simulation.get_d_ez (), colors);
+
+    if (use_gpu)
+    {
+      fill_colors (optimal_nx, optimal_ny, simulation.get_d_ez (), colors);
+    }
+    else
+    {
+      auto ez = simulation.get_ez ();
+      for (unsigned int j = 0; j < optimal_ny; j++)
+        for (unsigned int i = 0; i < optimal_nx; i++)
+          for (unsigned int k = 0; k < 4; k++)
+            fill_vertex_color (ez[j * optimal_nx + i], colors + 3 * 4 * (j * optimal_nx + i) + 3 * k);
+    }
     const auto coloring_end = std::chrono::high_resolution_clock::now ();
     const std::chrono::duration<double> duration = coloring_end - coloring_begin;
     std::cout << "Coloring completed in " << duration.count () << "s\n";
 
-    // auto ez = simulation.get_ez ();
-    // for (unsigned int j = 0; j < optimal_ny; j++)
-    //   for (unsigned int i = 0; i < optimal_nx; i++)
-    //     for (unsigned int k = 0; k < 4; k++)
-    //       fill_vertex_color (ez[j * optimal_nx + i], colors + 3 * 4 * (j * optimal_nx + i) + 3 * k);
   };
 
   gui_simulation_manager simulation_manager (

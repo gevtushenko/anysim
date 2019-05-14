@@ -27,13 +27,13 @@ public:
   ~opengl_widget () override;
 
   // GLfloat *get_colors ();
-  float *get_gpu_colors ();
+  float *get_colors (bool use_gpu);
 
   float * preprocess_before_colors_fill ();
   void postprocess_after_colors_fill ();
 
 public slots:
-  void update_colors ();
+  void update_colors (bool use_gpu);
 
 protected:
   void initializeGL () override;

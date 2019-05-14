@@ -15,8 +15,8 @@ gui_simulation_manager::gui_simulation_manager(
     unsigned int ny_arg,
     float x_size_arg,
     float y_size_arg,
-    std::function<void()> compute_action_arg,
-    std::function<void(float *)> render_action_arg)
+    compute_action_type compute_action_arg,
+    render_action_type render_action_arg)
     : argc (argc_arg)
     , argv (argv_arg)
     , nx (nx_arg)

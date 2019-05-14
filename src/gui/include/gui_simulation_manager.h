@@ -7,6 +7,9 @@
 
 #include <functional>
 
+using compute_action_type = std::function<void(bool)>;
+using render_action_type = std::function<void(bool, float*)>;
+
 class gui_simulation_manager
 {
 public:
@@ -14,8 +17,8 @@ public:
     int argc_arg, char *argv_arg[],
     unsigned int nx_arg, unsigned int ny_arg,
     float x_size_arg, float y_size_arg,
-    std::function<void(void)> compute_action_arg,
-    std::function<void(float *)> render_action_arg);
+    compute_action_type compute_action,
+    render_action_type render_action);
 
   int run ();
 
@@ -24,8 +27,8 @@ private:
   char **argv;
   unsigned int nx, ny;
   float x_size, y_size;
-  std::function<void()> compute_action;
-  std::function<void(float *)> render_action;
+  compute_action_type compute_action;
+  render_action_type render_action;
 };
 
 #endif //ANYSIM_GUI_SIMULATION_MANAGER_H

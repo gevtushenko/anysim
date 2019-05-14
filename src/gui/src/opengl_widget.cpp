@@ -135,9 +135,9 @@ void opengl_widget::initializeGL()
   initialized = true;
 }
 
-float *opengl_widget::get_gpu_colors()
+float *opengl_widget::get_colors (bool use_gpu)
 {
-  return d_colors;
+  return use_gpu ? d_colors : colors.get ();
 }
 
 void opengl_widget::resizeGL(int width, int height)
@@ -149,13 +149,17 @@ void opengl_widget::resizeGL(int width, int height)
     return;
 }
 
-void opengl_widget::update_colors()
+void opengl_widget::update_colors (bool use_gpu)
 {
-  // const int glfloat_size = sizeof (GLfloat);
-  // const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
+  if (!use_gpu)
+  {
+    const int glfloat_size = sizeof (GLfloat);
+    const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
 
-  // glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
-  // glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+    glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
+    glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+  }
+
   update ();
 }
 

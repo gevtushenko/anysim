@@ -10,8 +10,8 @@
 #include "gui/include/opengl_widget.h"
 
 main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y_size,
-    std::function<void()> compute_action,
-    std::function<void(float *)> render_action)
+    compute_action_type compute_action,
+    render_action_type render_action)
   : gl (new opengl_widget (nx, ny, x_size, y_size))
   , renderer (gl, compute_action, render_action)
 {
@@ -23,7 +23,7 @@ main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y
   gl->setFormat(format);
 
   setCentralWidget (gl);
-  connect (&renderer, SIGNAL (steps_completed ()), gl, SLOT (update_colors ()));
+  connect (&renderer, SIGNAL (steps_completed (bool)), gl, SLOT (update_colors (bool)));
   connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));
 
   create_actions ();
