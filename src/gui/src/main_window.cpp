@@ -36,7 +36,7 @@ void main_window::start_simulation()
 {
   run_action->setEnabled (false);
   stop_action->setEnabled (true);
-  renderer.render (use_gpu->isChecked (), gpu_names->currentData ().toInt ());
+  renderer.render (use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0);
 }
 
 void main_window::simulation_completed ()

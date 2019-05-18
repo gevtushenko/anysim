@@ -14,7 +14,7 @@ set(SOURCES
         src/core/gpu/fdtd_gpu_interface.h
         src/core/gpu/fdtd_gpu_interface.cpp
         src/core/common/common_defs.h
-        src/core/cpu/sources_holder.h)
+        src/core/cpu/sources_holder.h src/cpp/common_funcs.h)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
@@ -31,7 +31,7 @@ if(CUDA_FOUND)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_gpu)
 endif()
 
-find_package(Qt5Widgets)
+find_package(Qt5Widgets QUIET)
 if(Qt5Widgets_FOUND)
     add_compile_definitions(GUI_BUILD)
     include_directories(src/gui/include)

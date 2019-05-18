@@ -1,5 +1,6 @@
 #include "core/gpu/fdtd_gpu_interface.h"
 #include "core/gpu/fdtd.cuh"
+#include "cpp/common_funcs.h"
 
 template <typename float_type>
 void fdtd_step(
@@ -20,6 +21,7 @@ void fdtd_step(
 #ifdef GPU_BUILD
   fdtd_step_gpu<float_type> (t, dt, nx, ny, dx, dy, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
 #else
+  cpp_unreferenced(t, dt, nx, ny, dx, dy, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
 #endif
 }
 

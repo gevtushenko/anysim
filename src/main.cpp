@@ -5,11 +5,13 @@
 
 #include "core/cpu/sources_holder.h"
 #include "core/gpu/fdtd_gpu_interface.h"
+#include "cpp/common_funcs.h"
 #include "io/vtk.h"
 
-// TODO Extract
+#ifdef GPU_BUILD
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+#endif
 
 constexpr double C0 = 299792458; /// Speed of light [metres per second]
 
@@ -365,6 +367,7 @@ public:
     return d_ez;
   }
 
+#ifdef GPU_BUILD
   void preprocess_gpu (const sources_holder<float_type> &s)
   {
     cudaSetDevice (0);
@@ -424,6 +427,7 @@ public:
     cudaFree (d_hx);
     cudaFree (d_hy);
   }
+#endif
 
   /// Ez mode
   void calculate (unsigned int steps, const sources_holder<float_type> &s, bool use_gpu)
@@ -432,9 +436,13 @@ public:
     std::cout << "Nx: " << nx << "; Ny: " << ny << std::endl;
 
     const auto calculation_begin = std::chrono::high_resolution_clock::now ();
+#ifdef GPU_BUILD
     if (use_gpu)
       calculate_gpu (steps);
     else
+#else
+  (void) use_gpu;
+#endif
       calculate_cpu (steps, s);
     const auto calculation_end = std::chrono::high_resolution_clock::now ();
     const std::chrono::duration<double> duration = calculation_end - calculation_begin;
@@ -497,7 +505,9 @@ int main (int argc, char *argv[])
       { &top_rectangle, &mid_rectangle, &bot_rectangle });
   // simulation.calculate (1000, soft_source);
 
+#ifdef GPU_BUILD
   simulation.preprocess_gpu (soft_source);
+#endif
 
   auto compute_function = [&simulation, &soft_source] (bool use_gpu)
   {
@@ -508,11 +518,16 @@ int main (int argc, char *argv[])
   {
     const auto coloring_begin = std::chrono::high_resolution_clock::now ();
 
+
+#ifdef GPU_BUILD
     if (use_gpu)
     {
       fill_colors (optimal_nx, optimal_ny, simulation.get_d_ez (), colors);
     }
     else
+#else
+      cpp_unreferenced (use_gpu);
+#endif
     {
       auto ez = simulation.get_ez ();
       for (unsigned int j = 0; j < optimal_ny; j++)
@@ -532,7 +547,10 @@ int main (int argc, char *argv[])
       plane_size_x, plane_size_y,
       compute_function, render_function);
   int ret_code = simulation_manager.run ();
+
+#ifdef GPU_BUILD
   simulation.postprocess_gpu ();
+#endif
 
   return ret_code;
 }

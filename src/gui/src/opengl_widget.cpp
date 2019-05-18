@@ -70,7 +70,9 @@ opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, fl
 
 opengl_widget::~opengl_widget ()
 {
+#ifdef GPU_BUILD
   cudaGraphicsUnregisterResource (colors_res);
+#endif
   glDeleteBuffers (1, &vbo_vertices);
   glDeleteBuffers (1, &vbo_colors);
 }
@@ -82,6 +84,7 @@ opengl_widget::~opengl_widget ()
 
 float* opengl_widget::preprocess_before_colors_fill()
 {
+#ifdef GPU_BUILD
   size_t size = 0;
   float *colors_ptr = nullptr;
   cudaGraphicsMapResources (1, &colors_res);
@@ -93,11 +96,16 @@ float* opengl_widget::preprocess_before_colors_fill()
     std::cout << cudaGetErrorString (error) << std::endl;
 
   return colors_ptr;
+#else
+  return nullptr;
+#endif
 }
 
 void opengl_widget::postprocess_after_colors_fill()
 {
+#ifdef GPU_BUILD
   cudaGraphicsUnmapResources (1, &colors_res);
+#endif
 }
 
 void opengl_widget::initializeGL()
@@ -122,6 +130,7 @@ void opengl_widget::initializeGL()
   glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
   glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
 
+#ifdef GPU_BUILD
   cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
 
   d_colors = preprocess_before_colors_fill ();
@@ -131,6 +140,7 @@ void opengl_widget::initializeGL()
 
   if (error != cudaSuccess)
     std::cout << cudaGetErrorString (error) << std::endl;
+#endif
 
   initialized = true;
 }

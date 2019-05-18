@@ -12,7 +12,9 @@
 #include <memory>
 #include <functional>
 
+#ifdef GPU_BUILD
 #include <cuda_gl_interop.h>
+#endif
 
 class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -53,7 +55,9 @@ private:
   const int colors_per_vertex = 3;
   const int color_data_per_element = colors_per_vertex * vertices_per_element;
 
+#ifdef GPU_BUILD
   cudaGraphicsResource_t colors_res;
+#endif
 
   std::unique_ptr<GLfloat[]> colors;
   std::unique_ptr<GLfloat[]> vertices;
