@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 include_directories(src)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wsign-conversion -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -O3")
 
 set(SOURCES
         src/main.cpp
@@ -18,7 +18,7 @@ set(SOURCES
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
-find_package(CUDA)
+find_package(CUDA QUIET)
 if(CUDA_FOUND)
     set(GPU_SOURCES
             src/core/gpu/coloring.cuh
@@ -29,6 +29,8 @@ if(CUDA_FOUND)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 -lineinfo")
     cuda_add_library(${CMAKE_PROJECT_NAME}_gpu ${GPU_SOURCES})
     target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_gpu)
+else()
+    message("Install CUDA library to use GPU")
 endif()
 
 find_package(Qt5Widgets QUIET)

@@ -9,12 +9,37 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 
+#include <QOpenGLBuffer>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include <memory>
 #include <functional>
 
 #ifdef GPU_BUILD
 #include <cuda_gl_interop.h>
 #endif
+
+class Character
+{
+public:
+    Character() {}
+
+    Character(QOpenGLTexture *texture, QVector2D size, QVector2D bearing, GLuint advance) {
+        this->texture = texture;
+        this->size = size;
+        this->bearing = bearing;
+        this->advance = advance;
+    }
+
+    QOpenGLTexture      *texture;
+    QVector2D   size;
+    QVector2D   bearing;
+    GLuint      advance;
+};
 
 class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -43,11 +68,21 @@ protected:
   void paintGL () override;
 
 private:
+    Character getCharacter(QChar character);
+    void renderText(const QChar *text, int length, GLfloat x, GLfloat y, GLfloat scale, QVector3D color);
+
+private:
   std::unique_ptr<QOpenGLShaderProgram> program;
+  std::unique_ptr<QOpenGLShaderProgram> tex_program;
+
+  QByteArray face_content;
+
   GLint attribute_coord2d, attribute_v_color;
   GLuint vbo_vertices, vbo_colors;
 
-  bool initialized = false;
+  QOpenGLBuffer tex_vbo;
+  QOpenGLVertexArrayObject tex_vao;
+
   const long int elements_count;
   const int vertices_per_element = 4;
   const int coords_per_vertex = 2;
@@ -62,8 +97,10 @@ private:
   std::unique_ptr<GLfloat[]> colors;
   std::unique_ptr<GLfloat[]> vertices;
 
+  FT_Library ft;
+  FT_Face face;
+
   float *d_colors = nullptr;
 };
-
 
 #endif //FDTD_OPENGL_WIDGET_H

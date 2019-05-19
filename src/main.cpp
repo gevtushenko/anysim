@@ -518,7 +518,6 @@ int main (int argc, char *argv[])
   {
     const auto coloring_begin = std::chrono::high_resolution_clock::now ();
 
-
 #ifdef GPU_BUILD
     if (use_gpu)
     {

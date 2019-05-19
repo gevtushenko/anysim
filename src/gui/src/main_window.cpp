@@ -15,6 +15,7 @@ main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y
   : gl (new opengl_widget (nx, ny, x_size, y_size))
   , renderer (gl, compute_action, render_action)
 {
+  Q_INIT_RESOURCE (resources);
   // Set OpenGL Version information
   // Note: This format must be set before show() is called.
   QSurfaceFormat format;
@@ -30,7 +31,10 @@ main_window::main_window(unsigned int nx, unsigned int ny, float x_size, float y
   statusBar ()->showMessage ("Ready");
 }
 
-main_window::~main_window() = default;
+main_window::~main_window()
+{
+  Q_CLEANUP_RESOURCE (resources);
+}
 
 void main_window::start_simulation()
 {
