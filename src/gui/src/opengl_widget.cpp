@@ -150,24 +150,24 @@ void opengl_widget::postprocess_after_colors_fill()
 void opengl_widget::initializeGL()
 {
   initializeOpenGLFunctions ();
-  // program = std::make_unique<QOpenGLShaderProgram> (this);
-  // program->addShaderFromSourceCode (QOpenGLShader::Vertex, vs_source);
-  // program->addShaderFromSourceCode (QOpenGLShader::Fragment, fs_source);
-  // program->link ();
-  // attribute_coord2d = program->attributeLocation ("coord2d");
-  // attribute_v_color = program->attributeLocation ("v_color");
+  program = std::make_unique<QOpenGLShaderProgram> (this);
+  program->addShaderFromSourceCode (QOpenGLShader::Vertex, vs_source);
+  program->addShaderFromSourceCode (QOpenGLShader::Fragment, fs_source);
+  program->link ();
+  attribute_coord2d = program->attributeLocation ("coord2d");
+  attribute_v_color = program->attributeLocation ("v_color");
 
-  // /// VBO Handling
-  // const int glfloat_size = sizeof (GLfloat);
-  // const long int vertices_array_size = elements_count * vertex_data_per_element * glfloat_size;
-  // glGenBuffers (1, &vbo_vertices);
-  // glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
-  // glBufferData (GL_ARRAY_BUFFER, vertices_array_size, vertices.get (), GL_DYNAMIC_DRAW);
+  /// VBO Handling
+  const int glfloat_size = sizeof (GLfloat);
+  const long int vertices_array_size = elements_count * vertex_data_per_element * glfloat_size;
+  glGenBuffers (1, &vbo_vertices);
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
+  glBufferData (GL_ARRAY_BUFFER, vertices_array_size, vertices.get (), GL_DYNAMIC_DRAW);
 
-  // const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
-  // glGenBuffers (1, &vbo_colors);
-  // glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
-  // glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+  const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
+  glGenBuffers (1, &vbo_colors);
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
+  glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
 
 #ifdef GPU_BUILD
   cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
@@ -302,11 +302,23 @@ void opengl_widget::paintGL()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
-    glViewport(0, 0, 800, 600);
 
-    tex_program->bind();
-    QString text("123.321e-12");
-    const QChar *qchar = text.data();
+    program->bind();
+    glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+    glVertexAttribPointer(static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
+    glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_QUADS, 0, static_cast<int> (elements_count) * 4);
+    glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
+    glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
+    program->release();
 
-    renderText(qchar, text.size(), 100, 200, 1.0f, QVector3D(1.0f, 0.0f, 0.0f));
+    // tex_program->bind();
+    // QString text("123.321e-12");
+    // const QChar *qchar = text.data();
+
+    // renderText(qchar, text.size(), 0.0, 0.0, 1.0f, QVector3D(1.0f, 0.0f, 0.0f));
+    // tex_program->release();
 }
