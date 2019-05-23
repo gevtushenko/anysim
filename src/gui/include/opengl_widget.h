@@ -53,7 +53,6 @@ public:
                 float y_size);
   ~opengl_widget () override;
 
-  // GLfloat *get_colors ();
   float *get_colors (bool use_gpu);
 
   float * preprocess_before_colors_fill ();
@@ -66,6 +65,7 @@ protected:
   void initializeGL () override;
   void resizeGL (int width, int height) override;
   void paintGL () override;
+  void wheelEvent (QWheelEvent *event) override;
 
 private:
     Character getCharacter(QChar character);
@@ -101,6 +101,8 @@ private:
   FT_Face face;
 
   float *d_colors = nullptr;
+
+  QMatrix4x4 mvp;
 };
 
 #endif //FDTD_OPENGL_WIDGET_H

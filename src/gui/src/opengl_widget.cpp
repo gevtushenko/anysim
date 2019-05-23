@@ -5,8 +5,10 @@
 #include "gui/include/opengl_widget.h"
 
 #include <QDirIterator>
+#include <QWheelEvent>
 
 #include <iostream>
+#include <cmath>
 
 const char *tex_vs_source =
         "attribute highp vec4 qt_Vertex;\n"
@@ -186,6 +188,7 @@ void opengl_widget::initializeGL()
 
     tex_vao.release();
 
+  mvp.setToIdentity ();
 }
 
 float *opengl_widget::get_colors (bool use_gpu)
@@ -277,6 +280,15 @@ void opengl_widget::renderText(const QChar *text, int length, GLfloat x, GLfloat
     tex_program->setUniformValue("qt_ModelViewProjectionMatrix", matrix);
 }
 
+void opengl_widget::wheelEvent(QWheelEvent *event)
+{
+  if (event->delta () != 0)
+  {
+    mvp.scale (std::pow (0.9, -static_cast<float> (event->delta ()) / 120));
+    update ();
+  }
+}
+
 void opengl_widget::paintGL()
 {
     glEnable(GL_BLEND);
@@ -285,6 +297,8 @@ void opengl_widget::paintGL()
     glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
 
     program->bind();
+
+    program->setUniformValue ("MVP", mvp);
     glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
     glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
     glVertexAttribPointer(static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
