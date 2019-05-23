@@ -8,25 +8,6 @@
 
 #include <iostream>
 
-const char *vs_source =
-    //"#version 100\n"  // OpenGL ES 2.0
-    //"#version 120\n"  // OpenGL 2.1
-    "attribute vec2 coord2d;                  "
-    "attribute vec3 v_color;                  "
-    "varying vec3 f_color;                    "
-    "void main(void) {                        "
-    "  gl_Position = vec4(coord2d, 0.0, 1.0); "
-    "  f_color = v_color;                     "
-    "}";
-
-const char *fs_source =
-    //"#version 100\n"  // OpenGL ES 2.0
-    //"#version 120\n"  // OpenGL 2.1
-    "varying highp vec3 f_color;    "
-    "void main(void) {        "
-    "  gl_FragColor = vec4(f_color.r, f_color.g, f_color.b, 1.0); "
-    "}";
-
 const char *tex_vs_source =
         "attribute highp vec4 qt_Vertex;\n"
         "attribute highp vec2 qt_TexCoord;\n"
@@ -151,8 +132,8 @@ void opengl_widget::initializeGL()
 {
   initializeOpenGLFunctions ();
   program = std::make_unique<QOpenGLShaderProgram> (this);
-  program->addShaderFromSourceCode (QOpenGLShader::Vertex, vs_source);
-  program->addShaderFromSourceCode (QOpenGLShader::Fragment, fs_source);
+  program->addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/map_2d.vert");
+  program->addShaderFromSourceFile (QOpenGLShader::Fragment, ":/shaders/map_2d.frag");
   program->link ();
   attribute_coord2d = program->attributeLocation ("coord2d");
   attribute_v_color = program->attributeLocation ("v_color");
