@@ -53,18 +53,21 @@ void axes_grid::init (
   float long_tic_size = 0.025f;
   const unsigned int long_tic_each = 4;
 
+  const bool in = false; /// Tics are inside model
+  const short int dir = in ? -1 : 1;
+
   for (unsigned int y = 0; y < y_tics; y++)
   {
     const float ts = y % long_tic_each == 0 ? long_tic_size : tic_size;
 
     p_coords[0] = left_x;
     p_coords[1] = bottom_y + dy * y;
-    p_coords[2] = left_x - ts;
+    p_coords[2] = left_x - dir * ts;
     p_coords[3] = bottom_y + dy * y;
 
     p_coords[4] = right_x;
     p_coords[5] = bottom_y + dy * y;
-    p_coords[6] = right_x + ts;
+    p_coords[6] = right_x + dir * ts;
     p_coords[7] = bottom_y + dy * y;
 
     p_coords += 8;
@@ -79,12 +82,12 @@ void axes_grid::init (
     p_coords[0] = left_x + dx * x;
     p_coords[1] = bottom_y;
     p_coords[2] = left_x + dx * x;
-    p_coords[3] = bottom_y - ts;
+    p_coords[3] = bottom_y - dir * ts;
 
     p_coords[4] = left_x + dx * x;
     p_coords[5] = top_y;
     p_coords[6] = left_x + dx * x;
-    p_coords[7] = top_y + ts;
+    p_coords[7] = top_y + dir * ts;
 
     p_coords += 8;
   }
