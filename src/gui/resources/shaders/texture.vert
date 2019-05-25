@@ -1,12 +1,9 @@
-//"#version 100\n"  // OpenGL ES 2.0
-
-attribute highp vec4 vertex;
-attribute highp vec2 tex_coord;
-uniform highp mat4 MVP;
-varying highp vec2 tex_coord_0;
-
+attribute highp vec4 qt_Vertex;
+attribute highp vec2 qt_TexCoord;
+uniform highp mat4 qt_ModelViewProjectionMatrix;
+varying highp vec2 qt_TexCoord0;
 void main(void)
 {
-    gl_Position = MVP * vertex;
-    tex_coord_0 = tex_coord;
+    gl_Position = qt_ModelViewProjectionMatrix * qt_Vertex;
+    qt_TexCoord0 = qt_TexCoord;
 }

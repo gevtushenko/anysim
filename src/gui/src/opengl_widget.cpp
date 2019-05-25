@@ -3,33 +3,14 @@
 //
 
 #include "gui/include/opengl_widget.h"
+#include "cpp/common_funcs.h"
+#include "text_renderer.h"
 
 #include <QDirIterator>
 #include <QWheelEvent>
 
-#include <iostream>
 #include <cmath>
-
-const char *tex_vs_source =
-        "attribute highp vec4 qt_Vertex;\n"
-        "attribute highp vec2 qt_TexCoord;\n"
-        "uniform highp mat4 qt_ModelViewProjectionMatrix;\n"
-        "varying highp vec2 qt_TexCoord0;\n"
-        "void main(void)\n"
-        "{\n"
-        "    gl_Position = qt_ModelViewProjectionMatrix * qt_Vertex;\n"
-        "    qt_TexCoord0 = qt_TexCoord;\n"
-        "}";
-
-const char *tex_fs_source =
-        "uniform sampler2D qt_Texture0;\n"
-        "uniform vec3 textColor;\n"
-        "varying highp vec2 qt_TexCoord0;\n"
-        "void main(void)\n"
-        "{\n"
-        "    vec4 sampled = vec4(1.0, 1.0, 1.0, texture2D(qt_Texture0, qt_TexCoord0).r);\n"
-        "    gl_FragColor = vec4(textColor, 1.0) * sampled;\n"
-        "}";
+#include <iostream>
 
 opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, float y_size)
   : elements_count (nx * ny)
@@ -78,11 +59,6 @@ opengl_widget::~opengl_widget ()
   glDeleteBuffers (1, &vbo_colors);
 }
 
-// GLfloat *opengl_widget::get_colors ()
-// {
-//   return colors.get ();
-// }
-
 float* opengl_widget::preprocess_before_colors_fill()
 {
 #ifdef GPU_BUILD
@@ -112,6 +88,9 @@ void opengl_widget::postprocess_after_colors_fill()
 void opengl_widget::initializeGL()
 {
   initializeOpenGLFunctions ();
+
+  text_renderer::instance ().init (this);
+
   program = std::make_unique<QOpenGLShaderProgram> (this);
   program->addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/map_2d.vert");
   program->addShaderFromSourceFile (QOpenGLShader::Fragment, ":/shaders/map_2d.frag");
@@ -132,20 +111,20 @@ void opengl_widget::initializeGL()
   glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
 
 #ifdef GPU_BUILD
-  // cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
+  cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
 
-  // d_colors = preprocess_before_colors_fill ();
-  // postprocess_after_colors_fill ();
+  d_colors = preprocess_before_colors_fill ();
+  postprocess_after_colors_fill ();
 
-  // auto error = cudaGetLastError ();
+  auto error = cudaGetLastError ();
 
-  // if (error != cudaSuccess)
-  //   std::cout << cudaGetErrorString (error) << std::endl;
+  if (error != cudaSuccess)
+    std::cout << cudaGetErrorString (error) << std::endl;
 #endif
 
   mvp.setToIdentity ();
 
-  axes.init (44, 44, l_x, r_x, b_y, t_y);
+  axes.init (this, 44, 44, l_x, r_x, b_y, t_y);
 }
 
 float *opengl_widget::get_colors (bool use_gpu)
@@ -155,8 +134,7 @@ float *opengl_widget::get_colors (bool use_gpu)
 
 void opengl_widget::resizeGL(int width, int height)
 {
-    (void) width;
-    (void) height;
+  text_renderer::instance ().resize (width, height);
 }
 
 void opengl_widget::update_colors (bool use_gpu)
@@ -189,26 +167,19 @@ void opengl_widget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
 
-    // program->bind();
+    program->bind();
 
-    // program->setUniformValue ("MVP", mvp);
-    // glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
-    // glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-    // glVertexAttribPointer(static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
-    // glEnableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
-    // glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
-    // glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
-    // glDrawArrays(GL_QUADS, 0, static_cast<int> (elements_count) * 4);
-    // glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
-    // glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
-    // program->release();
+    program->setUniformValue ("MVP", mvp);
+    glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+    glVertexAttribPointer(static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
+    glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_QUADS, 0, static_cast<int> (elements_count) * 4);
+    glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
+    glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
+    program->release();
 
     axes.draw (mvp);
-
-    // tex_program->bind();
-    // QString text("123.321e-12");
-    // const QChar *qchar = text.data();
-
-    // renderText(qchar, text.size(), 0.0, 0.0, 1.0f, QVector3D(1.0f, 0.0f, 0.0f));
-    // tex_program->release();
 }

@@ -18,6 +18,7 @@ public:
   axes_grid () = default;
 
   void init (
+      QObject *parent,
       unsigned int x_tics_arg, unsigned int y_tics,
       float left_x, float right_x,
       float bottom_y, float top_y);
@@ -26,10 +27,11 @@ public:
 private:
   unsigned int x_tics = 0, y_tics = 0;
   unsigned int total_coords = 0;
+  const unsigned int long_tic_each = 4;
   std::unique_ptr<GLfloat[]> coords;
 
   QOpenGLBuffer grid_vbo;
-  QOpenGLShaderProgram program;
+  QOpenGLShaderProgram *program;
   QOpenGLVertexArrayObject grid_vao;
 };
 

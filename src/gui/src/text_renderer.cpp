@@ -3,14 +3,20 @@
 //
 
 #include "text_renderer.h"
+#include "cpp/common_funcs.h"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#include <QDesktopWidget>
 #include <QOpenGLTexture>
+#include <QApplication>
+#include <QScreen>
+#include <QWidget>
 #include <QFile>
 
 #include <iostream>
+#include <cmath>
 
 class ft_context
 {
@@ -21,7 +27,7 @@ private:
   QByteArray face_content;
 
 public:
-  ft_context (unsigned int font_size)
+  explicit ft_context (unsigned int font_size)
   {
     QFile font_face (":/fonts/opensans/OpenSans-Regular.ttf");
     font_face.open(QIODevice::ReadOnly);
@@ -48,6 +54,21 @@ public:
   {
     return face->glyph;
   }
+
+  short units_per_em ()
+  {
+    return face->units_per_EM;
+  }
+
+  signed long y_min ()
+  {
+    return face->bbox.yMin;
+  }
+
+  signed long y_max ()
+  {
+    return face->bbox.yMax;
+  }
 };
 
 class character
@@ -72,12 +93,6 @@ public:
     texture->setWrapMode(QOpenGLTexture::ClampToEdge);
   }
 
-  ~character()
-  {
-    if (texture)
-      texture->destroy ();
-  }
-
 public:
   std::unique_ptr<QOpenGLTexture> texture;
   QVector2D size;
@@ -87,14 +102,24 @@ public:
 
 text_renderer::text_renderer ()
   : free_type (new ft_context (font_size))
+  , tex_vbo (QOpenGLBuffer::VertexBuffer)
+{
+}
+
+text_renderer::~text_renderer() = default;
+
+void text_renderer::init (QObject *parent)
 {
   initializeOpenGLFunctions ();
 
-  program.addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/texture.vert");
-  program.addShaderFromSourceFile (QOpenGLShader::Fragment, ":/shaders/texture.frag");
-  program.link ();
+  cpp_unreferenced (parent);
+  program = new QOpenGLShaderProgram (parent);
+  program->addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/texture.vert");
+  program->addShaderFromSourceFile (QOpenGLShader::Fragment, ":/shaders/texture.frag");
+  if (!program->link ())
+    std::cout << "Can't link" << std::endl;
 
-  program.setUniformValue ("texture", 0);
+  program->setUniformValue ("qt_Texture0", 0);
 
   tex_vao.create();
   tex_vao.bind();
@@ -105,14 +130,20 @@ text_renderer::text_renderer ()
   tex_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
 
   quintptr offset = 0;
-  program.setAttributeBuffer("vertex", GL_FLOAT, offset, 2, 4*sizeof(GLfloat));
-  program.enableAttributeArray("vertex");
+  program->setAttributeBuffer("qt_Vertex", GL_FLOAT, offset, 2, 4*sizeof(GLfloat));
+  program->enableAttributeArray("qt_Vertex");
 
   offset += 2 * sizeof(GLfloat);
-  program.setAttributeBuffer("tex_coord", GL_FLOAT, offset, 2, 4*sizeof(GLfloat));
-  program.enableAttributeArray("tex_coord");
+  program->setAttributeBuffer("qt_TexCoord", GL_FLOAT, offset, 2, 4*sizeof(GLfloat));
+  program->enableAttributeArray("qt_TexCoord");
 
   tex_vao.release();
+}
+
+void text_renderer::resize(int width, int height)
+{
+  x_scale = 2.0f / width;
+  y_scale = 2.0f / height;
 }
 
 text_renderer& text_renderer::instance()
@@ -150,40 +181,99 @@ void text_renderer::render_character(char c, float &x, float y, float scale)
     return;
   }
 
-  GLfloat w = ch.size.x() * scale;
-  GLfloat h = ch.size.y() * scale;
+  GLfloat w = ch.size.x() * x_scale * scale;
+  GLfloat h = ch.size.y() * y_scale * scale;
 
-  GLfloat xpos = x + ch.bearing.x() * scale;
-  GLfloat ypos = y + (ch.size.y() - ch.bearing.y()) * scale + font_size - h;
+  GLfloat xpos = x + ch.bearing.x() * x_scale * scale;
+  GLfloat ypos = y + h - (h - ch.bearing.y () * y_scale * scale);
 
   GLfloat tex_vertices[] = {
-      xpos,     ypos,       0.0, 0.0,
-      xpos + w, ypos,       1.0, 0.0,
-      xpos,     ypos + h,   0.0, 1.0,
-      xpos + w, ypos + h,   1.0, 1.0
+      xpos,     ypos    ,   0.0, 0.0,
+      xpos + w, ypos    ,   1.0, 0.0,
+      xpos,     ypos - h,   0.0, 1.0,
+      xpos + w, ypos - h,   1.0, 1.0
   };
   ch.texture->bind();
   tex_vbo.write(0, tex_vertices, sizeof(tex_vertices));
-
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   ch.texture->release ();
   // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
   // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
-  x += (ch.advance >> 6) * scale;
+  x += (ch.advance >> 6u) * x_scale * scale;
 }
 
-void text_renderer::render_text(std::string text, float x, float y, float scale, const QMatrix4x4 &mvp)
+float text_renderer::get_char_width (char c)
 {
-  program.bind ();
-  program.setUniformValue ("MVP", mvp);
+  auto &ch = get_character (c);
+  if (!ch.texture)
+    return 0.0f;
+
+  return ch.size.x () * x_scale;
+}
+
+float text_renderer::get_char_height (char c)
+{
+  auto &ch = get_character (c);
+  if (!ch.texture)
+    return 0.0f;
+
+  return ch.size.y () * y_scale;
+}
+
+void text_renderer::render_text (
+    const std::string &text,
+    float x, float y,
+    float scale,
+    const QMatrix4x4 &mvp,
+    text_anchor anchor)
+{
+  float y_offset = 0.0;
+
+  if (anchor == text_anchor::bottom_center)
+  {
+    float x_offset = 0.0;
+
+    for (auto c: text)
+    {
+      float height = get_char_height (c);
+      if (height > y_offset)
+        y_offset = height;
+
+      x_offset += get_char_width (c);
+    }
+
+    x -= x_offset / 2.0;
+  }
+  else if (anchor == text_anchor::right_center)
+  {
+    float x_offset = 0.0;
+
+    for (auto c: text)
+    {
+      float height = get_char_height (c);
+      if (height > y_offset)
+        y_offset = height;
+
+      x_offset += get_char_width (c);
+    }
+
+    y_offset /= 2.0;
+    x -= x_offset;
+  }
+
+  program->bind ();
+  program->setUniformValue ("qt_ModelViewProjectionMatrix", mvp);
+
+  QVector3D color (0.0, 0.0, 0.0);
+  program->setUniformValue ("textColor", color);
 
   tex_vao.bind ();
   tex_vbo.bind ();
 
   for (auto c: text)
-    render_character (c, x, y, scale);
+    render_character (c, x, y - y_offset, scale);
 
   tex_vbo.release ();
   tex_vao.release ();
-  program.release ();
+  program->release ();
 }

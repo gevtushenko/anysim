@@ -7,6 +7,7 @@
 #include "cpp/common_funcs.h"
 
 void axes_grid::init (
+    QObject *parent,
     unsigned int x_tics_arg, unsigned int y_tics_arg,
     float left_x, float right_x,
     float bottom_y, float top_y)
@@ -15,11 +16,12 @@ void axes_grid::init (
 
   x_tics = x_tics_arg; y_tics = y_tics_arg;
 
-  if (!program.isLinked ())
+  program = new QOpenGLShaderProgram (parent);
+  if (!program->isLinked ())
   {
-    program.addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/axes_grid.vert");
-    program.addShaderFromSourceFile (QOpenGLShader::Fragment, ":/shaders/axes_grid.frag");
-    program.link ();
+    program->addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/axes_grid.vert");
+    program->addShaderFromSourceFile (QOpenGLShader::Fragment, ":/shaders/axes_grid.frag");
+    program->link ();
   }
 
   grid_vao.create();
@@ -53,7 +55,6 @@ void axes_grid::init (
 
   float tic_size = 0.01f;
   float long_tic_size = 0.025f;
-  const unsigned int long_tic_each = 4;
 
   const bool in = false; /// Tics are inside model
   const short int dir = in ? -1 : 1;
@@ -100,30 +101,39 @@ void axes_grid::init (
   grid_vbo.write (0, coords.get (), sizeof (GLfloat) * (total_coords));
   grid_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
 
-  program.setAttributeBuffer ("coord2d", GL_FLOAT, 0, 2);
-  program.enableAttributeArray ("coord2d");
+  program->setAttributeBuffer ("coord2d", GL_FLOAT, 0, 2);
+  program->enableAttributeArray ("coord2d");
   grid_vao.release();
 }
+
+#include <iostream>
 
 void axes_grid::draw (QMatrix4x4 &mvp)
 {
   auto &tr = text_renderer::instance ();
+  cpp_unreferenced (tr);
 
-  QMatrix4x4 matrix;
-  matrix.ortho(QRect(0, 0, 800, 600));
-  tr.render_text ("test", 0, 0, 1.0, matrix);
+  program->bind();
+  program->setUniformValue ("MVP", mvp);
 
-  cpp_unreferenced (mvp);
+  grid_vao.bind ();
+  grid_vbo.bind ();
+  glLineWidth (2.2);
+  glDrawArrays (GL_LINES, 0, total_coords);
+  grid_vbo.release ();
+  grid_vao.release ();
 
-  // program.bind();
-  // program.setUniformValue ("MVP", mvp);
+  program->release ();
 
-  // grid_vao.bind ();
-  // grid_vbo.bind ();
-  // glLineWidth (2.2);
-  // glDrawArrays (GL_LINES, 0, total_coords);
-  // grid_vbo.release ();
-  // grid_vao.release ();
-
-  // program.release ();
+  float *p_coords = coords.get ();
+  for (unsigned int y = 0; y < y_tics; y+=long_tic_each)
+  {
+    tr.render_text (std::to_string (y), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
+    p_coords += 8 * long_tic_each;
+  }
+  for (unsigned int x = 0; x < x_tics; x+=long_tic_each)
+  {
+    tr.render_text (std::to_string (x), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::bottom_center);
+    p_coords += 8 * long_tic_each;
+  }
 }
