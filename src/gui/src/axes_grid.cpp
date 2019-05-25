@@ -3,6 +3,8 @@
 //
 
 #include "axes_grid.h"
+#include "text_renderer.h"
+#include "cpp/common_funcs.h"
 
 void axes_grid::init (
     unsigned int x_tics_arg, unsigned int y_tics_arg,
@@ -105,15 +107,23 @@ void axes_grid::init (
 
 void axes_grid::draw (QMatrix4x4 &mvp)
 {
-  program.bind();
-  program.setUniformValue ("MVP", mvp);
+  auto &tr = text_renderer::instance ();
 
-  grid_vao.bind ();
-  grid_vbo.bind ();
-  glLineWidth (2.2);
-  glDrawArrays (GL_LINES, 0, total_coords);
-  grid_vbo.release ();
-  grid_vao.release ();
+  QMatrix4x4 matrix;
+  matrix.ortho(QRect(0, 0, 800, 600));
+  tr.render_text ("test", 0, 0, 1.0, matrix);
 
-  program.release ();
+  cpp_unreferenced (mvp);
+
+  // program.bind();
+  // program.setUniformValue ("MVP", mvp);
+
+  // grid_vao.bind ();
+  // grid_vbo.bind ();
+  // glLineWidth (2.2);
+  // glDrawArrays (GL_LINES, 0, total_coords);
+  // grid_vbo.release ();
+  // grid_vao.release ();
+
+  // program.release ();
 }

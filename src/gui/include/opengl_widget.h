@@ -13,9 +13,6 @@
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
 #include <memory>
 #include <functional>
 
@@ -24,24 +21,6 @@
 #endif
 
 #include "axes_grid.h"
-
-class Character
-{
-public:
-    Character() {}
-
-    Character(QOpenGLTexture *texture, QVector2D size, QVector2D bearing, GLuint advance) {
-        this->texture = texture;
-        this->size = size;
-        this->bearing = bearing;
-        this->advance = advance;
-    }
-
-    QOpenGLTexture      *texture;
-    QVector2D   size;
-    QVector2D   bearing;
-    GLuint      advance;
-};
 
 class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -70,20 +49,10 @@ protected:
   void wheelEvent (QWheelEvent *event) override;
 
 private:
-    Character getCharacter(QChar character);
-    void renderText(const QChar *text, int length, GLfloat x, GLfloat y, GLfloat scale, QVector3D color);
-
-private:
   std::unique_ptr<QOpenGLShaderProgram> program;
-  std::unique_ptr<QOpenGLShaderProgram> tex_program;
-
-  QByteArray face_content;
 
   GLint attribute_coord2d, attribute_v_color;
   GLuint vbo_vertices, vbo_colors;
-
-  QOpenGLBuffer tex_vbo;
-  QOpenGLVertexArrayObject tex_vao;
 
   const long int elements_count;
   const int vertices_per_element = 4;
@@ -98,9 +67,6 @@ private:
 
   std::unique_ptr<GLfloat[]> colors;
   std::unique_ptr<GLfloat[]> vertices;
-
-  FT_Library ft;
-  FT_Face face;
 
   const float l_x = -0.9f;
   const float r_x =  0.9f;

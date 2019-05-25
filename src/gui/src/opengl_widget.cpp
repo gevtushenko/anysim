@@ -32,8 +32,7 @@ const char *tex_fs_source =
         "}";
 
 opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, float y_size)
-  : tex_vbo (QOpenGLBuffer::VertexBuffer)
-  , elements_count (nx * ny)
+  : elements_count (nx * ny)
   , colors (new GLfloat[color_data_per_element * elements_count])
   , vertices (new GLfloat[vertex_data_per_element * elements_count])
 {
@@ -66,21 +65,6 @@ opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, fl
       std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
     }
   }
-
-  QFile font_face (":/fonts/opensans/OpenSans-Regular.ttf");
-  font_face.open(QIODevice::ReadOnly);
-  face_content = font_face.readAll();
-
-
-  if(FT_Init_FreeType(&ft)) {
-    std::cerr << "Could not init freetype library\n";
-  }
-
-  if(FT_New_Memory_Face(ft, reinterpret_cast<const FT_Byte*> (face_content.data ()), face_content.count (), 0, &face)) {
-    std::cerr << "Could not open font\n";
-  }
-
-  FT_Set_Pixel_Sizes(face, 0, 48);
 
   std::cout << max_width << " - " << max_height << std::endl;
 }
@@ -148,40 +132,16 @@ void opengl_widget::initializeGL()
   glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
 
 #ifdef GPU_BUILD
-  cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
+  // cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
 
-  d_colors = preprocess_before_colors_fill ();
-  postprocess_after_colors_fill ();
+  // d_colors = preprocess_before_colors_fill ();
+  // postprocess_after_colors_fill ();
 
-  auto error = cudaGetLastError ();
+  // auto error = cudaGetLastError ();
 
-  if (error != cudaSuccess)
-    std::cout << cudaGetErrorString (error) << std::endl;
+  // if (error != cudaSuccess)
+  //   std::cout << cudaGetErrorString (error) << std::endl;
 #endif
-
-    tex_program = std::make_unique<QOpenGLShaderProgram> (this);
-    tex_program->addShaderFromSourceCode (QOpenGLShader::Vertex, tex_vs_source);
-    tex_program->addShaderFromSourceCode (QOpenGLShader::Fragment, tex_fs_source);
-    tex_program->link ();
-
-    tex_program->setUniformValue("qt_Texture0", 0);
-
-    tex_vao.create();
-    tex_vao.bind();
-
-    tex_vbo.create();
-    tex_vbo.bind();
-    tex_vbo.allocate(sizeof(GLfloat)*4*4);
-    tex_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-
-    quintptr offset = 0;
-    tex_program->setAttributeBuffer("qt_Vertex", GL_FLOAT, offset, 2, 4*sizeof(GLfloat));
-    tex_program->enableAttributeArray("qt_Vertex");
-    offset += 2 * sizeof(GLfloat);
-    tex_program->setAttributeBuffer("qt_TexCoord", GL_FLOAT, offset, 2, 4*sizeof(GLfloat));
-    tex_program->enableAttributeArray("qt_TexCoord");
-
-    tex_vao.release();
 
   mvp.setToIdentity ();
 
@@ -213,70 +173,6 @@ void opengl_widget::update_colors (bool use_gpu)
   update ();
 }
 
-Character opengl_widget::getCharacter(QChar character)
-{
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    if (FT_Load_Char(face, character.unicode(), FT_LOAD_RENDER)) {
-        qDebug() << "ERROR::FREETYTPE: Failed to load Glyph";
-        return Character();
-    }
-    QOpenGLTexture *texture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-    texture->setFormat(QOpenGLTexture::R8_UNorm);
-    texture->setSize(face->glyph->bitmap.width, face->glyph->bitmap.rows);
-    texture->allocateStorage();
-    texture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8,
-                     face->glyph->bitmap.buffer);
-    texture->setMagnificationFilter(QOpenGLTexture::Linear);
-    texture->setMinificationFilter(QOpenGLTexture::Linear);
-    texture->setWrapMode(QOpenGLTexture::ClampToEdge);
-    Character newChar(
-            texture,
-            QVector2D(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-            QVector2D(face->glyph->bitmap_left, face->glyph->bitmap_top),
-            face->glyph->advance.x
-    );
-    // m_typeList.insert(character, newChar);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    return newChar;
-}
-
-void opengl_widget::renderText(const QChar *text, int length, GLfloat x, GLfloat y, GLfloat scale, QVector3D color)
-{
-    int fontsize = 48;
-
-    QMatrix4x4 matrix;
-    matrix.ortho(QRect(0, 0, 800, 600));
-    tex_program->setUniformValue("qt_ModelViewProjectionMatrix", matrix);
-    tex_program->setUniformValue("textColor", color);
-    tex_vao.bind();
-    for (int i=0; i<length; i++) {
-        Character ch = getCharacter(text[i]);
-        GLfloat w = ch.size.x() * scale;
-        GLfloat h = ch.size.y() * scale;
-
-        GLfloat xpos = x + ch.bearing.x() * scale;
-        GLfloat ypos = y + (ch.size.y() - ch.bearing.y()) * scale + fontsize - h;
-
-        GLfloat tex_vertices[] = {
-                xpos,     ypos,       0.0, 0.0,
-                xpos + w, ypos,       1.0, 0.0,
-                xpos,     ypos + h,   0.0, 1.0,
-                xpos + w, ypos + h,   1.0, 1.0
-        };
-        ch.texture->bind();
-        tex_vbo.write(0, tex_vertices, sizeof(tex_vertices));
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-        // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
-        x += (ch.advance >> 6) * scale;
-    }
-    tex_vao.release();
-    matrix.setToIdentity();
-    tex_program->setUniformValue("qt_ModelViewProjectionMatrix", matrix);
-}
-
 void opengl_widget::wheelEvent(QWheelEvent *event)
 {
   if (event->delta () != 0)
@@ -293,19 +189,19 @@ void opengl_widget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
 
-    program->bind();
+    // program->bind();
 
-    program->setUniformValue ("MVP", mvp);
-    glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-    glVertexAttribPointer(static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
-    glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_QUADS, 0, static_cast<int> (elements_count) * 4);
-    glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
-    glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
-    program->release();
+    // program->setUniformValue ("MVP", mvp);
+    // glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
+    // glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+    // glVertexAttribPointer(static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
+    // glEnableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
+    // glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
+    // glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
+    // glDrawArrays(GL_QUADS, 0, static_cast<int> (elements_count) * 4);
+    // glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
+    // glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
+    // program->release();
 
     axes.draw (mvp);
 
