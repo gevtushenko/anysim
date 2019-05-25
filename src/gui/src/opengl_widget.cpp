@@ -37,11 +37,6 @@ opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, fl
   , colors (new GLfloat[color_data_per_element * elements_count])
   , vertices (new GLfloat[vertex_data_per_element * elements_count])
 {
-  const GLfloat l_x = -0.9f;
-  const GLfloat r_x =  0.9f;
-  const GLfloat b_y = -0.9f;
-  const GLfloat t_y =  0.9f;
-
   GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
   GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
 
@@ -189,6 +184,8 @@ void opengl_widget::initializeGL()
     tex_vao.release();
 
   mvp.setToIdentity ();
+
+  axes.init (44, 44, l_x, r_x, b_y, t_y);
 }
 
 float *opengl_widget::get_colors (bool use_gpu)
@@ -294,7 +291,7 @@ void opengl_widget::paintGL()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
 
     program->bind();
 
@@ -309,6 +306,8 @@ void opengl_widget::paintGL()
     glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
     glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
     program->release();
+
+    axes.draw (mvp);
 
     // tex_program->bind();
     // QString text("123.321e-12");

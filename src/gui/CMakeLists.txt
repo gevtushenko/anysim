@@ -20,7 +20,11 @@ set(GUI_SOURCES
         src/render_thread.cpp
         include/main_window.h
         include/opengl_widget.h
-        include/render_thread.h include/gui_simulation_manager.h src/gui_simulation_manager.cpp)
+        include/render_thread.h
+        include/gui_simulation_manager.h
+        src/gui_simulation_manager.cpp
+        include/axes_grid.h
+        src/axes_grid.cpp)
 set(GUI_RESOURCES
         resources/resources.qrc)
 add_library(${PROJECT_NAME} STATIC ${GUI_SOURCES} ${GUI_RESOURCES})

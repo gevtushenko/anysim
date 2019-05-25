@@ -23,6 +23,8 @@
 #include <cuda_gl_interop.h>
 #endif
 
+#include "axes_grid.h"
+
 class Character
 {
 public:
@@ -99,6 +101,13 @@ private:
 
   FT_Library ft;
   FT_Face face;
+
+  const float l_x = -0.9f;
+  const float r_x =  0.9f;
+  const float b_y = -0.9f;
+  const float t_y =  0.9f;
+
+  axes_grid axes;
 
   float *d_colors = nullptr;
 

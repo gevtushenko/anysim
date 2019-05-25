@@ -4,5 +4,7 @@
 
         <file>shaders/map_2d.frag</file>
         <file>shaders/map_2d.vert</file>
+        <file>shaders/axes_grid.frag</file>
+        <file>shaders/axes_grid.vert</file>
     </qresource>
 </RCC>
