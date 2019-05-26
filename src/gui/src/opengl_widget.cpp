@@ -12,10 +12,12 @@
 #include <cmath>
 #include <iostream>
 
-opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size, float y_size)
+opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size_arg, float y_size_arg)
   : elements_count (nx * ny)
   , colors (new GLfloat[color_data_per_element * elements_count])
   , vertices (new GLfloat[vertex_data_per_element * elements_count])
+  , x_size (x_size_arg)
+  , y_size (y_size_arg)
 {
   GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
   GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
@@ -124,7 +126,7 @@ void opengl_widget::initializeGL()
 
   mvp.setToIdentity ();
 
-  axes.init (this, 44, 44, l_x, r_x, b_y, t_y);
+  axes.init (this, 44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
 }
 
 float *opengl_widget::get_colors (bool use_gpu)

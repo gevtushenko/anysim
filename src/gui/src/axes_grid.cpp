@@ -10,10 +10,12 @@ void axes_grid::init (
     QObject *parent,
     unsigned int x_tics_arg, unsigned int y_tics_arg,
     float left_x, float right_x,
-    float bottom_y, float top_y)
+    float bottom_y, float top_y,
+    float x_size_arg, float y_size_arg)
 {
   initializeOpenGLFunctions ();
 
+  x_size = x_size_arg; y_size = y_size_arg;
   x_tics = x_tics_arg; y_tics = y_tics_arg;
 
   program = new QOpenGLShaderProgram (parent);
@@ -125,15 +127,18 @@ void axes_grid::draw (QMatrix4x4 &mvp)
 
   program->release ();
 
+  const float dx = x_size / (x_tics - 1);
+  const float dy = y_size / (y_tics - 1);
+
   float *p_coords = coords.get ();
   for (unsigned int y = 0; y < y_tics; y+=long_tic_each)
   {
-    tr.render_text (std::to_string (y), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
+    tr.render_text (std::to_string (y * dy), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
     p_coords += 8 * long_tic_each;
   }
   for (unsigned int x = 0; x < x_tics; x+=long_tic_each)
   {
-    tr.render_text (std::to_string (x), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::bottom_center);
+    tr.render_text (std::to_string (x * dx), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::bottom_center);
     p_coords += 8 * long_tic_each;
   }
 }

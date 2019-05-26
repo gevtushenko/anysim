@@ -21,10 +21,12 @@ public:
       QObject *parent,
       unsigned int x_tics_arg, unsigned int y_tics,
       float left_x, float right_x,
-      float bottom_y, float top_y);
+      float bottom_y, float top_y,
+      float x_size, float y_size);
   void draw (QMatrix4x4 &mvp);
 
 private:
+  float x_size, y_size;
   unsigned int x_tics = 0, y_tics = 0;
   unsigned int total_coords = 0;
   const unsigned int long_tic_each = 4;

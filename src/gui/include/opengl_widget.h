@@ -73,6 +73,9 @@ private:
   const float b_y = -0.85f;
   const float t_y =  0.9f;
 
+  float x_size;
+  float y_size;
+
   axes_grid axes;
 
   float *d_colors = nullptr;
