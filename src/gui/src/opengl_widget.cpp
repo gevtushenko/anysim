@@ -158,9 +158,24 @@ void opengl_widget::wheelEvent(QWheelEvent *event)
   update ();
 }
 
+bool &opengl_widget::get_button_flag (Qt::MouseButton button)
+{
+  if (button == Qt::LeftButton)
+    return left_button_pressed;
+  else if (button == Qt::RightButton)
+    return right_button_pressed;
+
+  return unsupported_button_pressed;
+}
+
 void opengl_widget::mousePressEvent (QMouseEvent *event)
 {
-  cpp_unreferenced (event);
+  get_button_flag (event->button ()) = true;
+}
+
+void opengl_widget::mouseReleaseEvent (QMouseEvent *event)
+{
+  get_button_flag (event->button ()) = false;
 }
 
 void opengl_widget::mouseDoubleClickEvent (QMouseEvent *event)
@@ -171,38 +186,36 @@ void opengl_widget::mouseDoubleClickEvent (QMouseEvent *event)
   update ();
 }
 
-void opengl_widget::mouseReleaseEvent (QMouseEvent *event)
-{
-  cpp_unreferenced (event);
-}
-
 void opengl_widget::mouseMoveEvent (QMouseEvent *event)
 {
-  cpp_unreferenced (event);
+  if (left_button_pressed)
+  {
+    cpp_unreferenced (event);
+  }
 }
 
 void opengl_widget::paintGL()
 {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
+  glEnable (GL_BLEND);
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glClear (GL_COLOR_BUFFER_BIT);
+  glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
 
-    auto mvp = camera_view.get_mvp ();
+  auto mvp = camera_view.get_mvp ();
 
-    program->bind();
+  program->bind ();
 
-    program->setUniformValue ("MVP", mvp);
-    glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-    glVertexAttribPointer(static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
-    glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_QUADS, 0, static_cast<int> (elements_count) * 4);
-    glDisableVertexAttribArray(static_cast<GLuint> (attribute_coord2d));
-    glDisableVertexAttribArray(static_cast<GLuint> (attribute_v_color));
-    program->release();
+  program->setUniformValue ("MVP", mvp);
+  glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
+  glVertexAttribPointer (static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray (static_cast<GLuint> (attribute_coord2d));
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
+  glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
+  glDrawArrays (GL_QUADS, 0, static_cast<int> (elements_count) * 4);
+  glDisableVertexAttribArray (static_cast<GLuint> (attribute_coord2d));
+  glDisableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
+  program->release ();
 
-    axes.draw (mvp);
+  axes.draw (mvp);
 }

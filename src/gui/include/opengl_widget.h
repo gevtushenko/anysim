@@ -54,6 +54,13 @@ protected:
   void mouseMoveEvent (QMouseEvent *event);
 
 private:
+  bool &get_button_flag (Qt::MouseButton);
+
+private:
+  bool left_button_pressed = false;
+  bool right_button_pressed = false;
+  bool unsupported_button_pressed = false;
+
   std::unique_ptr<QOpenGLShaderProgram> program;
 
   GLint attribute_coord2d, attribute_v_color;
