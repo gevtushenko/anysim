@@ -26,7 +26,10 @@ QMatrix4x4 camera::get_mvp()
 
 void camera::resize (int width, int height)
 {
-  float aspect = static_cast<float> (width) / height;
+  view_width = width;
+  view_height = height;
+
+  float aspect = static_cast<float> (view_width) / view_height;
 
   calculate_orthographic_projection (
       -aspect /* left*/, aspect /* right */,
@@ -38,6 +41,12 @@ void camera::zoom (int wheel_delta)
 {
   if (wheel_delta != 0)
     update_scaling_matrix (std::pow (0.9f, -static_cast<float> (wheel_delta) / 120));
+}
+
+void camera::move (int dx, int dy)
+{
+  translation (0, 3) = -static_cast<float> (dx) / (static_cast<float> (view_width) / 2);
+  translation (1, 3) =  static_cast<float> (dy) / (static_cast<float> (view_height) / 2);
 }
 
 void camera::update_scaling_matrix (float scaling_coefficient)

@@ -17,12 +17,16 @@ public:
 
   void resize (int width, int height);
   void zoom (int wheel_delta);
+  void move (int dx, int dy);
 
   void reset ();
 
   QMatrix4x4 get_mvp ();
 
 public:
+  int view_width = 0;
+  int view_height = 0;
+
   QMatrix4x4 scale, rotation, translation;
   QMatrix4x4 orthographic_projection;
 

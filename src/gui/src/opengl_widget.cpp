@@ -171,6 +171,9 @@ bool &opengl_widget::get_button_flag (Qt::MouseButton button)
 void opengl_widget::mousePressEvent (QMouseEvent *event)
 {
   get_button_flag (event->button ()) = true;
+
+  prev_x_position = event->x ();
+  prev_y_position = event->y ();
 }
 
 void opengl_widget::mouseReleaseEvent (QMouseEvent *event)
@@ -190,7 +193,11 @@ void opengl_widget::mouseMoveEvent (QMouseEvent *event)
 {
   if (left_button_pressed)
   {
-    cpp_unreferenced (event);
+    const int dx = prev_x_position - event->x ();
+    const int dy = prev_y_position - event->y ();
+
+    camera_view.move (dx, dy);
+    update ();
   }
 }
 

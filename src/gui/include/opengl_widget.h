@@ -48,10 +48,10 @@ protected:
   void resizeGL (int width, int height) override;
   void paintGL () override;
   void wheelEvent (QWheelEvent *event) override;
-  void mousePressEvent (QMouseEvent *event);
-  void mouseDoubleClickEvent (QMouseEvent *event);
-  void mouseReleaseEvent (QMouseEvent *event);
-  void mouseMoveEvent (QMouseEvent *event);
+  void mousePressEvent (QMouseEvent *event) override ;
+  void mouseDoubleClickEvent (QMouseEvent *event) override ;
+  void mouseReleaseEvent (QMouseEvent *event) override ;
+  void mouseMoveEvent (QMouseEvent *event) override ;
 
 private:
   bool &get_button_flag (Qt::MouseButton);
@@ -60,6 +60,9 @@ private:
   bool left_button_pressed = false;
   bool right_button_pressed = false;
   bool unsupported_button_pressed = false;
+
+  int prev_x_position = 0;
+  int prev_y_position = 0;
 
   std::unique_ptr<QOpenGLShaderProgram> program;
 
