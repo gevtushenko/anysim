@@ -18,6 +18,8 @@ public:
   void resize (int width, int height);
   void zoom (int wheel_delta);
 
+  void reset ();
+
   QMatrix4x4 get_mvp ();
 
 public:

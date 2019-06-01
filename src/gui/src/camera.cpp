@@ -8,10 +8,15 @@
 
 camera::camera()
 {
+  reset ();
+  orthographic_projection.setToIdentity ();
+}
+
+void camera::reset ()
+{
   scale.setToIdentity ();
   rotation.setToIdentity ();
   translation.setToIdentity ();
-  orthographic_projection.setToIdentity ();
 }
 
 QMatrix4x4 camera::get_mvp()

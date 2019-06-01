@@ -48,6 +48,10 @@ protected:
   void resizeGL (int width, int height) override;
   void paintGL () override;
   void wheelEvent (QWheelEvent *event) override;
+  void mousePressEvent (QMouseEvent *event);
+  void mouseDoubleClickEvent (QMouseEvent *event);
+  void mouseReleaseEvent (QMouseEvent *event);
+  void mouseMoveEvent (QMouseEvent *event);
 
 private:
   std::unique_ptr<QOpenGLShaderProgram> program;

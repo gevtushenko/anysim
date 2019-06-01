@@ -158,6 +158,29 @@ void opengl_widget::wheelEvent(QWheelEvent *event)
   update ();
 }
 
+void opengl_widget::mousePressEvent (QMouseEvent *event)
+{
+  cpp_unreferenced (event);
+}
+
+void opengl_widget::mouseDoubleClickEvent (QMouseEvent *event)
+{
+  cpp_unreferenced (event);
+
+  camera_view.reset ();
+  update ();
+}
+
+void opengl_widget::mouseReleaseEvent (QMouseEvent *event)
+{
+  cpp_unreferenced (event);
+}
+
+void opengl_widget::mouseMoveEvent (QMouseEvent *event)
+{
+  cpp_unreferenced (event);
+}
+
 void opengl_widget::paintGL()
 {
     glEnable(GL_BLEND);
