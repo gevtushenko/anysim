@@ -27,6 +27,8 @@ public:
 
 private:
   float x_size, y_size;
+  const float tic_size = 0.01f;
+  const float long_tic_size = 0.025f;
   unsigned int x_tics = 0, y_tics = 0;
   unsigned int total_coords = 0;
   const unsigned int long_tic_each = 4;

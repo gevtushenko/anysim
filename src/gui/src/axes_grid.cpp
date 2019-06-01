@@ -55,9 +55,6 @@ void axes_grid::init (
   float dy = (top_y - bottom_y) / (y_tics - 1);
   float *p_coords = coords.get ();
 
-  float tic_size = 0.01f;
-  float long_tic_size = 0.025f;
-
   const bool in = false; /// Tics are inside model
   const short int dir = in ? -1 : 1;
 
@@ -108,8 +105,6 @@ void axes_grid::init (
   grid_vao.release();
 }
 
-#include <iostream>
-
 void axes_grid::draw (QMatrix4x4 &mvp)
 {
   auto &tr = text_renderer::instance ();
@@ -133,12 +128,12 @@ void axes_grid::draw (QMatrix4x4 &mvp)
   float *p_coords = coords.get ();
   for (unsigned int y = 0; y < y_tics; y+=long_tic_each)
   {
-    tr.render_text (std::to_string (y * dy), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
+    tr.render_text (std::to_string (y * dy), p_coords[2] - long_tic_size / 4, p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
     p_coords += 8 * long_tic_each;
   }
   for (unsigned int x = 0; x < x_tics; x+=long_tic_each)
   {
-    tr.render_text (std::to_string (x * dx), p_coords[2], p_coords[3], 1, mvp, text_renderer::text_anchor::bottom_center);
+    tr.render_text (std::to_string (x * dx), p_coords[2], p_coords[3] - long_tic_size / 4, 1, mvp, text_renderer::text_anchor::bottom_center);
     p_coords += 8 * long_tic_each;
   }
 }
