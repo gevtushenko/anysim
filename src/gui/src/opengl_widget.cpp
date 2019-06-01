@@ -49,6 +49,8 @@ opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size_arg
     }
   }
 
+  setMinimumHeight (100);
+  setMinimumWidth (100);
   std::cout << max_width << " - " << max_height << std::endl;
 }
 

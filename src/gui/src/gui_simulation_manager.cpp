@@ -35,7 +35,7 @@ int gui_simulation_manager::run()
   main_window window(
       nx, ny,
       static_cast<float>(x_size), static_cast<float>(y_size), compute_action, render_action);
-  window.resize (QSize (800, 800));
+  window.resize (QSize (1000, 800));
   window.show ();
 
   return app.exec ();

@@ -25,7 +25,7 @@
 
 class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   opengl_widget () = delete;

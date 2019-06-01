@@ -25,7 +25,7 @@ set(GUI_SOURCES
         src/gui_simulation_manager.cpp
         include/axes_grid.h
         src/axes_grid.cpp include/text_renderer.h src/text_renderer.cpp include/camera.h
-         src/camera.cpp)
+         src/camera.cpp include/model_widget.h src/model_widget.cpp include/tree_item.h src/tree_item.cpp include/tree_model.h src/tree_model.cpp include/graphics_widget.h src/graphics_widget.cpp)
 set(GUI_RESOURCES
         resources/resources.qrc)
 add_library(${PROJECT_NAME} STATIC ${GUI_SOURCES} ${GUI_RESOURCES})

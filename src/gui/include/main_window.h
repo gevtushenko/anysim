@@ -14,7 +14,8 @@
 class QCheckBox;
 class QComboBox;
 
-class opengl_widget;
+class graphics_widget;
+class model_widget;
 
 class main_window : public QMainWindow
 {
@@ -35,7 +36,9 @@ private:
   void create_actions ();
 
 private:
-  opengl_widget *gl;
+  model_widget *model;
+  graphics_widget *graphics;
+
   QAction *run_action = nullptr;
   QAction *stop_action = nullptr;
   QCheckBox *use_gpu = nullptr;
