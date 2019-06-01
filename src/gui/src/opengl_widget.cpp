@@ -124,8 +124,6 @@ void opengl_widget::initializeGL()
     std::cout << cudaGetErrorString (error) << std::endl;
 #endif
 
-  mvp.setToIdentity ();
-
   axes.init (this, 44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
 }
 
@@ -136,6 +134,7 @@ float *opengl_widget::get_colors (bool use_gpu)
 
 void opengl_widget::resizeGL(int width, int height)
 {
+  camera_view.resize (width, height);
   text_renderer::instance ().resize (width, height);
 }
 
@@ -155,11 +154,8 @@ void opengl_widget::update_colors (bool use_gpu)
 
 void opengl_widget::wheelEvent(QWheelEvent *event)
 {
-  if (event->delta () != 0)
-  {
-    mvp.scale (std::pow (0.9, -static_cast<float> (event->delta ()) / 120));
-    update ();
-  }
+  camera_view.zoom (event->delta ());
+  update ();
 }
 
 void opengl_widget::paintGL()
@@ -168,6 +164,8 @@ void opengl_widget::paintGL()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
+
+    auto mvp = camera_view.get_mvp ();
 
     program->bind();
 

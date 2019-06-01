@@ -21,6 +21,7 @@
 #endif
 
 #include "axes_grid.h"
+#include "camera.h"
 
 class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -80,7 +81,7 @@ private:
 
   float *d_colors = nullptr;
 
-  QMatrix4x4 mvp;
+  camera camera_view;
 };
 
 #endif //FDTD_OPENGL_WIDGET_H

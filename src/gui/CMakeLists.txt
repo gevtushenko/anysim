@@ -24,7 +24,8 @@ set(GUI_SOURCES
         include/gui_simulation_manager.h
         src/gui_simulation_manager.cpp
         include/axes_grid.h
-        src/axes_grid.cpp include/text_renderer.h src/text_renderer.cpp)
+        src/axes_grid.cpp include/text_renderer.h src/text_renderer.cpp include/camera.h
+         src/camera.cpp)
 set(GUI_RESOURCES
         resources/resources.qrc)
 add_library(${PROJECT_NAME} STATIC ${GUI_SOURCES} ${GUI_RESOURCES})
