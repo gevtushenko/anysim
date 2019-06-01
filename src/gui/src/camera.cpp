@@ -45,8 +45,8 @@ void camera::zoom (int wheel_delta)
 
 void camera::move (int dx, int dy)
 {
-  translation (0, 3) = -static_cast<float> (dx) / (static_cast<float> (view_width) / 2);
-  translation (1, 3) =  static_cast<float> (dy) / (static_cast<float> (view_height) / 2);
+  translation (0, 3) -= static_cast<float> (dx) / (static_cast<float> (view_width) / 2);
+  translation (1, 3) += static_cast<float> (dy) / (static_cast<float> (view_height) / 2);
 }
 
 void camera::update_scaling_matrix (float scaling_coefficient)

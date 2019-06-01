@@ -196,6 +196,9 @@ void opengl_widget::mouseMoveEvent (QMouseEvent *event)
     const int dx = prev_x_position - event->x ();
     const int dy = prev_y_position - event->y ();
 
+    prev_x_position = event->x ();
+    prev_y_position = event->y ();
+
     camera_view.move (dx, dy);
     update ();
   }
