@@ -23,16 +23,14 @@
 #include "axes_grid.h"
 #include "camera.h"
 
+class project_manager;
+
 class opengl_widget : public QOpenGLWidget, protected QOpenGLFunctions
 {
   Q_OBJECT
 
 public:
-  opengl_widget () = delete;
-  opengl_widget(unsigned int nx,
-                unsigned int ny,
-                float x_size,
-                float y_size);
+  opengl_widget ();
   ~opengl_widget () override;
 
   float *get_colors (bool use_gpu);
@@ -42,6 +40,7 @@ public:
 
 public slots:
   void update_colors (bool use_gpu);
+  void update_project (project_manager *pm);
 
 protected:
   void initializeGL () override;
@@ -57,6 +56,7 @@ private:
   bool &get_button_flag (Qt::MouseButton);
 
 private:
+  bool is_initialized = false;
   bool left_button_pressed = false;
   bool right_button_pressed = false;
   bool unsupported_button_pressed = false;
@@ -69,7 +69,7 @@ private:
   GLint attribute_coord2d, attribute_v_color;
   GLuint vbo_vertices, vbo_colors;
 
-  const long int elements_count;
+  long int elements_count;
   const int vertices_per_element = 4;
   const int coords_per_vertex = 2;
   const int vertex_data_per_element = vertices_per_element * coords_per_vertex;

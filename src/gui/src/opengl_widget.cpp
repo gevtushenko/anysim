@@ -3,6 +3,7 @@
 //
 
 #include "gui/include/opengl_widget.h"
+#include "core/pm/project_manager.h"
 #include "cpp/common_funcs.h"
 #include "text_renderer.h"
 
@@ -12,46 +13,10 @@
 #include <cmath>
 #include <iostream>
 
-opengl_widget::opengl_widget (unsigned int nx, unsigned int ny, float x_size_arg, float y_size_arg)
-  : elements_count (nx * ny)
-  , colors (new GLfloat[color_data_per_element * elements_count])
-  , vertices (new GLfloat[vertex_data_per_element * elements_count])
-  , x_size (x_size_arg)
-  , y_size (y_size_arg)
+opengl_widget::opengl_widget ()
 {
-  GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
-  GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
-
-  GLfloat dx = max_width / static_cast<GLfloat> (nx);
-  GLfloat dy = max_height / static_cast<GLfloat> (ny);
-
-  static GLfloat _colors[] =
-      {
-          1.0, 1.0, 0.0,
-          0.0, 0.0, 1.0,
-          1.0, 0.0, 0.0,
-          1.0, 0.0, 1.0,
-      };
-
-  for (unsigned int j = 0; j < ny; j++)
-  {
-    for (unsigned int i = 0; i < nx; i++)
-    {
-      const unsigned int vert_offset = static_cast<unsigned int> (vertex_data_per_element) * (j * nx + i);
-
-      vertices[vert_offset + 0] = l_x + dx * (i + 0); vertices[vert_offset + 1] = b_y + dy * (j + 1);
-      vertices[vert_offset + 2] = l_x + dx * (i + 0); vertices[vert_offset + 3] = b_y + dy * (j + 0);
-      vertices[vert_offset + 4] = l_x + dx * (i + 1); vertices[vert_offset + 5] = b_y + dy * (j + 0);
-      vertices[vert_offset + 6] = l_x + dx * (i + 1); vertices[vert_offset + 7] = b_y + dy * (j + 1);
-
-      const unsigned int color_offset = static_cast<unsigned int> (color_data_per_element) * (j * nx + i);
-      std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
-    }
-  }
-
   setMinimumHeight (100);
   setMinimumWidth (100);
-  std::cout << max_width << " - " << max_height << std::endl;
 }
 
 opengl_widget::~opengl_widget ()
@@ -102,31 +67,8 @@ void opengl_widget::initializeGL()
   attribute_coord2d = program->attributeLocation ("coord2d");
   attribute_v_color = program->attributeLocation ("v_color");
 
-  /// VBO Handling
-  const int glfloat_size = sizeof (GLfloat);
-  const long int vertices_array_size = elements_count * vertex_data_per_element * glfloat_size;
   glGenBuffers (1, &vbo_vertices);
-  glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
-  glBufferData (GL_ARRAY_BUFFER, vertices_array_size, vertices.get (), GL_DYNAMIC_DRAW);
-
-  const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
   glGenBuffers (1, &vbo_colors);
-  glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
-  glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
-
-#ifdef GPU_BUILD
-  cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
-
-  d_colors = preprocess_before_colors_fill ();
-  postprocess_after_colors_fill ();
-
-  auto error = cudaGetLastError ();
-
-  if (error != cudaSuccess)
-    std::cout << cudaGetErrorString (error) << std::endl;
-#endif
-
-  axes.init (this, 44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
 }
 
 float *opengl_widget::get_colors (bool use_gpu)
@@ -152,6 +94,79 @@ void opengl_widget::update_colors (bool use_gpu)
   }
 
   update ();
+}
+
+void opengl_widget::update_project (project_manager *pm)
+{
+  is_initialized = false;
+  const unsigned int nx = pm->get_nx ();
+  const unsigned int ny = pm->get_ny ();
+
+  elements_count = nx * ny;
+
+  colors.reset ();
+  vertices.reset ();
+
+  colors.reset (new GLfloat[color_data_per_element * elements_count]);
+  vertices.reset (new GLfloat[vertex_data_per_element * elements_count]);
+
+  x_size = pm->get_calculation_area_width ();
+  y_size = pm->get_calculation_area_height ();
+
+  GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
+  GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
+
+  GLfloat dx = max_width / static_cast<GLfloat> (nx);
+  GLfloat dy = max_height / static_cast<GLfloat> (ny);
+
+  static GLfloat _colors[] =
+      {
+          1.0, 1.0, 0.0,
+          0.0, 0.0, 1.0,
+          1.0, 0.0, 0.0,
+          1.0, 0.0, 1.0,
+      };
+
+  for (unsigned int j = 0; j < ny; j++)
+  {
+    for (unsigned int i = 0; i < nx; i++)
+    {
+      const unsigned int vert_offset = static_cast<unsigned int> (vertex_data_per_element) * (j * nx + i);
+
+      vertices[vert_offset + 0] = l_x + dx * (i + 0); vertices[vert_offset + 1] = b_y + dy * (j + 1);
+      vertices[vert_offset + 2] = l_x + dx * (i + 0); vertices[vert_offset + 3] = b_y + dy * (j + 0);
+      vertices[vert_offset + 4] = l_x + dx * (i + 1); vertices[vert_offset + 5] = b_y + dy * (j + 0);
+      vertices[vert_offset + 6] = l_x + dx * (i + 1); vertices[vert_offset + 7] = b_y + dy * (j + 1);
+
+      const unsigned int color_offset = static_cast<unsigned int> (color_data_per_element) * (j * nx + i);
+      std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
+    }
+  }
+
+  /// VBO Handling
+  const int glfloat_size = sizeof (GLfloat);
+  const long int vertices_array_size = elements_count * vertex_data_per_element * glfloat_size;
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
+  glBufferData (GL_ARRAY_BUFFER, vertices_array_size, vertices.get (), GL_DYNAMIC_DRAW);
+
+  const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
+  glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+
+#ifdef GPU_BUILD
+  cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
+
+  d_colors = preprocess_before_colors_fill ();
+  postprocess_after_colors_fill ();
+
+  auto error = cudaGetLastError ();
+
+  if (error != cudaSuccess)
+    std::cout << cudaGetErrorString (error) << std::endl;
+#endif
+
+  axes.init (this, 44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
+  is_initialized = true;
 }
 
 void opengl_widget::wheelEvent(QWheelEvent *event)
@@ -212,6 +227,9 @@ void opengl_widget::paintGL()
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glClear (GL_COLOR_BUFFER_BIT);
   glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
+
+  if (!is_initialized)
+    return;
 
   auto mvp = camera_view.get_mvp ();
 

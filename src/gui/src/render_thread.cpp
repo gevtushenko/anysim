@@ -9,22 +9,17 @@
 
 render_thread::render_thread (
     opengl_widget *gl_arg,
-    compute_action_type compute_action_arg,
-    render_action_type render_action_arg,
+    project_manager *pm_arg,
     QObject *parent)
   : QThread (parent)
   , gl (gl_arg)
-  , compute_action (std::move (compute_action_arg))
-  , render_action (std::move (render_action_arg))
+  , pm (pm_arg)
 { }
 
 render_thread::~render_thread() = default;
 
-void render_thread::render (bool use_gpu_arg, int gpu_num)
+void render_thread::render ()
 {
-  std::cout << "Use gpu: " << use_gpu << ": " << gpu_num << std::endl;
-
-  use_gpu = use_gpu_arg;
   halt_execution = false;
 
   if (!isRunning ())
@@ -39,10 +34,12 @@ void render_thread::halt ()
 
 void render_thread::run()
 {
+  bool use_gpu = pm->get_use_gpu ();
+
   for (unsigned int i = 0; i < 4000; i++)
   {
-    compute_action (use_gpu);
-    render_action (use_gpu, gl->get_colors (use_gpu));
+    pm->calculate (10);
+    pm->render_function (gl->get_colors (use_gpu));
     emit steps_completed (use_gpu);
 
     {

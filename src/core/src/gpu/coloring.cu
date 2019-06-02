@@ -2,7 +2,8 @@
 
 #include <cuda_runtime.h>
 
-__global__ void fill_colors_kernel (unsigned int nx, unsigned int ny, const double *ez, float *colors)
+template <typename float_type>
+__global__ void fill_colors_kernel (unsigned int nx, unsigned int ny, const float_type *ez, float *colors)
 {
   const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -22,7 +23,8 @@ __global__ void fill_colors_kernel (unsigned int nx, unsigned int ny, const doub
   }
 }
 
-void fill_colors (unsigned int nx, unsigned int ny, const double *ez, float *colors)
+template <typename float_type>
+void fill_colors (unsigned int nx, unsigned int ny, const float_type *ez, float *colors)
 {
   if (!colors)
     return;
@@ -37,3 +39,6 @@ void fill_colors (unsigned int nx, unsigned int ny, const double *ez, float *col
   fill_colors_kernel<<<grid_size, block_size>>> (nx, ny, ez, colors);
   cudaDeviceSynchronize ();
 }
+
+template void fill_colors<float>  (unsigned int nx, unsigned int ny, const float *ez, float *colors);
+template void fill_colors<double> (unsigned int nx, unsigned int ny, const double *ez, float *colors);

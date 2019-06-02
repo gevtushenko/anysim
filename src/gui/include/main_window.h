@@ -15,6 +15,7 @@ class QCheckBox;
 class QComboBox;
 
 class graphics_widget;
+class project_manager;
 class model_widget;
 
 class main_window : public QMainWindow
@@ -22,9 +23,7 @@ class main_window : public QMainWindow
   Q_OBJECT
 
 public:
-  main_window () = delete;
-  main_window (unsigned int nx, unsigned int ny, float x_size, float y_size,
-      compute_action_type, render_action_type);
+  main_window ();
   ~main_window () override;
 
 private slots:
@@ -38,6 +37,8 @@ private:
 private:
   model_widget *model;
   graphics_widget *graphics;
+
+  std::unique_ptr<project_manager> pm;
 
   QAction *run_action = nullptr;
   QAction *stop_action = nullptr;

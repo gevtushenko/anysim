@@ -70,6 +70,7 @@ inline void fill_vertex_color (float ez, float *colors)
   hsv_to_rgb (hue, 0.6, 1.0, colors);
 }
 
-void fill_colors (unsigned int nx, unsigned int ny, const double *ez, float *colors);
+template <typename float_type>
+void fill_colors (unsigned int nx, unsigned int ny, const float_type *ez, float *colors);
 
 #endif // FDTD_COLORING_GPU_H

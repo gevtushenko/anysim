@@ -9,10 +9,8 @@
 
 #include "opengl_widget.h"
 
-graphics_widget::graphics_widget (
-    unsigned int nx, unsigned int ny,
-    float x_size, float y_size)
-    : gl (new opengl_widget (nx, ny, x_size, y_size))
+graphics_widget::graphics_widget ()
+    : gl (new opengl_widget ())
 {
   auto main_layout = new QVBoxLayout ();
   auto widget_label = new QLabel ("Graphics");

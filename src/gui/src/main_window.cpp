@@ -11,10 +11,11 @@
 #include "opengl_widget.h"
 #include "model_widget.h"
 
-main_window::main_window (unsigned int nx, unsigned int ny, float x_size, float y_size, compute_action_type compute_action, render_action_type render_action)
+main_window::main_window ()
   : model (new model_widget ())
-  , graphics (new graphics_widget (nx, ny, x_size, y_size))
-  , renderer (graphics->gl, compute_action, render_action)
+  , graphics (new graphics_widget ())
+  , pm (new project_manager (true))
+  , renderer (graphics->gl, pm.get ())
 {
   Q_INIT_RESOURCE (resources);
   // Set OpenGL Version information
@@ -38,6 +39,16 @@ main_window::main_window (unsigned int nx, unsigned int ny, float x_size, float 
   connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));
 
   create_actions ();
+
+  // TODO Move into interface
+  const double frequency = 2e+9;
+  const double plane_size_x = 5;
+  const double plane_size_y = 5;
+
+  pm->append_source (frequency, plane_size_x / 4, plane_size_y / 2);
+  pm->set_use_gpu (true);
+  pm->prepare_simulation ();
+
   statusBar ()->showMessage ("Ready");
 }
 
@@ -50,7 +61,11 @@ void main_window::start_simulation()
 {
   run_action->setEnabled (false);
   stop_action->setEnabled (true);
-  renderer.render (use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0);
+
+  graphics->gl->update_project (pm.get ());
+
+  // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
+  renderer.render ();
 }
 
 void main_window::simulation_completed ()

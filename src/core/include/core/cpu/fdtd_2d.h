@@ -122,8 +122,7 @@ public:
     boundary_condition left_boundary_condition,
     boundary_condition bottom_boundary_condition,
     boundary_condition right_boundary_condition,
-    boundary_condition top_boundary_condition,
-    const std::vector<region_initializer<float_type>*> &initializers)
+    boundary_condition top_boundary_condition)
   : left_bc (left_boundary_condition)
   , bottom_bc (bottom_boundary_condition)
   , right_bc (right_boundary_condition)
@@ -154,14 +153,17 @@ public:
     std::fill_n (ez.get (), nx * ny, 0.0);
     std::fill_n (dz.get (), nx * ny, 0.0);
 
-    for (auto &initializer: initializers)
-      initializer->fill_region (er.get (), hr.get ());
-
     for (unsigned int i = 0; i < nx * ny; i++)
       m_e[i] = C0 * dt / er[i];
     for (unsigned int i = 0; i < nx * ny; i++)
       m_h[i] = C0 * dt / hr[i];
   }
+
+  void initialize_calculation_area (const region_initializer<float_type> *initializer)
+  {
+    initializer->fill_region (er.get (), hr.get ());
+  }
+
 
   template <boundary_condition bc>
   void apply_e_boundary_conditions_top ()
