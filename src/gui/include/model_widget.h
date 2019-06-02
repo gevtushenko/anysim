@@ -15,6 +15,9 @@ class model_widget : public QWidget
 public:
   model_widget ();
 
+private slots:
+  void on_tree_view_context_menu (const QPoint &pos);
+
 private:
   QTreeView *view;
 
