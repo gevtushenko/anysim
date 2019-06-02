@@ -29,4 +29,9 @@ set(GUI_SOURCES
 set(GUI_RESOURCES
         resources/resources.qrc)
 add_library(${PROJECT_NAME} STATIC ${GUI_SOURCES} ${GUI_RESOURCES})
+target_link_libraries(${PROJECT_NAME} ${CMAKE_PROJECT_NAME}_core)
 target_link_libraries(${PROJECT_NAME} Qt5::Widgets Qt5::OpenGL ${FREETYPE_LIBRARIES})
+
+if(CUDA_FOUND)
+    target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES})
+endif()

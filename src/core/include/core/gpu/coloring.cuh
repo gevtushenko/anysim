@@ -3,6 +3,8 @@
 
 #include "core/common/common_defs.h"
 
+#include <cmath>
+
 /*
  * H(Hue): 0 - 360 degree (integer)
  * S(Saturation): 0 - 1.00 (double)

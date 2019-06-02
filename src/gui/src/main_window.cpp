@@ -24,11 +24,11 @@ main_window::main_window (unsigned int nx, unsigned int ny, float x_size, float 
 
   graphics->gl->setFormat(format);
   graphics->gl->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
-  model->setSizePolicy (QSizePolicy::Minimum, QSizePolicy::Minimum);
+  model->setSizePolicy (QSizePolicy::Minimum, QSizePolicy::Expanding);
 
   auto layout = new QHBoxLayout ();
-  layout->addWidget (model, 0);
-  layout->addWidget (graphics, 1);
+  layout->addWidget (model, 1);
+  layout->addWidget (graphics, 3);
 
   auto central_widget = new QWidget ();
   central_widget->setLayout (layout);

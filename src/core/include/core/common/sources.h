@@ -5,7 +5,9 @@
 #ifndef FDTD_SOURCES_H
 #define FDTD_SOURCES_H
 
-#include "core/common/common_defs.h"
+#include <cmath>
+
+#include "common_defs.h"
 
 template <class float_type>
 CPU_GPU float_type gaussian_pulse (float_type t, float_type t_0, float_type tau)
