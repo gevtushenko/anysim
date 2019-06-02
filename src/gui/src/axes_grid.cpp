@@ -6,17 +6,9 @@
 #include "text_renderer.h"
 #include "cpp/common_funcs.h"
 
-void axes_grid::init (
-    QObject *parent,
-    unsigned int x_tics_arg, unsigned int y_tics_arg,
-    float left_x, float right_x,
-    float bottom_y, float top_y,
-    float x_size_arg, float y_size_arg)
+void axes_grid::initialize_gl (QObject *parent)
 {
   initializeOpenGLFunctions ();
-
-  x_size = x_size_arg; y_size = y_size_arg;
-  x_tics = x_tics_arg; y_tics = y_tics_arg;
 
   program = new QOpenGLShaderProgram (parent);
   if (!program->isLinked ())
@@ -26,8 +18,22 @@ void axes_grid::init (
     program->link ();
   }
 
-  grid_vao.create();
-  grid_vao.bind();
+  attribute_coord2d = program->attributeLocation ("coord2d");
+  glGenBuffers (1, &vbo_vertices);
+}
+
+void axes_grid::prepare (
+  unsigned int x_tics_arg,
+  unsigned int y_tics_arg,
+  float left_x,
+  float right_x,
+  float bottom_y,
+  float top_y,
+  float x_size_arg,
+  float y_size_arg)
+{
+  x_size = x_size_arg; y_size = y_size_arg;
+  x_tics = x_tics_arg; y_tics = y_tics_arg;
 
   const unsigned int points_per_line = 2;
   const unsigned int coords_per_point = 2;
@@ -94,15 +100,8 @@ void axes_grid::init (
     p_coords += 8;
   }
 
-  grid_vbo.create();
-  grid_vbo.bind();
-  grid_vbo.allocate(sizeof(GLfloat) * (total_coords));
-  grid_vbo.write (0, coords.get (), sizeof (GLfloat) * (total_coords));
-  grid_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-
-  program->setAttributeBuffer ("coord2d", GL_FLOAT, 0, 2);
-  program->enableAttributeArray ("coord2d");
-  grid_vao.release();
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
+  glBufferData (GL_ARRAY_BUFFER, sizeof (GLfloat) * total_coords, coords.get (), GL_DYNAMIC_DRAW);
 }
 
 void axes_grid::draw (QMatrix4x4 &mvp)
@@ -113,27 +112,37 @@ void axes_grid::draw (QMatrix4x4 &mvp)
   program->bind();
   program->setUniformValue ("MVP", mvp);
 
-  grid_vao.bind ();
-  grid_vbo.bind ();
+  glEnableVertexAttribArray (attribute_coord2d);
+  glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
+  glVertexAttribPointer (attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
   glLineWidth (2.2);
   glDrawArrays (GL_LINES, 0, total_coords);
-  grid_vbo.release ();
-  grid_vao.release ();
+  glDisableVertexAttribArray (attribute_coord2d);
 
   program->release ();
 
   const float dx = x_size / (x_tics - 1);
   const float dy = y_size / (y_tics - 1);
 
+  const char *format = "%.2e";
+
   float *p_coords = coords.get ();
   for (unsigned int y = 0; y < y_tics; y+=long_tic_each)
   {
-    tr.render_text (std::to_string (y * dy), p_coords[2] - long_tic_size / 4, p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
+    double number = y * dy;
+    int size = std::snprintf (nullptr, 0, format, number);
+    std::vector<char> buf (size + 1);
+    std::snprintf (buf.data (), buf.size (), format, number);
+    tr.render_text (buf.data (), p_coords[2] - long_tic_size / 4, p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
     p_coords += 8 * long_tic_each;
   }
   for (unsigned int x = 0; x < x_tics; x+=long_tic_each)
   {
-    tr.render_text (std::to_string (x * dx), p_coords[2], p_coords[3] - long_tic_size / 4, 1, mvp, text_renderer::text_anchor::bottom_center);
+    double number = x * dx;
+    int size = std::snprintf (nullptr, 0, format, number);
+    std::vector<char> buf (size + 1);
+    std::snprintf (buf.data (), buf.size (), format, number);
+    tr.render_text (buf.data (), p_coords[2], p_coords[3] - long_tic_size / 4, 1, mvp, text_renderer::text_anchor::bottom_center);
     p_coords += 8 * long_tic_each;
   }
 }

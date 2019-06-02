@@ -17,12 +17,13 @@ class axes_grid : protected QOpenGLFunctions
 public:
   axes_grid () = default;
 
-  void init (
-      QObject *parent,
-      unsigned int x_tics_arg, unsigned int y_tics,
-      float left_x, float right_x,
-      float bottom_y, float top_y,
-      float x_size, float y_size);
+  void initialize_gl (
+      QObject *parent);
+  void prepare (
+    unsigned int x_tics_arg, unsigned int y_tics,
+    float left_x, float right_x,
+    float bottom_y, float top_y,
+    float x_size, float y_size);
   void draw (QMatrix4x4 &mvp);
 
 private:
@@ -34,9 +35,9 @@ private:
   const unsigned int long_tic_each = 4;
   std::unique_ptr<GLfloat[]> coords;
 
-  QOpenGLBuffer grid_vbo;
+  GLuint vbo_vertices;
+  GLint attribute_coord2d;
   QOpenGLShaderProgram *program;
-  QOpenGLVertexArrayObject grid_vao;
 };
 
 #endif //ANYSIM_AXES_GRID_H

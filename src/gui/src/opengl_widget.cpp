@@ -69,6 +69,8 @@ void opengl_widget::initializeGL()
 
   glGenBuffers (1, &vbo_vertices);
   glGenBuffers (1, &vbo_colors);
+
+  axes.initialize_gl (this);
 }
 
 float *opengl_widget::get_colors (bool use_gpu)
@@ -102,6 +104,17 @@ void opengl_widget::update_project (project_manager *pm)
   const unsigned int nx = pm->get_nx ();
   const unsigned int ny = pm->get_ny ();
 
+  x_size = pm->get_calculation_area_width ();
+  y_size = pm->get_calculation_area_height ();
+
+  axes.prepare (44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
+
+  GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
+  GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
+
+  GLfloat dx = max_width / static_cast<GLfloat> (nx);
+  GLfloat dy = max_height / static_cast<GLfloat> (ny);
+
   elements_count = nx * ny;
 
   colors.reset ();
@@ -109,15 +122,6 @@ void opengl_widget::update_project (project_manager *pm)
 
   colors.reset (new GLfloat[color_data_per_element * elements_count]);
   vertices.reset (new GLfloat[vertex_data_per_element * elements_count]);
-
-  x_size = pm->get_calculation_area_width ();
-  y_size = pm->get_calculation_area_height ();
-
-  GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
-  GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
-
-  GLfloat dx = max_width / static_cast<GLfloat> (nx);
-  GLfloat dy = max_height / static_cast<GLfloat> (ny);
 
   static GLfloat _colors[] =
       {
@@ -165,7 +169,6 @@ void opengl_widget::update_project (project_manager *pm)
     std::cout << cudaGetErrorString (error) << std::endl;
 #endif
 
-  axes.init (this, 44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
   is_initialized = true;
 }
 
