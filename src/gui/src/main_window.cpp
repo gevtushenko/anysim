@@ -38,6 +38,9 @@ main_window::main_window ()
   connect (&renderer, SIGNAL (steps_completed (bool)), graphics->gl, SLOT (update_colors (bool)));
   connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));
 
+  connect (this, SIGNAL (on_close ()), this, SLOT (halt_simulation ()));
+  connect (this, SIGNAL (on_close ()), graphics->gl, SLOT (on_close ()));
+
   create_actions ();
 
   // TODO Move into interface
@@ -66,6 +69,12 @@ void main_window::start_simulation()
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
   renderer.render ();
+}
+
+void main_window::closeEvent (QCloseEvent *event)
+{
+  emit on_close ();
+  event->accept ();
 }
 
 void main_window::simulation_completed ()

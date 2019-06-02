@@ -31,8 +31,13 @@ private slots:
   void simulation_completed ();
   void halt_simulation ();
 
+signals:
+  void on_close ();
+
 private:
   void create_actions ();
+
+  void closeEvent (QCloseEvent *event) override;
 
 private:
   model_widget *model;

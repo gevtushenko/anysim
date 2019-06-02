@@ -41,6 +41,7 @@ public:
 public slots:
   void update_colors (bool use_gpu);
   void update_project (project_manager *pm);
+  void on_close ();
 
 protected:
   void initializeGL () override;

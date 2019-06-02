@@ -48,7 +48,8 @@ public:
   };
 
   static text_renderer &instance ();
-  void init (QObject *parent);
+  void initialize (QObject *parent);
+  void finalize ();
   void resize (int width, int height);
 
   void render_text (

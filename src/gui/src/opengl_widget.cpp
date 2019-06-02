@@ -58,7 +58,8 @@ void opengl_widget::initializeGL()
 {
   initializeOpenGLFunctions ();
 
-  text_renderer::instance ().init (this);
+  axes.initialize_gl (this);
+  text_renderer::instance ().initialize (this);
 
   program = std::make_unique<QOpenGLShaderProgram> (this);
   program->addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/map_2d.vert");
@@ -69,8 +70,6 @@ void opengl_widget::initializeGL()
 
   glGenBuffers (1, &vbo_vertices);
   glGenBuffers (1, &vbo_colors);
-
-  axes.initialize_gl (this);
 }
 
 float *opengl_widget::get_colors (bool use_gpu)
@@ -207,6 +206,11 @@ void opengl_widget::mouseDoubleClickEvent (QMouseEvent *event)
 
   camera_view.reset ();
   update ();
+}
+
+void opengl_widget::on_close ()
+{
+  text_renderer::instance ().finalize ();
 }
 
 void opengl_widget::mouseMoveEvent (QMouseEvent *event)

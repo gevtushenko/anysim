@@ -108,7 +108,7 @@ text_renderer::text_renderer ()
 
 text_renderer::~text_renderer() = default;
 
-void text_renderer::init (QObject *parent)
+void text_renderer::initialize (QObject *parent)
 {
   initializeOpenGLFunctions ();
 
@@ -140,13 +140,18 @@ void text_renderer::init (QObject *parent)
   tex_vao.release();
 }
 
+void text_renderer::finalize ()
+{
+  characters.clear ();
+}
+
 void text_renderer::resize(int width, int height)
 {
   x_scale = 2.0f / width;
   y_scale = 2.0f / height;
 }
 
-text_renderer& text_renderer::instance()
+text_renderer& text_renderer::instance ()
 {
   static text_renderer tr;
   return tr;
