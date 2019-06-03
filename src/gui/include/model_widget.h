@@ -17,6 +17,10 @@ public:
 
 private slots:
   void on_tree_view_context_menu (const QPoint &pos);
+  void create_source_slot ();
+
+signals:
+  void create_source ();
 
 private:
   QTreeView *view;

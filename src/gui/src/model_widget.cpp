@@ -28,10 +28,12 @@ model_widget::model_widget ()
   auto global_definitions = new QStandardItem ("Global Definitions");
   auto global_definitions_parameters = new QStandardItem ("Parameters");
   auto global_definitions_materials = new QStandardItem ("Materials");
+  auto sources = new QStandardItem ("Sources");
 
   project->appendRow (global_definitions);
   global_definitions->appendRow (global_definitions_parameters);
   global_definitions->appendRow (global_definitions_materials);
+  project->appendRow (sources);
 
   view = new QTreeView ();
   view->setHeaderHidden (true);
@@ -52,7 +54,20 @@ model_widget::model_widget ()
 
 void model_widget::on_tree_view_context_menu (const QPoint &pos)
 {
-  auto menu = new QMenu (this);
-  menu->addAction (QString ("Test"));
-  menu->popup (view->viewport ()->mapToGlobal (pos));
+  auto index = view->indexAt (pos);
+
+  if (!index.isValid ())
+    return;
+
+  if (index.data ().toString () == "Sources")
+    {
+      auto menu = new QMenu (this);
+      menu->addAction (QString ("Create source"), this, SLOT (create_source_slot ()));
+      menu->popup (view->viewport ()->mapToGlobal (pos));
+    }
+}
+
+void model_widget::create_source_slot ()
+{
+  emit create_source ();
 }

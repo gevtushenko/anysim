@@ -21,11 +21,14 @@ opengl_widget::opengl_widget ()
 
 opengl_widget::~opengl_widget ()
 {
+  if (is_initialized)
+  {
 #ifdef GPU_BUILD
-  cudaGraphicsUnregisterResource (colors_res);
+    cudaGraphicsUnregisterResource (colors_res);
 #endif
-  glDeleteBuffers (1, &vbo_vertices);
-  glDeleteBuffers (1, &vbo_colors);
+    glDeleteBuffers (1, &vbo_vertices);
+    glDeleteBuffers (1, &vbo_colors);
+  }
 }
 
 float* opengl_widget::preprocess_before_colors_fill()

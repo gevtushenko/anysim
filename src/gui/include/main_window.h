@@ -15,6 +15,7 @@ class QCheckBox;
 class QComboBox;
 
 class graphics_widget;
+class settings_widget;
 class project_manager;
 class model_widget;
 
@@ -30,6 +31,8 @@ private slots:
   void start_simulation ();
   void simulation_completed ();
   void halt_simulation ();
+  void initialize_source_creation ();
+  void create_source (double x, double y, double frequency);
 
 signals:
   void on_close ();
@@ -41,6 +44,7 @@ private:
 
 private:
   model_widget *model;
+  settings_widget *settings;
   graphics_widget *graphics;
 
   std::unique_ptr<project_manager> pm;

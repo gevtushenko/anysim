@@ -7,12 +7,14 @@
 #include <QComboBox>
 
 #include "main_window.h"
+#include "settings_widget.h"
 #include "graphics_widget.h"
 #include "opengl_widget.h"
 #include "model_widget.h"
 
 main_window::main_window ()
   : model (new model_widget ())
+  , settings (new settings_widget ())
   , graphics (new graphics_widget ())
   , pm (new project_manager (true))
   , renderer (graphics->gl, pm.get ())
@@ -27,8 +29,14 @@ main_window::main_window ()
   graphics->gl->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
   model->setSizePolicy (QSizePolicy::Minimum, QSizePolicy::Expanding);
 
+  settings->setHidden (true);
+
+  connect (settings, SIGNAL (source_ready (double, double, double)), this, SLOT (create_source (double, double, double)));
+  connect (model, SIGNAL (create_source ()), this, SLOT (initialize_source_creation ()));
+
   auto layout = new QHBoxLayout ();
   layout->addWidget (model, 1);
+  layout->addWidget (settings, 1);
   layout->addWidget (graphics, 3);
 
   auto central_widget = new QWidget ();
@@ -44,13 +52,12 @@ main_window::main_window ()
   create_actions ();
 
   // TODO Move into interface
-  const double frequency = 2e+9;
-  const double plane_size_x = 5;
-  const double plane_size_y = 5;
+  // const double frequency = 2e+9;
+  // const double plane_size_x = 5;
+  // const double plane_size_y = 5;
 
-  pm->append_source (frequency, plane_size_x / 4, plane_size_y / 2);
+  // pm->append_source (frequency, plane_size_x / 4, plane_size_y / 2);
   pm->set_use_gpu (true);
-  pm->prepare_simulation ();
 
   statusBar ()->showMessage ("Ready");
 }
@@ -58,6 +65,18 @@ main_window::main_window ()
 main_window::~main_window()
 {
   Q_CLEANUP_RESOURCE (resources);
+}
+
+void main_window::initialize_source_creation ()
+{
+  settings->show ();
+}
+
+void main_window::create_source (double x, double y, double frequency)
+{
+  pm->append_source (frequency, x, y);
+  pm->prepare_simulation ();
+  settings->hide ();
 }
 
 void main_window::start_simulation()
