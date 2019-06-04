@@ -21,14 +21,13 @@ model_widget::model_widget ()
   // auto model = new TreeModel (headers, "123\n321");
   auto model = new QStandardItemModel ();
   auto root = model->invisibleRootItem ();
-  auto project = new QStandardItem ("Project");
-  project->setIcon (style ()->standardIcon (QStyle::SP_DirHomeIcon));
+  auto project = new QStandardItem (QIcon (":/icons/box.svg"), "Project");
   root->appendRow (project);
 
-  auto global_definitions = new QStandardItem ("Global Definitions");
-  auto global_definitions_parameters = new QStandardItem ("Parameters");
-  auto global_definitions_materials = new QStandardItem ("Materials");
-  auto sources = new QStandardItem ("Sources");
+  auto global_definitions = new QStandardItem (QIcon (":/icons/globe.svg"), "Global Definitions");
+  auto global_definitions_parameters = new QStandardItem (QIcon (":/icons/sliders.svg"), "Parameters");
+  auto global_definitions_materials = new QStandardItem (QIcon (":/icons/layers.svg"), "Materials");
+  auto sources = new QStandardItem (QIcon (":/icons/radio.svg"), "Sources");
 
   project->appendRow (global_definitions);
   global_definitions->appendRow (global_definitions_parameters);

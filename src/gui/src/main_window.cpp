@@ -19,7 +19,6 @@ main_window::main_window ()
   , pm (new project_manager (true))
   , renderer (graphics->gl, pm.get ())
 {
-  Q_INIT_RESOURCE (resources);
   // Set OpenGL Version information
   // Note: This format must be set before show() is called.
   QSurfaceFormat format;
@@ -64,7 +63,6 @@ main_window::main_window ()
 
 main_window::~main_window()
 {
-  Q_CLEANUP_RESOURCE (resources);
 }
 
 void main_window::initialize_source_creation ()
@@ -118,12 +116,10 @@ void main_window::create_actions()
 {
   QToolBar *control_tool_bar = addToolBar ("Test");
 
-  const QIcon run_icon = style ()->standardIcon (QStyle::SP_MediaPlay);
-  run_action = new QAction (run_icon, "Run");
+  run_action = new QAction (QIcon (":/icons/play.svg"), "Run");
   run_action->setStatusTip ("Run simulation");
 
-  const QIcon stop_icon = style ()->standardIcon (QStyle::SP_MediaPause);
-  stop_action = new QAction (stop_icon, "Stop");
+  stop_action = new QAction (QIcon (":/icons/pause.svg"), "Stop");
   stop_action->setStatusTip ("Stop simulation");
   stop_action->setEnabled (false);
 

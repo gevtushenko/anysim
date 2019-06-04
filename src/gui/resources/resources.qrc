@@ -8,5 +8,18 @@
         <file>shaders/axes_grid.vert</file>
         <file>shaders/texture.frag</file>
         <file>shaders/texture.vert</file>
+
+        <file>styles/bright_theme.css</file>
+
+        <file>icons/box.svg</file>
+        <file>icons/globe.svg</file>
+        <file>icons/layers.svg</file>
+        <file>icons/pause.svg</file>
+        <file>icons/play.svg</file>
+        <file>icons/radio.svg</file>
+        <file>icons/columns.svg</file>
+        <file>icons/database.svg</file>
+        <file>icons/sliders.svg</file>
+        <file>icons/cpu.svg</file>
     </qresource>
 </RCC>
