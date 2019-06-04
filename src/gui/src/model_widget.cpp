@@ -27,7 +27,7 @@ model_widget::model_widget ()
   auto global_definitions = new QStandardItem (QIcon (":/icons/globe.svg"), "Global Definitions");
   auto global_definitions_parameters = new QStandardItem (QIcon (":/icons/sliders.svg"), "Parameters");
   auto global_definitions_materials = new QStandardItem (QIcon (":/icons/layers.svg"), "Materials");
-  auto sources = new QStandardItem (QIcon (":/icons/radio.svg"), "Sources");
+  sources = new QStandardItem (QIcon (":/icons/radio.svg"), "Sources");
 
   project->appendRow (global_definitions);
   global_definitions->appendRow (global_definitions_parameters);
@@ -68,5 +68,6 @@ void model_widget::on_tree_view_context_menu (const QPoint &pos)
 
 void model_widget::create_source_slot ()
 {
+  sources->appendRow (new QStandardItem (QString ("Source %1").arg (last_source_id++)));
   emit create_source ();
 }

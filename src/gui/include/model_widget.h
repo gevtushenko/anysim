@@ -8,6 +8,8 @@
 #include <QWidget>
 #include <QTreeView>
 
+class QStandardItem;
+
 class model_widget : public QWidget
 {
   Q_OBJECT
@@ -23,8 +25,9 @@ signals:
   void create_source ();
 
 private:
-  QTreeView *view;
-
+  QTreeView *view = nullptr;
+  QStandardItem *sources = nullptr;
+  unsigned int last_source_id = 0;
 };
 
 #endif //ANYSIM_MODEL_WIDGET_H
