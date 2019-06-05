@@ -50,20 +50,12 @@ main_window::main_window ()
 
   create_actions ();
 
-  // TODO Move into interface
-  // const double frequency = 2e+9;
-  // const double plane_size_x = 5;
-  // const double plane_size_y = 5;
-
-  // pm->append_source (frequency, plane_size_x / 4, plane_size_y / 2);
-  pm->set_use_gpu (true);
-
   statusBar ()->showMessage ("Ready");
+
+  pm->set_use_gpu (false);
 }
 
-main_window::~main_window()
-{
-}
+main_window::~main_window() = default;
 
 void main_window::initialize_source_creation ()
 {
@@ -73,7 +65,6 @@ void main_window::initialize_source_creation ()
 void main_window::create_source (double x, double y, double frequency)
 {
   pm->append_source (frequency, x, y);
-  pm->prepare_simulation ();
   settings->hide ();
 }
 
@@ -82,6 +73,7 @@ void main_window::start_simulation()
   run_action->setEnabled (false);
   stop_action->setEnabled (true);
 
+  pm->prepare_simulation ();
   graphics->gl->update_project (pm.get ());
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
@@ -112,6 +104,11 @@ void main_window::halt_simulation()
 #include <cuda_runtime.h>
 #endif
 
+void main_window::set_use_gpu (bool checked)
+{
+  pm->set_use_gpu (checked);
+}
+
 void main_window::create_actions()
 {
   QToolBar *control_tool_bar = addToolBar ("Test");
@@ -128,8 +125,10 @@ void main_window::create_actions()
 
 #ifdef GPU_BUILD
   use_gpu = new QCheckBox ("Use GPU");
-  use_gpu->setChecked (true);
   use_gpu->setLayoutDirection (Qt::RightToLeft);
+  use_gpu->setChecked (false);
+
+  connect (use_gpu, SIGNAL (toggled (bool)), this, SLOT (set_use_gpu (bool)));
 
   gpu_names = new QComboBox ();
 

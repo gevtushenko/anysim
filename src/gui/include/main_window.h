@@ -33,6 +33,7 @@ private slots:
   void halt_simulation ();
   void initialize_source_creation ();
   void create_source (double x, double y, double frequency);
+  void set_use_gpu (bool checked);
 
 signals:
   void on_close ();

@@ -258,7 +258,7 @@ public:
                                      : hx[(ny - 1) * nx + i];
 
         chz[curr_idx] = (hy[curr_idx] - hy[prev_idx_i]) / dx
-                        - (hx[curr_idx] - prev_hx_j) / dy;
+                      - (hx[curr_idx] - prev_hx_j) / dy;
       }
   }
 
