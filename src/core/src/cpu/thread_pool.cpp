@@ -7,10 +7,14 @@
 #include <iostream>
 #include <algorithm>
 
+#include <xmmintrin.h> // For _mm_pause
+
 thread_pool::thread_pool () : thread_pool (std::thread::hardware_concurrency ()) {}
 
 thread_pool::thread_pool (unsigned int threads_count)
   : epoch (0)
+  , barrier_epoch (0)
+  , threads_in_barrier (0)
   , total_threads (threads_count)
 {
   for (unsigned int thread_id = 1; thread_id < total_threads; thread_id++)
@@ -60,4 +64,22 @@ void thread_pool::execute (const std::function<void(unsigned int, unsigned int)>
   cv.notify_all ();
 
   action (0, total_threads);
+}
+
+void thread_pool::barrier ()
+{
+  const unsigned int thread_epoch = barrier_epoch.load (std::memory_order_acquire);
+
+  threads_in_barrier.fetch_add (1u, std::memory_order_release);
+
+  if (threads_in_barrier.load (std::memory_order_acquire) != total_threads)
+  {
+    while (thread_epoch == barrier_epoch.load (std::memory_order_acquire))
+      _mm_pause ();
+  }
+  else
+  {
+    threads_in_barrier.fetch_sub (total_threads, std::memory_order_release);
+    barrier_epoch.fetch_add (1u, std::memory_order_release);
+  }
 }

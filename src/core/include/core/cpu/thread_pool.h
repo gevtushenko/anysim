@@ -23,6 +23,8 @@ public:
 
   void execute (const std::function<void(unsigned int, unsigned int)> &action_arg);
 
+  void barrier ();
+
 private:
   void run_thread (unsigned int thread_id, unsigned int total_threads);
 
@@ -31,6 +33,9 @@ private:
   std::condition_variable cv;
   std::atomic<unsigned int> epoch;
   std::vector<std::thread> threads;
+
+  std::atomic<unsigned int> barrier_epoch;
+  std::atomic<unsigned int> threads_in_barrier;
 
   bool finalize_pool = false;
   const unsigned int total_threads;
