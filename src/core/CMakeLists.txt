@@ -8,7 +8,7 @@ set(CORE_SOURCES
         src/gpu/fdtd_gpu_interface.cpp
         include/core/common/common_defs.h
         src/pm/project_manager.cpp
-        include/core/pm/project_manager.h include/core/cpu/fdtd_2d.h include/core/cpu/thread_pool.h src/cpu/thread_pool.cpp)
+        include/core/pm/project_manager.h include/core/cpu/fdtd_2d.h include/core/cpu/thread_pool.h src/cpu/thread_pool.cpp include/core/common/curl.h)
 
 include_directories(include)
 add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
