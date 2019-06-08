@@ -70,9 +70,9 @@ void thread_pool::barrier ()
 {
   const unsigned int thread_epoch = barrier_epoch.load (std::memory_order_acquire);
 
-  threads_in_barrier.fetch_add (1u, std::memory_order_release);
+  const unsigned int arrived_at = threads_in_barrier.fetch_add (1u, std::memory_order_release) + 1;
 
-  if (threads_in_barrier.load (std::memory_order_acquire) != total_threads)
+  if (arrived_at != total_threads)
   {
     while (thread_epoch == barrier_epoch.load (std::memory_order_acquire))
       _mm_pause ();
