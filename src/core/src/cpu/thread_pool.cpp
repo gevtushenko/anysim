@@ -48,6 +48,7 @@ void thread_pool::run_thread (unsigned int thread_id)
 
     thread_epoch++;
     action (thread_id, total_threads);
+    barrier ();
   }
 }
 
@@ -58,6 +59,7 @@ void thread_pool::execute (const std::function<void(unsigned int, unsigned int)>
   cv.notify_all ();
 
   action (0, total_threads);
+  barrier ();
 }
 
 void thread_pool::barrier ()
