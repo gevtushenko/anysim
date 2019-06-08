@@ -31,8 +31,8 @@ private slots:
   void start_simulation ();
   void simulation_completed ();
   void halt_simulation ();
-  void initialize_source_creation ();
   void create_source (double x, double y, double frequency);
+  void update_cells_per_lambda (unsigned int cells_per_lambda);
   void set_use_gpu (bool checked);
 
 signals:
@@ -44,9 +44,9 @@ private:
   void closeEvent (QCloseEvent *event) override;
 
 private:
-  model_widget *model;
   settings_widget *settings;
   graphics_widget *graphics;
+  model_widget *model;
 
   std::unique_ptr<project_manager> pm;
 

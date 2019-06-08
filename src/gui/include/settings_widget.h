@@ -6,8 +6,9 @@
 #define ANYSIM_SETTINGS_WIDGET_H
 
 #include <QWidget>
-#include <QGroupBox>
-#include <QLineEdit>
+
+class source_settings_widget;
+class global_parameters_widget;
 
 class settings_widget : public QWidget
 {
@@ -16,17 +17,13 @@ Q_OBJECT
 public:
   settings_widget ();
 
-signals:
-  void source_ready (double x, double y, double frequency);
+public:
+  source_settings_widget *source_widget = nullptr;
+  global_parameters_widget *global_params_widget = nullptr;
 
-private slots:
-  void complete_source ();
-
-private:
-  QLineEdit *x_position;
-  QLineEdit *y_position;
-  QLineEdit *frequency;
-  QGroupBox *source_box;
+public slots:
+  void show_global_parameters ();
+  void show_source_settings ();
 };
 
 #endif //ANYSIM_SETTINGS_WIDGET_H

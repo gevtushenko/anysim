@@ -245,6 +245,11 @@ public:
     calculation_area_height = height;
   }
 
+  void set_cells_per_lambda (unsigned int cells)
+  {
+    cells_per_lambda = cells;
+  }
+
   void prepare_solver (
     bool use_gpu,
     unsigned int new_version,
@@ -406,6 +411,12 @@ unsigned int project_manager::get_nx ()
 unsigned int project_manager::get_ny ()
 {
   return context->get_ny ();
+}
+
+void project_manager::set_cells_per_lambda (unsigned int cells_per_lambda)
+{
+  update_version ();
+  context->set_cells_per_lambda (cells_per_lambda);
 }
 
 void project_manager::render_function (float *colors)

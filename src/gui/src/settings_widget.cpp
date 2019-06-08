@@ -3,6 +3,9 @@
 //
 
 #include "settings_widget.h"
+#include "settings/global_parameters_widget.h"
+#include "settings/source_settings_widget.h"
+
 
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -12,33 +15,29 @@ settings_widget::settings_widget ()
 {
   auto main_layout = new QVBoxLayout ();
   auto widget_label = new QLabel ("Settings");
-  source_box = new QGroupBox ("Source");
+
+  source_widget = new source_settings_widget ();
+  global_params_widget = new global_parameters_widget ();
+
+  source_widget->hide ();
+  global_params_widget->hide ();
 
   main_layout->addWidget (widget_label);
-  main_layout->addWidget (source_box);
+  main_layout->addWidget (source_widget);
+  main_layout->addWidget (global_params_widget);
   main_layout->addStretch (1);
-
-  auto *vbox = new QVBoxLayout ();
-  auto button = new QPushButton ("Create");
-  x_position = new QLineEdit ("2.5");
-  y_position = new QLineEdit ("2.5");
-  frequency = new QLineEdit ("2E+9");
-  vbox->addWidget (x_position);
-  vbox->addWidget (y_position);
-  vbox->addWidget (frequency);
-  vbox->addWidget (button);
-
-  source_box->setLayout (vbox);
-
-  connect (button, SIGNAL (clicked ()), this, SLOT (complete_source ()));
 
   setLayout (main_layout);
 }
 
-void settings_widget::complete_source ()
+void settings_widget::show_global_parameters ()
 {
-  emit source_ready (
-      x_position->text ().toDouble (),
-      y_position->text ().toDouble (),
-      frequency->text ().toDouble ());
+  global_params_widget->show ();
+  show ();
+}
+
+void settings_widget::show_source_settings ()
+{
+  source_widget->show ();
+  show ();
 }

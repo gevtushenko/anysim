@@ -3,14 +3,16 @@
 //
 
 #include "model_widget.h"
-#include "tree_model.h"
 
 #include <QStandardItemModel>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QMenu>
 
-model_widget::model_widget ()
+#include "settings_widget.h"
+
+model_widget::model_widget (settings_widget *settings_arg)
+  : settings (settings_arg)
 {
   auto main_layout = new QVBoxLayout ();
   auto widget_label = new QLabel ("Model");
@@ -23,11 +25,17 @@ model_widget::model_widget ()
   auto root = model->invisibleRootItem ();
   auto project = new QStandardItem (QIcon (":/icons/box.svg"), "Project");
   root->appendRow (project);
+  project->setEditable (false);
 
   auto global_definitions = new QStandardItem (QIcon (":/icons/globe.svg"), "Global Definitions");
   auto global_definitions_parameters = new QStandardItem (QIcon (":/icons/sliders.svg"), "Parameters");
   auto global_definitions_materials = new QStandardItem (QIcon (":/icons/layers.svg"), "Materials");
   sources = new QStandardItem (QIcon (":/icons/radio.svg"), "Sources");
+
+  global_definitions->setEditable (false);
+  global_definitions_parameters->setEditable (false);
+  global_definitions_materials->setEditable (false);
+  sources->setEditable (false);
 
   project->appendRow (global_definitions);
   global_definitions->appendRow (global_definitions_parameters);
@@ -42,6 +50,10 @@ model_widget::model_widget ()
   view->setContextMenuPolicy (Qt::CustomContextMenu);
   view->expandAll ();
   connect (view, SIGNAL (customContextMenuRequested (QPoint)), this, SLOT (on_tree_view_context_menu (QPoint)));
+  connect (view, SIGNAL (clicked (const QModelIndex &)), this, SLOT (on_tree_view_clicked (const QModelIndex &)));
+
+  connect (this, SIGNAL (update_global_parameters ()), settings, SLOT (show_global_parameters ()));
+  connect (this, SIGNAL (create_source ()), settings, SLOT (show_source_settings ()));
 
   view->adjustSize ();
 
@@ -50,6 +62,8 @@ model_widget::model_widget ()
 
   setLayout (main_layout);
 }
+
+#include <iostream>
 
 void model_widget::on_tree_view_context_menu (const QPoint &pos)
 {
@@ -64,6 +78,14 @@ void model_widget::on_tree_view_context_menu (const QPoint &pos)
       menu->addAction (QString ("Create source"), this, SLOT (create_source_slot ()));
       menu->popup (view->viewport ()->mapToGlobal (pos));
     }
+}
+
+void model_widget::on_tree_view_clicked (const QModelIndex &index)
+{
+  auto selected = index.data ().toString ().toStdString ();
+
+  if (selected == "Parameters")
+    emit update_global_parameters ();
 }
 
 void model_widget::create_source_slot ()

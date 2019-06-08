@@ -15,7 +15,6 @@
 
 class opengl_widget;
 
-
 class render_thread : public QThread
 {
   Q_OBJECT

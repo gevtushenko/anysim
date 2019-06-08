@@ -64,6 +64,8 @@ public:
   /// @param height of calculation area in meters
   void set_height (double height);
 
+  void set_cells_per_lambda (unsigned int cells_per_lambda);
+
   void set_use_gpu (bool use_gpu_arg);
   bool get_use_gpu () const;
 

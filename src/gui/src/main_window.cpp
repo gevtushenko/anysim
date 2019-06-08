@@ -6,6 +6,9 @@
 #include <QCheckBox>
 #include <QComboBox>
 
+#include "settings/global_parameters_widget.h"
+#include "settings/source_settings_widget.h"
+
 #include "main_window.h"
 #include "settings_widget.h"
 #include "graphics_widget.h"
@@ -13,9 +16,9 @@
 #include "model_widget.h"
 
 main_window::main_window ()
-  : model (new model_widget ())
-  , settings (new settings_widget ())
+  : settings (new settings_widget ())
   , graphics (new graphics_widget ())
+  , model (new model_widget (settings))
   , pm (new project_manager (false))
   , renderer (graphics->gl, pm.get ())
 {
@@ -30,8 +33,8 @@ main_window::main_window ()
 
   settings->setHidden (true);
 
-  connect (settings, SIGNAL (source_ready (double, double, double)), this, SLOT (create_source (double, double, double)));
-  connect (model, SIGNAL (create_source ()), this, SLOT (initialize_source_creation ()));
+  connect (settings->source_widget, SIGNAL (source_ready (double, double, double)), this, SLOT (create_source (double, double, double)));
+  connect (settings->global_params_widget, SIGNAL (cells_per_lambda_changed (unsigned int)), this, SLOT (update_cells_per_lambda (unsigned int)));
 
   auto layout = new QHBoxLayout ();
   layout->addWidget (model, 1);
@@ -57,14 +60,16 @@ main_window::main_window ()
 
 main_window::~main_window() = default;
 
-void main_window::initialize_source_creation ()
-{
-  settings->show ();
-}
-
 void main_window::create_source (double x, double y, double frequency)
 {
   pm->append_source (frequency, x, y);
+  settings->hide ();
+}
+
+
+void main_window::update_cells_per_lambda (unsigned int cells_per_lambda)
+{
+  pm->set_cells_per_lambda (cells_per_lambda);
   settings->hide ();
 }
 
