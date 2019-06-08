@@ -9,9 +9,11 @@
 #include <QFile>
 
 gui_simulation_manager::gui_simulation_manager(
+    project_manager &pm_arg,
     int argc_arg,
     char **argv_arg)
-  : argc (argc_arg)
+  : pm (pm_arg)
+  , argc (argc_arg)
   , argv (argv_arg)
 { }
 
@@ -25,7 +27,7 @@ int gui_simulation_manager::run()
   QString style = style_file.readAll ();
   app.setStyleSheet (style);
 
-  main_window window;
+  main_window window (pm);
   window.resize (QSize (1000, 800));
   window.show ();
 

@@ -11,7 +11,7 @@ else()
     message("Install CUDA library to use GPU")
 endif()
 
-include_directories(src src/core/include)
+include_directories(src src/core/include src/io/include)
 add_subdirectory(src/core)
 add_subdirectory(src/io)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -O3")

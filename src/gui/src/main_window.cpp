@@ -15,12 +15,12 @@
 #include "opengl_widget.h"
 #include "model_widget.h"
 
-main_window::main_window ()
-  : settings (new settings_widget ())
+main_window::main_window (project_manager &pm_arg)
+  : pm (pm_arg)
+  , settings (new settings_widget ())
   , graphics (new graphics_widget ())
   , model (new model_widget (settings))
-  , pm (new project_manager (false))
-  , renderer (graphics->gl, pm.get ())
+  , renderer (graphics->gl, &pm)
 {
   // Set OpenGL Version information
   // Note: This format must be set before show() is called.
@@ -55,21 +55,21 @@ main_window::main_window ()
 
   statusBar ()->showMessage ("Ready");
 
-  pm->set_use_gpu (false);
+  pm.set_use_gpu (false);
 }
 
 main_window::~main_window() = default;
 
 void main_window::create_source (double x, double y, double frequency)
 {
-  pm->append_source (frequency, x, y);
+  pm.append_source (frequency, x, y);
   settings->hide ();
 }
 
 
 void main_window::update_cells_per_lambda (unsigned int cells_per_lambda)
 {
-  pm->set_cells_per_lambda (cells_per_lambda);
+  pm.set_cells_per_lambda (cells_per_lambda);
   settings->hide ();
 }
 
@@ -78,8 +78,8 @@ void main_window::start_simulation()
   run_action->setEnabled (false);
   stop_action->setEnabled (true);
 
-  pm->prepare_simulation ();
-  graphics->gl->update_project (pm.get ());
+  pm.prepare_simulation ();
+  graphics->gl->update_project (&pm);
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
   renderer.render ();
@@ -111,7 +111,7 @@ void main_window::halt_simulation()
 
 void main_window::set_use_gpu (bool checked)
 {
-  pm->set_use_gpu (checked);
+  pm.set_use_gpu (checked);
 }
 
 void main_window::create_actions()

@@ -24,7 +24,8 @@ class main_window : public QMainWindow
   Q_OBJECT
 
 public:
-  main_window ();
+  main_window () = delete;
+  main_window (project_manager &pm_arg);
   ~main_window () override;
 
 private slots:
@@ -44,11 +45,10 @@ private:
   void closeEvent (QCloseEvent *event) override;
 
 private:
+  project_manager &pm;
   settings_widget *settings;
   graphics_widget *graphics;
   model_widget *model;
-
-  std::unique_ptr<project_manager> pm;
 
   QAction *run_action = nullptr;
   QAction *stop_action = nullptr;
