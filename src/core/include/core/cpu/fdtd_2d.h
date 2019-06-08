@@ -213,8 +213,6 @@ public:
   void calculate_cpu (unsigned int steps, const sources_holder<float_type> &s)
   {
     threads.execute ([&] (unsigned int thread_id, unsigned int total_threads) {
-      cpp_unreferenced (total_threads);
-
       for (unsigned int step = 0; step < steps; step++)
       {
         const auto begin = std::chrono::high_resolution_clock::now ();
@@ -238,6 +236,8 @@ public:
         //if (step % 5 == 0)
         //  write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
       }
+
+      threads.barrier ();
     });
   }
 
