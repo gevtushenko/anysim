@@ -12,6 +12,7 @@ class simulation_manager
 public:
   virtual ~simulation_manager () = default;
   virtual int run () = 0;
+  virtual bool require_configuration () = 0;
 };
 
 class con_simulation_manager : public simulation_manager
@@ -21,6 +22,7 @@ public:
   explicit con_simulation_manager (project_manager &pm);
 
   int run () override;
+  bool require_configuration () final { return true; }
 
 private:
   project_manager &pm;

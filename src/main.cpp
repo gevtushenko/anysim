@@ -5,7 +5,7 @@
 #include "core/pm/project_manager.h"
 #include "core/cpu/fdtd_2d.h"
 #include "cpp/common_funcs.h"
-#include "io/configuration_reader.h"
+#include "io/con/con_parser.h"
 
 #ifndef CON_BUILD
 #include "gui_simulation_manager.h"
@@ -26,13 +26,11 @@ simulation_manager *create_simulation_manager (bool console_run, project_manager
 int main (int argc, char *argv[])
 {
   project_manager pm (false /* use double precision */);
-
-  if (argc > 1)
-  {
-    confituration_reader config (argv[1]);
-    config.initialize_project (pm);
-  }
-
   std::unique_ptr<simulation_manager> simulation (create_simulation_manager (false, pm, argc, argv));
+
+  con_parser args;
+  if (args.parse (argc, argv, simulation->require_configuration (), pm))
+    return 0;
+
   return simulation->run ();
 }

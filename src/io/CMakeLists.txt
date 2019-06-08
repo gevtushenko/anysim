@@ -2,8 +2,9 @@ project(${CMAKE_PROJECT_NAME}_io)
 
 set(IO_SOURCES
         include/io/vtk/vtk.h
+        include/io/con/argagg/argagg.hpp
         include/io/configuration_reader.h
-        src/confiuration_reader.cpp)
+        src/confiuration_reader.cpp src/con_parser.cpp include/io/con/con_parser.h)
 
 include_directories(include)
 
