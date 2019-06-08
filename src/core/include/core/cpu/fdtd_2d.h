@@ -113,6 +113,8 @@ class fdtd_2d
   float_type *d_sources_frequencies = nullptr;
   unsigned int *d_sources_offsets = nullptr;
 
+  thread_pool threads;
+
 public:
   fdtd_2d () = delete;
   fdtd_2d (
@@ -210,8 +212,6 @@ public:
 
   void calculate_cpu (unsigned int steps, const sources_holder<float_type> &s)
   {
-    thread_pool threads;
-
     threads.execute ([&] (unsigned int thread_id, unsigned int total_threads) {
       cpp_unreferenced (total_threads);
 
