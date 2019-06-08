@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.14)
 project(${CMAKE_PROJECT_NAME}_gui)
 
 set(CMAKE_CXX_STANDARD 17)
