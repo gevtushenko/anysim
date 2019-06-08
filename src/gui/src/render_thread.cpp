@@ -38,7 +38,7 @@ void render_thread::run()
 
   for (unsigned int i = 0; i < 4000; i++)
   {
-    pm->calculate (10);
+    pm->calculate (20);
     pm->render_function (gl->get_colors (use_gpu));
     emit steps_completed (use_gpu);
 

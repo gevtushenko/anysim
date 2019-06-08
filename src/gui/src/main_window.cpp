@@ -16,7 +16,7 @@ main_window::main_window ()
   : model (new model_widget ())
   , settings (new settings_widget ())
   , graphics (new graphics_widget ())
-  , pm (new project_manager (true))
+  , pm (new project_manager (false))
   , renderer (graphics->gl, pm.get ())
 {
   // Set OpenGL Version information
