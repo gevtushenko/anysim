@@ -16,6 +16,7 @@ matrix:
           - qtbase5-dev
           - qt5-default
           - mesa-common-dev
+          - libqt5opengl5-dev
           sources:
             - ubuntu-toolchain-r-test
     - env: COMPILER=g++-7 BUILD_TYPE=Release
