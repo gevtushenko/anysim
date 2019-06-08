@@ -54,10 +54,9 @@ public:
   void barrier ();
 
 private:
-  void run_thread (unsigned int thread_id, unsigned int total_threads);
+  void run_thread (unsigned int thread_id);
 
 private:
-  std::mutex lock;
   std::condition_variable cv;
   std::atomic<unsigned int> epoch;
   std::vector<std::thread> threads;
