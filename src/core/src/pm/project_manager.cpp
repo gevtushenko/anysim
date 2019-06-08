@@ -11,7 +11,8 @@ template <class float_type>
 class context_content
 {
 public:
-  context_content () = default;
+  context_content () = delete;
+  explicit context_content (thread_pool &threads_arg) : threads (threads_arg) { }
   ~context_content()
   {
     soft_source.reset ();
@@ -33,11 +34,10 @@ public:
     nx = nx_arg;
     ny = ny_arg;
 
-    auto pbc = boundary_condition::periodic;
     solver.reset (new fdtd_2d<float_type> (
       nx, ny,
       calculation_area_width, calculation_area_height,
-      pbc, pbc, pbc, pbc));
+      threads));
     soft_source.reset (new sources_holder<float_type> ());
   }
 
@@ -65,13 +65,19 @@ public:
 #endif
       {
         auto ez = solver->get_ez ();
-        for (unsigned int j = 0; j < ny; j++)
-          for (unsigned int i = 0; i < nx; i++)
-            for (unsigned int k = 0; k < 4; k++)
-              fill_vertex_color (ez[j * nx + i], colors + 3 * 4 * (j * nx + i) + 3 * k);
+
+        threads.execute ([&] (unsigned int thread_id, unsigned int total_threads) {
+          auto yr = work_range::split (ny, thread_id, total_threads);
+
+          for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
+            for (unsigned int i = 0; i < nx; i++)
+              for (unsigned int k = 0; k < 4; k++)
+                fill_vertex_color (ez[j * nx + i], colors + 3 * 4 * (j * nx + i) + 3 * k);
+        });
       }
   }
 
+  thread_pool &threads;
   unsigned int nx = 0, ny = 0;
   std::unique_ptr<fdtd_2d<float_type>> solver;
   std::unique_ptr<sources_holder<float_type>> soft_source;
@@ -104,8 +110,12 @@ protected:
 class calculation_context_dbl : public calculation_context_interface
 {
 public:
-  calculation_context_dbl () : calculation_context_interface () { }
-  ~calculation_context_dbl () override { };
+  calculation_context_dbl () = delete;
+  explicit calculation_context_dbl (thread_pool &threads_arg)
+    : calculation_context_interface ()
+    , context (threads_arg)
+  { }
+  ~calculation_context_dbl () override = default;
 
   void reset () override
   {
@@ -140,7 +150,7 @@ public:
   }
   void initialize_solver () override { context.initialize_solver (); }
   void calculate (bool use_gpu, unsigned int steps) override { context.calculate (use_gpu, steps); }
-  virtual void prepare_gpu ()
+  void prepare_gpu () override
   {
     #ifdef GPU_BUILD
     gpu_was_used = true;
@@ -159,8 +169,12 @@ private:
 class calculation_context_flt : public calculation_context_interface
 {
 public:
-  calculation_context_flt () : calculation_context_interface () { }
-  ~calculation_context_flt () override { };
+  calculation_context_flt () = delete;
+  explicit calculation_context_flt (thread_pool &threads_arg)
+  : calculation_context_interface ()
+  , context (threads_arg)
+  { }
+  ~calculation_context_flt () override = default;
 
   void reset () override
   {
@@ -195,7 +209,7 @@ public:
   }
   void initialize_solver () override { context.initialize_solver (); }
   void calculate (bool use_gpu, unsigned int steps) override { context.calculate (use_gpu, steps); }
-  virtual void prepare_gpu ()
+  void prepare_gpu () override
   {
     #ifdef GPU_BUILD
     gpu_was_used = true;
@@ -305,17 +319,17 @@ protected:
   std::unique_ptr<calculation_context_interface> context;
 };
 
-static calculation_context_interface *create_context (bool use_double_precision)
+static calculation_context_interface *create_context (bool use_double_precision, thread_pool &threads)
 {
   if (use_double_precision)
-    return new calculation_context_dbl ();
+    return new calculation_context_dbl (threads);
   else
-    return new calculation_context_flt ();
+    return new calculation_context_flt (threads);
 }
 
 project_manager::project_manager (bool use_double_precision_arg)
   : use_double_precision (use_double_precision_arg)
-  , context (new calculation_context (create_context (use_double_precision)))
+  , context (new calculation_context (create_context (use_double_precision, threads)))
 { }
 
 project_manager::~project_manager()

@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+#include "core/cpu/thread_pool.h"
+
 class sources_array
 {
 public:
@@ -89,6 +91,7 @@ private:
   void update_version ();
 
 private:
+  thread_pool threads;
   bool use_gpu = false;
   unsigned int version_id = 0;
   bool use_double_precision = true;

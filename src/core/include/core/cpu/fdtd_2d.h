@@ -113,7 +113,7 @@ class fdtd_2d
   float_type *d_sources_frequencies = nullptr;
   unsigned int *d_sources_offsets = nullptr;
 
-  thread_pool threads;
+  thread_pool &threads;
 
 public:
   fdtd_2d () = delete;
@@ -122,14 +122,11 @@ public:
     unsigned int ny_arg,
     float_type plane_size_x,
     float_type plane_size_y,
-    boundary_condition left_boundary_condition,
-    boundary_condition bottom_boundary_condition,
-    boundary_condition right_boundary_condition,
-    boundary_condition top_boundary_condition)
-  : left_bc (left_boundary_condition)
-  , bottom_bc (bottom_boundary_condition)
-  , right_bc (right_boundary_condition)
-  , top_bc (top_boundary_condition)
+    thread_pool &threads_arg)
+  : left_bc (boundary_condition::periodic)
+  , bottom_bc (boundary_condition::periodic)
+  , right_bc (boundary_condition::periodic)
+  , top_bc (boundary_condition::periodic)
   , nx (nx_arg)
   , ny (ny_arg)
   , dx (plane_size_x / nx)
@@ -143,6 +140,7 @@ public:
   , hy  (new float_type[nx * ny])
   , er  (new float_type[nx * ny])
   , hr  (new float_type[nx * ny])
+  , threads (threads_arg)
   {
     /// Assume that we are in free space
     std::fill_n (er.get (), nx * ny, 1.0);
@@ -236,8 +234,6 @@ public:
         //if (step % 5 == 0)
         //  write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
       }
-
-      threads.barrier ();
     });
   }
 
