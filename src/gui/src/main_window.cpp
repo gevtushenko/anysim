@@ -118,10 +118,10 @@ void main_window::create_actions()
 {
   QToolBar *control_tool_bar = addToolBar ("Test");
 
-  run_action = new QAction (QIcon (":/icons/play.svg"), "Run");
+  run_action = new QAction (QIcon (":/icons/play.svg"), "Run", this);
   run_action->setStatusTip ("Run simulation");
 
-  stop_action = new QAction (QIcon (":/icons/pause.svg"), "Stop");
+  stop_action = new QAction (QIcon (":/icons/pause.svg"), "Stop", this);
   stop_action->setStatusTip ("Stop simulation");
   stop_action->setEnabled (false);
 
