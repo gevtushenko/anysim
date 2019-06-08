@@ -10,6 +10,8 @@
 #include "core/gpu/fdtd_gpu_interface.h"
 #include "core/gpu/coloring.cuh"
 #include "core/cpu/sources_holder.h"
+#include "core/cpu/thread_pool.h"
+#include "cpp/common_funcs.h"
 
 #include <iostream>
 #include <chrono>
@@ -166,9 +168,11 @@ public:
 
 
   template <boundary_condition bc>
-  void apply_e_boundary_conditions_top ()
+  void apply_e_boundary_conditions_top (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int i = 0; i < nx; i++)
+    auto xr = work_range::split (nx, thread_id, total_threads);
+
+    for (unsigned int i = xr.chunk_begin; i < xr.chunk_end; i++)
       {
         const unsigned int idx = (ny - 1) * nx + i;
         const float_type next_ez = bc == boundary_condition::dirichlet ? 0.0 : ez[0 * nx + i];
@@ -177,9 +181,10 @@ public:
   }
 
   template <boundary_condition bc>
-  void apply_e_boundary_conditions_right ()
+  void apply_e_boundary_conditions_right (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int j = 0; j < ny; j++)
+    auto yr = work_range::split (ny, thread_id, total_threads);
+    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
       {
         const unsigned int curr_idx = j * nx + nx - 1;
         const float_type next_ez = bc == boundary_condition::dirichlet ? 0.0 : ez[j * nx + 0];
@@ -187,22 +192,24 @@ public:
       }
   }
 
-  void apply_e_boundary_conditions ()
+  void apply_e_boundary_conditions (unsigned int thread_id, unsigned int total_threads)
   {
     if (top_bc == boundary_condition::dirichlet)
-      apply_e_boundary_conditions_top<boundary_condition::dirichlet> ();
+      apply_e_boundary_conditions_top<boundary_condition::dirichlet> (thread_id, total_threads);
     else
-      apply_e_boundary_conditions_top<boundary_condition::periodic> ();
+      apply_e_boundary_conditions_top<boundary_condition::periodic> (thread_id, total_threads);
 
     if (right_bc == boundary_condition::dirichlet)
-      apply_e_boundary_conditions_right<boundary_condition::dirichlet> ();
+      apply_e_boundary_conditions_right<boundary_condition::dirichlet> (thread_id, total_threads);
     else
-      apply_e_boundary_conditions_right<boundary_condition::periodic> ();
+      apply_e_boundary_conditions_right<boundary_condition::periodic> (thread_id, total_threads);
   }
 
-  void update_curl_e ()
+  void update_curl_e (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int j = 0; j < ny - 1; j++) /// Row index
+    auto ymor = work_range::split (ny - 1, thread_id, total_threads);
+
+    for (unsigned int j = ymor.chunk_begin; j < ymor.chunk_end; j++) /// Row index
       {
         for (unsigned int i = 0; i < nx; i++) /// Column index
           {
@@ -213,7 +220,8 @@ public:
           }
       }
 
-    for (unsigned int j = 0; j < ny; j++)
+    auto yr = work_range::split (ny, thread_id, total_threads);
+    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
       {
         for (unsigned int i = 0; i < nx - 1; i++)
           {
@@ -224,9 +232,11 @@ public:
       }
   }
 
-  void update_h ()
+  void update_h (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int j = 0; j < ny; j++)
+    auto yr = work_range::split (ny, thread_id, total_threads);
+
+    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
       {
         for (unsigned int i = 0; i < nx; i++)
           {
@@ -235,7 +245,7 @@ public:
           }
       }
 
-    for (unsigned int j = 0; j < ny; j++)
+    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
       {
         for (unsigned int i = 0; i < nx; i++)
           {
@@ -246,9 +256,11 @@ public:
   }
 
   template <boundary_condition bc>
-  void apply_h_boundary_conditions_bottom ()
+  void apply_h_boundary_conditions_bottom (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int i = 1; i < nx; i++)
+    auto xr = work_range::split (nx - 1, thread_id, total_threads);
+
+    for (unsigned int i = 1 + xr.chunk_begin; i < 1 + xr.chunk_end; i++)
       {
         const unsigned int curr_idx = 0 * nx + i;
         const unsigned int prev_idx_i = 0 * nx + i - 1;
@@ -263,9 +275,11 @@ public:
   }
 
   template <boundary_condition bc>
-  void apply_h_boundary_conditions_left ()
+  void apply_h_boundary_conditions_left (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int j = 1; j < ny; j++)
+    auto yr = work_range::split (ny - 1, thread_id, total_threads);
+
+    for (unsigned int j = 1 + yr.chunk_begin; j < 1 + yr.chunk_end; j++)
       {
         const unsigned int curr_idx   = j * nx + 0;
         const unsigned int prev_idx_j = (j - 1) * nx + 0;
@@ -275,30 +289,35 @@ public:
                                      : hy[j * nx + nx - 1];
 
         chz[curr_idx] = (hy[curr_idx] - prev_hy_i) / dx
-                        - (hx[curr_idx] - hx[prev_idx_j]) / dy;
+                      - (hx[curr_idx] - hx[prev_idx_j]) / dy;
       }
   }
 
-  void apply_h_boundary_conditions ()
+  void apply_h_boundary_conditions (unsigned int thread_id, unsigned int total_threads)
   {
-    const float_type prev_hy_i = left_bc == boundary_condition::dirichlet ? 0.0 : hy[nx - 1];
-    const float_type prev_hx_j = bottom_bc == boundary_condition::dirichlet ? 0.0 : hx[(ny - 1) * nx + 0];
-    chz[0] = (hy[0] - prev_hy_i) / dx - (hx[0] - prev_hx_j) / dy;
+    if (is_main_thread (thread_id))
+    {
+      const float_type prev_hy_i = left_bc == boundary_condition::dirichlet ? 0.0 : hy[nx - 1];
+      const float_type prev_hx_j = bottom_bc == boundary_condition::dirichlet ? 0.0 : hx[(ny - 1) * nx + 0];
+      chz[0] = (hy[0] - prev_hy_i) / dx - (hx[0] - prev_hx_j) / dy;
+    }
 
     if (left_bc == boundary_condition::dirichlet)
-      apply_h_boundary_conditions_left<boundary_condition::dirichlet> ();
+      apply_h_boundary_conditions_left<boundary_condition::dirichlet> (thread_id, total_threads);
     else
-      apply_h_boundary_conditions_left<boundary_condition::periodic> ();
+      apply_h_boundary_conditions_left<boundary_condition::periodic> (thread_id, total_threads);
 
     if (bottom_bc == boundary_condition::dirichlet)
-      apply_h_boundary_conditions_bottom<boundary_condition::dirichlet> ();
+      apply_h_boundary_conditions_bottom<boundary_condition::dirichlet> (thread_id, total_threads);
     else
-      apply_h_boundary_conditions_bottom<boundary_condition::periodic> ();
+      apply_h_boundary_conditions_bottom<boundary_condition::periodic> (thread_id, total_threads);
   }
 
-  void update_curl_h ()
+  void update_curl_h (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int j = 1; j < ny; j++)
+    auto yr = work_range::split (ny - 1, thread_id, total_threads);
+
+    for (unsigned int j = 1 + yr.chunk_begin; j < 1 + yr.chunk_end; j++)
       {
         for (unsigned int i = 1; i < nx; i++)
           {
@@ -307,16 +326,17 @@ public:
             const unsigned int prev_idx_j = (j - 1) * nx + i;
 
             chz[curr_idx] = (hy[curr_idx] - hy[prev_idx_i]) / dx
-                            - (hx[curr_idx] - hx[prev_idx_j]) / dy;
+                          - (hx[curr_idx] - hx[prev_idx_j]) / dy;
           }
       }
   }
 
-  void update_d ()
+  void update_d (unsigned int thread_id, unsigned int total_threads)
   {
     const float_type update_constant = C0 * dt;
+    auto yr = work_range::split (ny, thread_id, total_threads);
 
-    for (unsigned int j = 0; j < ny; j++)
+    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
       {
         for (unsigned int i = 0; i < nx; i++)
           {
@@ -326,9 +346,11 @@ public:
       }
   }
 
-  void update_e ()
+  void update_e (unsigned int thread_id, unsigned int total_threads)
   {
-    for (unsigned int j = 0; j < ny; j++)
+    auto yr = work_range::split (ny, thread_id, total_threads);
+
+    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
       {
         for (unsigned int i = 0; i < nx; i++)
           {
@@ -340,29 +362,51 @@ public:
 
   void calculate_cpu (unsigned int steps, const sources_holder<float_type> &s)
   {
-    for (unsigned int step = 0; step < steps; t += dt, step++)
+    thread_pool threads;
+
+    threads.execute ([&] (unsigned int thread_id, unsigned int total_threads) {
+      cpp_unreferenced (total_threads);
+
+      for (unsigned int step = 0; step < steps; step++)
       {
         const auto begin = std::chrono::high_resolution_clock::now ();
-        std::cout << "step: " << step << "; t: " << t << " ";
 
-        update_curl_e ();
-        apply_e_boundary_conditions ();
-        update_h ();
-        update_curl_h ();
-        apply_h_boundary_conditions ();
-        update_d ();
+        if (is_main_thread (thread_id))
+        {
+          t += dt;
+          std::cout << "step: " << step << "; t: " << t << " ";
+        }
+        threads.barrier ();
 
-        s.update_sources (t, dz.get ());
+        update_curl_e (thread_id, total_threads);
+        apply_e_boundary_conditions (thread_id, total_threads);
+        update_h (thread_id, total_threads);
 
-        update_e ();
+        threads.barrier ();
+
+        update_curl_h (thread_id, total_threads);
+        apply_h_boundary_conditions (thread_id, total_threads);
+
+        threads.barrier ();
+        update_d (thread_id, total_threads);
+
+        threads.barrier ();
+        if (is_main_thread (thread_id))
+          s.update_sources (t, dz.get ());
+        threads.barrier ();
+
+        update_e (thread_id, total_threads);
 
         const auto end = std::chrono::high_resolution_clock::now ();
         const std::chrono::duration<double> duration = end - begin;
-        std::cout << "in " << duration.count () << "s\n";
+
+        if (is_main_thread (thread_id))
+          std::cout << "in " << duration.count () << "s\n";
 
         //if (step % 5 == 0)
         //  write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
       }
+    });
   }
 
   const float_type *get_ez () const

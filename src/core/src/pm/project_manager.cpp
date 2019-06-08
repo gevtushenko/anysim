@@ -31,7 +31,7 @@ public:
     double calculation_area_width, double calculation_area_height)
   {
     nx = nx_arg;
-    ny = nx_arg;
+    ny = ny_arg;
 
     auto pbc = boundary_condition::periodic;
     solver.reset (new fdtd_2d<float_type> (

@@ -12,6 +12,7 @@ set(CORE_SOURCES
 
 include_directories(include)
 add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -O3")
 
 if(CUDA_FOUND)
     set(GPU_SOURCES
