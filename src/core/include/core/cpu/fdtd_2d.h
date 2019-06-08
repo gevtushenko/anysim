@@ -215,6 +215,7 @@ public:
       {
         const auto begin = std::chrono::high_resolution_clock::now ();
 
+        threads.barrier ();
         if (is_main_thread (thread_id))
         {
           std::cout << "step: " << step << "; t: " << t << " ";
@@ -230,9 +231,6 @@ public:
 
         if (is_main_thread (thread_id))
           std::cout << "in " << duration.count () << "s\n";
-
-        //if (step % 5 == 0)
-        //  write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, ez.get ());
       }
     });
   }

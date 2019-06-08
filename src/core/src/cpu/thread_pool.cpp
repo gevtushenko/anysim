@@ -33,13 +33,11 @@ void thread_pool::run_thread (unsigned int thread_id)
 {
   unsigned int thread_epoch = 0;
 
-  std::mutex lock;
-
   while (!finalize_pool)
   {
     std::unique_lock guard (lock);
-    cv.wait (guard, [=] {
-      return epoch.load (std::memory_order_acquire) != thread_epoch || finalize_pool;
+    cv.wait (guard, [&] {
+      return epoch != thread_epoch || finalize_pool;
     });
     guard.unlock ();
 
@@ -54,8 +52,11 @@ void thread_pool::run_thread (unsigned int thread_id)
 
 void thread_pool::execute (const std::function<void(unsigned int, unsigned int)> &action_arg)
 {
-  action = action_arg;
-  epoch.fetch_add (1u, std::memory_order_release);
+  {
+    std::lock_guard guard (lock);
+    action = action_arg;
+    epoch++;
+  }
   cv.notify_all ();
 
   action (0, total_threads);
@@ -64,18 +65,16 @@ void thread_pool::execute (const std::function<void(unsigned int, unsigned int)>
 
 void thread_pool::barrier ()
 {
-  const unsigned int thread_epoch = barrier_epoch.load (std::memory_order_acquire);
+  const unsigned int thread_epoch = barrier_epoch.load ();
 
-  const unsigned int arrived_at = threads_in_barrier.fetch_add (1u, std::memory_order_release) + 1;
-
-  if (arrived_at != total_threads)
+  if (threads_in_barrier.fetch_add (1u) == total_threads - 1)
   {
-    while (thread_epoch == barrier_epoch.load (std::memory_order_acquire))
-      _mm_pause ();
+    threads_in_barrier.store (0);
+    barrier_epoch.fetch_add (1u);
   }
   else
   {
-    threads_in_barrier.fetch_sub (total_threads, std::memory_order_release);
-    barrier_epoch.fetch_add (1u, std::memory_order_release);
+    while (thread_epoch == barrier_epoch.load ())
+      _mm_pause ();
   }
 }

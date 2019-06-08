@@ -57,8 +57,9 @@ private:
   void run_thread (unsigned int thread_id);
 
 private:
+  std::mutex lock;
+  unsigned int epoch;
   std::condition_variable cv;
-  std::atomic<unsigned int> epoch;
   std::vector<std::thread> threads;
 
   std::atomic<unsigned int> barrier_epoch;
