@@ -1,0 +1,29 @@
+language: cpp
+sudo: false
+notifications:
+  email: false
+
+os: linux
+dist: trusty
+
+matrix:
+  include:
+    - env: COMPILER=g++-7 BUILD_TYPE=Debug
+      addons: &gcc7
+        apt:
+          packages: g++-7
+          sources:
+            - ubuntu-toolchain-r-test
+    - env: COMPILER=g++-7 BUILD_TYPE=Release
+      addons: *gcc7
+
+install:
+  - export CXX=${COMPILER}
+  - ${CXX} --version
+
+before_script:
+  - mkdir build && cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+
+script:
+  - make -j 4
