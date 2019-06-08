@@ -7,11 +7,18 @@ set(CORE_SOURCES
         src/gpu/fdtd_gpu_interface.cpp
         include/core/common/common_defs.h
         src/pm/project_manager.cpp
-        include/core/pm/project_manager.h include/core/cpu/fdtd_2d.h include/core/cpu/thread_pool.h src/cpu/thread_pool.cpp include/core/common/curl.h)
+        include/core/pm/project_manager.h
+        include/core/cpu/fdtd_2d.h
+        include/core/cpu/thread_pool.h
+        src/cpu/thread_pool.cpp
+        include/core/common/curl.h)
+
+find_package(Threads REQUIRED)
 
 include_directories(include)
-add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -O3")
+add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
+target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_THREAD_LIBS_INIT})
 
 if(CUDA_FOUND)
     set(GPU_SOURCES
