@@ -1,0 +1,14 @@
+{
+  "geometry": {
+    "width": 5.0,
+    "height": 5.0
+  },
+  "cells_per_lambda": 40,
+  "sources": [
+    {
+      "x": 2.5,
+      "y": 2.5,
+      "frequency": 2E+9
+    }
+  ]
+}

@@ -4,7 +4,6 @@
 #include "core/pm/project_manager.h"
 #include "core/cpu/fdtd_2d.h"
 #include "cpp/common_funcs.h"
-#include "io/vtk.h"
 
 #ifdef GUI_BUILD
 #include "gui_simulation_manager.h"

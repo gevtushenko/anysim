@@ -13,13 +13,14 @@ endif()
 
 include_directories(src src/core/include)
 add_subdirectory(src/core)
+add_subdirectory(src/io)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -O3")
 set(SOURCES
         src/main.cpp
-        src/cpp/common_funcs.h
-        src/io/vtk.h)
+        src/cpp/common_funcs.h)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_io)
 
 find_package(Qt5Widgets QUIET)
 if(Qt5Widgets_FOUND)
