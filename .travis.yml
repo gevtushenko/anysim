@@ -2,6 +2,7 @@ language: cpp
 sudo: false
 notifications:
   email: false
+  slack: anysim:q6E42mHSCjn4N2DqDzts4o6v
 
 os: linux
 dist: xenial
