@@ -5,6 +5,7 @@
 #include "io/con/con_parser.h"
 #include "io/configuration_reader.h"
 #include "io/include/io/con/argagg/argagg.hpp"
+#include "core/pm/project_manager.h"
 
 #include <iostream>
 
@@ -18,8 +19,9 @@ con_parser::con_parser ()
   : parser_wrapper (new argagg_wrapper ())
 {
   parser_wrapper->parser = {{
-    { "help",          {"-h", "--help" },  "shows this help message", 0 /* option arguments count */},
-    { "configuration", {"-c", "--config"}, "load configuration file for simulation", 1 /* option arguments count */ }
+    { "help",          {"-h", "--help" },    "shows this help message", 0 /* option arguments count */},
+    { "use_gpu",       {"-g", "--use-gpu" }, "allows simulation manager to use GPU", 0 /* option arguments count */},
+    { "configuration", {"-c", "--config"},   "load configuration file for simulation", 1 /* option arguments count */ }
   }};
 }
 
@@ -55,6 +57,9 @@ bool con_parser::parse (int argc, char **argv, bool require_configuration, proje
     std::cerr << "Usage: " << argv[0] << " --config=configuration_file.json" << std::endl;
     return true;
   }
+
+  if (args["use_gpu"])
+    pm.set_use_gpu (true);
 
   return false;
 }
