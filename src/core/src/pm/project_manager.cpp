@@ -100,7 +100,7 @@ public:
     unsigned int width, unsigned int height) = 0;
   virtual void initialize_solver () = 0;
   virtual void calculate (bool use_gpu, unsigned int steps) = 0;
-  virtual void prepare_gpu () = 0;
+  virtual void prepare_gpu (int gpu_num) = 0;
   virtual void render (bool use_gpu, float *colors) = 0;
 
 protected:
@@ -150,11 +150,13 @@ public:
   }
   void initialize_solver () override { context.initialize_solver (); }
   void calculate (bool use_gpu, unsigned int steps) override { context.calculate (use_gpu, steps); }
-  void prepare_gpu () override
+  void prepare_gpu (int gpu_num) override
   {
     #ifdef GPU_BUILD
     gpu_was_used = true;
-    context.solver->preprocess_gpu (*context.soft_source);
+    context.solver->preprocess_gpu (gpu_num, *context.soft_source);
+    #else
+    cpp_unreferenced (gpu_num);
     #endif
   }
   void render (bool use_gpu, float *colors) override
@@ -209,11 +211,13 @@ public:
   }
   void initialize_solver () override { context.initialize_solver (); }
   void calculate (bool use_gpu, unsigned int steps) override { context.calculate (use_gpu, steps); }
-  void prepare_gpu () override
+  void prepare_gpu (int gpu_num) override
   {
     #ifdef GPU_BUILD
     gpu_was_used = true;
-    context.solver->preprocess_gpu (*context.soft_source);
+    context.solver->preprocess_gpu (gpu_num, *context.soft_source);
+    #else
+    cpp_unreferenced (gpu_num);
     #endif
   }
   void render (bool use_gpu, float *colors) override
@@ -251,7 +255,7 @@ public:
   }
 
   void prepare_solver (
-    bool use_gpu,
+    int gpu_num,
     unsigned int new_version,
     const std::vector<sources_array> &sources,
     const std::vector<region_initializers_array> &region_initializers)
@@ -283,8 +287,8 @@ public:
         context->append_source (source.frequency, optimal_nx * mesh_y + mesh_x);
       }
 
-    if (use_gpu)
-      context->prepare_gpu ();
+    if (gpu_num >= 0)
+      context->prepare_gpu (gpu_num);
 
     for (auto &initializer: region_initializers)
       {
@@ -382,25 +386,25 @@ void project_manager::append_initializer (
     right_top_x_arg, right_top_y_arg);
 }
 
-void project_manager::set_use_gpu(bool use_gpu_arg)
+void project_manager::set_use_gpu(int gpu_num_arg)
 {
   update_version ();
-  use_gpu = use_gpu_arg;
+  gpu_num = gpu_num_arg;
 }
 
 bool project_manager::get_use_gpu() const
 {
-  return use_gpu;
+  return gpu_num >= 0;
 }
 
 void project_manager::prepare_simulation()
 {
-  context->prepare_solver (use_gpu, version_id, sources, initializers);
+  context->prepare_solver (gpu_num, version_id, sources, initializers);
 }
 
 void project_manager::calculate(unsigned int steps)
 {
-  context->calculate (use_gpu, steps);
+  context->calculate (get_use_gpu (), steps);
 }
 
 unsigned int project_manager::get_nx ()
@@ -423,7 +427,7 @@ void project_manager::render_function (float *colors)
 {
   const auto coloring_begin = std::chrono::high_resolution_clock::now ();
 
-  context->render (use_gpu, colors);
+  context->render (get_use_gpu (), colors);
 
   const auto coloring_end = std::chrono::high_resolution_clock::now ();
   const std::chrono::duration<double> duration = coloring_end - coloring_begin;

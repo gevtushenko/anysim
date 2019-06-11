@@ -21,6 +21,7 @@ con_parser::con_parser ()
   parser_wrapper->parser = {{
     { "help",          {"-h", "--help" },    "shows this help message", 0 /* option arguments count */},
     { "use_gpu",       {"-g", "--use-gpu" }, "allows simulation manager to use GPU", 0 /* option arguments count */},
+    { "gpu_device",    {"-d", "--gpu-dev" }, "specify gpu device number", 1 /* option arguments count */},
     { "configuration", {"-c", "--config"},   "load configuration file for simulation", 1 /* option arguments count */ }
   }};
 }
@@ -59,7 +60,9 @@ bool con_parser::parse (int argc, char **argv, bool require_configuration, proje
   }
 
   if (args["use_gpu"])
-    pm.set_use_gpu (true);
+  {
+    pm.set_use_gpu (args["gpu_device"].as<int> (0));
+  }
 
   return false;
 }

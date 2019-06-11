@@ -246,9 +246,9 @@ public:
   }
 
 #ifdef GPU_BUILD
-  void preprocess_gpu (const sources_holder<float_type> &s)
+  void preprocess_gpu (int gpu_num, const sources_holder<float_type> &s)
   {
-    cudaSetDevice (0);
+    cudaSetDevice (gpu_num);
 
     sources_count = s.get_sources_count ();
 

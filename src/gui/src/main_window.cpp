@@ -55,7 +55,7 @@ main_window::main_window (project_manager &pm_arg)
 
   statusBar ()->showMessage ("Ready");
 
-  pm.set_use_gpu (false);
+  pm.set_use_gpu (-1);
 }
 
 main_window::~main_window() = default;
@@ -111,7 +111,7 @@ void main_window::halt_simulation()
 
 void main_window::set_use_gpu (bool checked)
 {
-  pm.set_use_gpu (checked);
+  pm.set_use_gpu (checked ? 0 : -1);
 }
 
 void main_window::create_actions()

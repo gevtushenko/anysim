@@ -66,7 +66,7 @@ public:
 
   void set_cells_per_lambda (unsigned int cells_per_lambda);
 
-  void set_use_gpu (bool use_gpu_arg);
+  void set_use_gpu (int gpu_num);
   bool get_use_gpu () const;
 
   void append_source (double frequency, double x, double y);
@@ -94,7 +94,7 @@ private:
 
 private:
   thread_pool threads;
-  bool use_gpu = false;
+  int gpu_num = -1;
   unsigned int version_id = 0;
   bool use_double_precision = true;
   std::unique_ptr<calculation_context> context;
