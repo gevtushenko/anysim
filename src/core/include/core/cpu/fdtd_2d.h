@@ -281,9 +281,10 @@ public:
 
         fdtd_step (t, dt, nx, ny, dx, dy, d_mh, d_er, d_ez, d_dz, d_hx, d_hy, sources_count, d_sources_frequencies, d_sources_offsets);
 
-        if (cudaGetLastError () != cudaSuccess)
+        auto cuda_error = cudaGetLastError ();
+        if (cuda_error != cudaSuccess)
           {
-            std::cout << "Error on GPU!" << std::endl;
+            std::cout << "Error on GPU: " << cudaGetErrorString (cuda_error) << std::endl;
             return;
           }
 

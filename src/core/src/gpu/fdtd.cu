@@ -4,6 +4,8 @@
 #include "core/common/sources.h"
 #include "core/common/curl.h"
 
+constexpr bool USE_SHARED_H_UPDATE = true;
+
 template <typename float_type>
 __global__ void fdtd_update_h_kernel (
     unsigned int nx, unsigned int ny,
@@ -25,6 +27,52 @@ __global__ void fdtd_update_h_kernel (
     // update_h
     hx[idx] -= mh[idx] * cex;
     hy[idx] -= mh[idx] * cey;
+  }
+}
+
+template <typename float_type, int tile_size>
+__global__ void fdtd_update_h_shared_kernel (
+    unsigned int nx, unsigned int ny,
+    const float_type dx, const float_type dy,
+    const float_type * __restrict__ ez,
+    const float_type * __restrict__ mh,
+    float_type * __restrict__ hx,
+    float_type * __restrict__ hy)
+{
+  __shared__ float_type cache[tile_size + 1][tile_size + 1];
+  const unsigned int tx = threadIdx.x;
+  const unsigned int ty = threadIdx.y;
+  const unsigned int i = blockIdx.x * blockDim.x + tx;
+  const unsigned int j = blockIdx.y * blockDim.y + ty;
+  const unsigned int curr_idx = j * nx + i;
+
+  if (j < ny && i < nx)
+  {
+    cache[ty][tx] = ez[curr_idx];
+
+    if (tx == tile_size - 1 || i == nx - 1)
+    {
+      const unsigned int next_idx_i = i < nx - 1 ? j * nx + i + 1 : j * nx + 0;
+      cache[ty][tx + 1] = ez[next_idx_i];
+    }
+
+    if (ty == tile_size - 1 || j == ny - 1)
+    {
+      const unsigned int next_idx_j = j < ny - 1 ? (j + 1) * nx + i : 0 * nx + i;
+      cache[ty + 1][tx] = ez[next_idx_j];
+    }
+  }
+
+  __syncthreads ();
+
+  if (j < ny && i < nx)
+  {
+    const float_type m_h = mh[curr_idx];
+
+    const float_type cex = (cache[ty + 1][tx] - cache[ty][tx]) / dy;
+    const float_type cey = -(cache[ty][tx + 1] - cache[ty][tx]) / dx;
+    hx[curr_idx] -= m_h * cex;
+    hy[curr_idx] -= m_h * cey;
   }
 }
 
@@ -83,17 +131,18 @@ void fdtd_step_gpu (
     const unsigned int * __restrict__ sources_offsets)
 {
   constexpr auto C0 = static_cast<float_type> (299792458); /// Speed of light [metres per second]
+  constexpr int tile_size = 16;
 
-  dim3 block_size = dim3 (32, 32);
+  dim3 block_size = dim3 (tile_size, tile_size);
   dim3 grid_size;
 
   grid_size.x = (nx + block_size.x - 1) / block_size.x;
   grid_size.y = (ny + block_size.y - 1) / block_size.y;
 
-  // TODO Calculate block sizes
-  fdtd_update_h_kernel<<<grid_size, block_size>>> (nx, ny, dx, dy, ez, mh, hx, hy);
-
-  // TODO Update source
+  if (USE_SHARED_H_UPDATE)
+    fdtd_update_h_shared_kernel<float_type, tile_size><<<grid_size, block_size>>> (nx, ny, dx, dy, ez, mh, hx, hy);
+  else
+    fdtd_update_h_kernel<<<grid_size, block_size>>> (nx, ny, dx, dy, ez, mh, hx, hy);
   fdtd_update_e_kernel<<<grid_size, block_size>>> (t, nx, ny, C0 * dt, dx, dy, er, hx, hy, dz, ez, sources_count, sources_frequencies, sources_offsets);
 }
 
