@@ -27,12 +27,14 @@ simulation_manager *create_simulation_manager (bool console_run, project_manager
 
 int main (int argc, char *argv[])
 {
+#if 0
   thread_pool threads;
   euler_2d<double> solver (threads, 400, 150);
 
   solver.calculate (10000);
 
   return 0;
+#endif
   project_manager pm (false /* use double precision */);
   std::unique_ptr<simulation_manager> simulation (create_simulation_manager (false, pm, argc, argv));
 
