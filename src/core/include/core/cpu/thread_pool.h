@@ -73,6 +73,8 @@ public:
   template <class data_type>
   void reduce_min (unsigned int thread_id, data_type &value)
   {
+    static_assert (std::is_copy_assignable<data_type>::value, "Error! Data type in reduce function has to be copy assignable");
+
     buffer[thread_id].ptr = &value;
     barrier ();
 
