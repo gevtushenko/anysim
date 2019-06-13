@@ -29,7 +29,6 @@ class euler_2d
 
   const float_type cfl = 0.1;
   float_type gamma = 1.4;
-  float_type dt = 0.0;
   float_type dx, dy;
 
   float_type edge_lengths[4];
@@ -135,12 +134,20 @@ public:
     }
   }
 
-  float_type calculate_dt (const float_type *p_rho, const float_type *p_u, const float_type *p_v, const float_type *p_p) const
+  float_type calculate_dt (
+      unsigned int thread_id,
+      unsigned int total_threads,
+      const float_type *p_rho,
+      const float_type *p_u,
+      const float_type *p_v,
+      const float_type *p_p) const
   {
     float_type min_len = std::min (dx, dy);
     float_type max_speed = 0.0;
 
-    for (unsigned int y = 0; y < ny; y++)
+    auto yr = work_range::split (ny, thread_id, total_threads);
+
+    for (unsigned int y = yr.chunk_begin; y < yr.chunk_end; y++)
     {
       for (unsigned int x = 0; x < nx; x++)
       {
@@ -157,7 +164,9 @@ public:
       }
     }
 
-    return cfl * min_len / max_speed;
+    float_type new_dt = cfl * min_len / max_speed;
+    threads.reduce_min (thread_id, new_dt);
+    return new_dt;
   }
 
   static float_type calculate_total_energy (float_type p, float_type u, float_type v, float_type rho, float_type gamma)
@@ -316,23 +325,22 @@ public:
   {
     const float_type cell_area = dx * dy;
 
-    for (unsigned int step = 0; step < steps; step++)
+    threads.execute ([&] (unsigned int thread_id, unsigned int total_threads)
     {
-      const auto begin = std::chrono::high_resolution_clock::now();
-      float_type *p_rho = step % 2 == 0 ? rho_1.get () : rho_2.get ();
-      float_type *p_u   = step % 2 == 0 ? u_1.get ()   : u_2.get ();
-      float_type *p_v   = step % 2 == 0 ? v_1.get ()   : v_2.get ();
-      float_type *p_p   = step % 2 == 0 ? p_1.get ()   : p_2.get ();
+      for (unsigned int step = 0; step < steps; step++)
+      {
+        const auto begin = std::chrono::high_resolution_clock::now();
+        float_type *p_rho = step % 2 == 0 ? rho_1.get () : rho_2.get ();
+        float_type *p_u   = step % 2 == 0 ? u_1.get ()   : u_2.get ();
+        float_type *p_v   = step % 2 == 0 ? v_1.get ()   : v_2.get ();
+        float_type *p_p   = step % 2 == 0 ? p_1.get ()   : p_2.get ();
 
-      float_type *p_rho_next = (step + 1) % 2 == 0 ? rho_1.get () : rho_2.get ();
-      float_type *p_u_next   = (step + 1) % 2 == 0 ? u_1.get ()   : u_2.get ();
-      float_type *p_v_next   = (step + 1) % 2 == 0 ? v_1.get ()   : v_2.get ();
-      float_type *p_p_next   = (step + 1) % 2 == 0 ? p_1.get ()   : p_2.get ();
+        float_type *p_rho_next = (step + 1) % 2 == 0 ? rho_1.get () : rho_2.get ();
+        float_type *p_u_next   = (step + 1) % 2 == 0 ? u_1.get ()   : u_2.get ();
+        float_type *p_v_next   = (step + 1) % 2 == 0 ? v_1.get ()   : v_2.get ();
+        float_type *p_p_next   = (step + 1) % 2 == 0 ? p_1.get ()   : p_2.get ();
 
-      dt = calculate_dt (p_rho, p_u, p_v, p_p);
-
-      threads.execute ([&] (unsigned int thread_id, unsigned int total_threads) {
-        auto yr = work_range::split (ny, thread_id, total_threads);
+        const float_type dt = calculate_dt (thread_id, total_threads, p_rho, p_u, p_v, p_p);
 
         float_type q_c[4];
         float_type q_n[4];
@@ -345,6 +353,8 @@ public:
 
         float_type F_sigma[4];  /// Edge flux in local coordinate system
         float_type f_sigma[4];  /// Edge flux in global coordinate system
+
+        auto yr = work_range::split (ny, thread_id, total_threads);
 
         for (unsigned int y = yr.chunk_begin; y < yr.chunk_end; ++y)
         {
@@ -394,14 +404,20 @@ public:
           }
         }
 
-      });
-      const auto end = std::chrono::high_resolution_clock::now ();
-      const std::chrono::duration<double> duration = end - begin;
-      std::cout << "Step completed in " << duration.count () << "s\n";
+        threads.barrier ();
 
-      if (step % 110 == 0)
-        write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, p_rho);
-    }
+        const auto end = std::chrono::high_resolution_clock::now ();
+        const std::chrono::duration<double> duration = end - begin;
+
+        if (is_main_thread (thread_id))
+        {
+          std::cout << "Step completed in " << duration.count () << "s\n";
+
+          if (step % 300 == 0)
+            write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, p_rho);
+        }
+      }
+    });
   }
 };
 

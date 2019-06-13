@@ -16,6 +16,7 @@ thread_pool::thread_pool (unsigned int threads_count)
   , barrier_epoch (0)
   , threads_in_barrier (0)
   , total_threads (threads_count)
+  , buffer (new cache_padded_void_ptr[threads_count])
 {
   for (unsigned int thread_id = 1; thread_id < total_threads; thread_id++)
     threads.emplace_back (&thread_pool::run_thread, this, thread_id);
