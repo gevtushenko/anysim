@@ -14,7 +14,11 @@ set(CORE_SOURCES
         include/core/cpu/fdtd_2d.h
         include/core/cpu/thread_pool.h
         src/cpu/thread_pool.cpp
-        include/core/common/curl.h)
+        include/core/common/curl.h
+        include/core/config/configuration.h
+        src/config/configuration.cpp
+        include/core/config/configuration_node.h
+        src/config/configuration_node.cpp)
 
 find_package(Threads REQUIRED)
 
