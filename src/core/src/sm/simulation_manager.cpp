@@ -28,8 +28,25 @@ simulation_manager::simulation_manager (const std::string &solver_arg, bool use_
 {
 }
 
-void simulation_manager::fill_configuration_scheme (configuration &config)
+void simulation_manager::fill_configuration_scheme (configuration &scheme)
 {
   if (solver_context)
-    solver_context->fill_configuration_scheme (config);
+    solver_context->fill_configuration_scheme (scheme);
+}
+
+void simulation_manager::apply_configuration (const configuration &config)
+{
+  if (solver_context)
+    solver_context->apply_configuration (config);
+}
+
+void simulation_manager::calculate_next_time_step ()
+{
+  if (!solver_context)
+    return;
+
+  threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
+    for (unsigned int step = 0; step < 1000; step++)
+      solver_context->solve (step, thread_id, threads_count);
+  });
 }

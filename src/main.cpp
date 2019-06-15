@@ -21,5 +21,5 @@ int main (int argc, char *argv[])
   if (args.parse (argc, argv, true /* require configuration */, pm))
     return 0;
 
-  return 0;
+  return pm.run ();
 }

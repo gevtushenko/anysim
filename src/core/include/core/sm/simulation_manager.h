@@ -17,7 +17,9 @@ class simulation_manager
 {
 public:
   simulation_manager (const std::string &solver_arg, bool use_double_precision_arg);
-  void fill_configuration_scheme (configuration &config);
+  void fill_configuration_scheme (configuration &scheme);
+  void apply_configuration (const configuration &config);
+  void calculate_next_time_step ();
 
 private:
   thread_pool threads;

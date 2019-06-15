@@ -21,10 +21,13 @@ public:
       std::string solver_arg,
       bool use_double_precision_arg);
 
+  int run ();
+
   const configuration &get_configuration_scheme () const;
   configuration &get_configuration ();
 
 private:
+  unsigned int version = 0;
   std::string solver_name;
   std::string project_name;
   bool use_double_precision = true;
