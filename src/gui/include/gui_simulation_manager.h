@@ -5,7 +5,7 @@
 #ifndef ANYSIM_GUI_SIMULATION_MANAGER_H
 #define ANYSIM_GUI_SIMULATION_MANAGER_H
 
-#include "core/sm/con_simulation_manager.h"
+#include "core/sm/simulation_manager.h"
 
 class gui_simulation_manager : public simulation_manager
 {

@@ -12,11 +12,13 @@
 #include <chrono>
 #include <cmath>
 
+#include "core/config/configuration.h"
 #include "core/cpu/thread_pool.h"
+#include "core/solver/solver.h"
 #include "io/vtk/vtk.h"
 
 template<class float_type>
-class euler_2d
+class euler_2d : public solver
 {
   thread_pool &threads;
   constexpr static int LEFT = 0;
@@ -24,12 +26,12 @@ class euler_2d
   constexpr static int RIGHT = 2;
   constexpr static int TOP = 3;
 
-  const unsigned int nx;
-  const unsigned int ny;
+  unsigned int nx = 0;
+  unsigned int ny = 0;
 
-  const float_type cfl = 0.1;
+  float_type cfl = 0.1;
   float_type gamma = 1.4;
-  float_type dx, dy;
+  float_type dx = 0.1, dy = 0.1;
 
   float_type edge_lengths[4];
   float_type normals_x[4];
@@ -44,25 +46,8 @@ class euler_2d
   std::unique_ptr<float_type[]> p_1;
   std::unique_ptr<float_type[]> p_2;
 public:
-  euler_2d (thread_pool &thread_pool, unsigned int nx_arg, unsigned int ny_arg)
-  : threads (thread_pool)
-  , nx (nx_arg)
-  , ny (ny_arg)
-  , rho_1 (new float_type[nx * ny])
-  , rho_2 (new float_type[nx * ny])
-  , u_1   (new float_type[nx * ny])
-  , u_2   (new float_type[nx * ny])
-  , v_1   (new float_type[nx * ny])
-  , v_2   (new float_type[nx * ny])
-  , p_1   (new float_type[nx * ny])
-  , p_2   (new float_type[nx * ny])
+  euler_2d (thread_pool &thread_pool) : threads (thread_pool)
   {
-    const float_type width = 7.0;
-    const float_type height = 3.0;
-
-    dx = width / nx;
-    dy = height / ny;
-
     edge_lengths[LEFT] = edge_lengths[RIGHT] = dx;
     edge_lengths[BOTTOM] = edge_lengths[TOP] = dy;
     normals_x[LEFT] = -1.0f;  normals_y[LEFT] = 0.0f;
@@ -70,6 +55,47 @@ public:
     normals_x[RIGHT] = 1.0f;  normals_y[RIGHT] = 0.0f;
     normals_x[TOP] = 0.0f;    normals_y[TOP] = 1.0f;
 
+    // TODO Move to configuration
+    const float_type width = 7.0;
+    const float_type height = 3.0;
+
+    dx = width / nx;
+    dy = height / ny;
+  }
+
+  ~euler_2d () override = default;
+
+  void fill_configuration_scheme (configuration &configuration_scheme)
+  {
+    auto &root = configuration_scheme.get_root ();
+    auto &grid = root.append_and_get_group ("grid");
+    grid.append_node ("nx", 10 /* default value */);
+    grid.append_node ("ny", 10 /* default value */);
+  }
+
+  void apply_configuration (const configuration &config) final
+  {
+    auto grid = config.get_root ().child (0);
+    nx = std::get<int> (grid.child (0).value);
+    ny = std::get<int> (grid.child (1).value);
+
+    rho_1.reset ();
+    rho_2.reset ();
+    u_1.reset ();
+    u_2.reset ();
+    v_1.reset ();
+    v_2.reset ();
+    p_1.reset ();
+    p_2.reset ();
+
+    rho_1.reset (new float_type[nx * ny]);
+    rho_2.reset (new float_type[nx * ny]);
+    u_1.reset (new float_type[nx * ny]);
+    u_2.reset (new float_type[nx * ny]);
+    v_1.reset (new float_type[nx * ny]);
+    v_2.reset (new float_type[nx * ny]);
+    p_1.reset (new float_type[nx * ny]);
+    p_2.reset (new float_type[nx * ny]);
 
     // TODO Extract initialization
 #if 0
@@ -321,103 +347,85 @@ public:
     return (E - (u * u + v * v) / 2) * (gamma - 1) * rho;
   }
 
-  void calculate (unsigned int steps)
+  void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
   {
     const float_type cell_area = dx * dy;
 
-    threads.execute ([&] (unsigned int thread_id, unsigned int total_threads)
+    float_type *p_rho = step % 2 == 0 ? rho_1.get () : rho_2.get ();
+    float_type *p_u   = step % 2 == 0 ? u_1.get ()   : u_2.get ();
+    float_type *p_v   = step % 2 == 0 ? v_1.get ()   : v_2.get ();
+    float_type *p_p   = step % 2 == 0 ? p_1.get ()   : p_2.get ();
+
+    float_type *p_rho_next = (step + 1) % 2 == 0 ? rho_1.get () : rho_2.get ();
+    float_type *p_u_next   = (step + 1) % 2 == 0 ? u_1.get ()   : u_2.get ();
+    float_type *p_v_next   = (step + 1) % 2 == 0 ? v_1.get ()   : v_2.get ();
+    float_type *p_p_next   = (step + 1) % 2 == 0 ? p_1.get ()   : p_2.get ();
+
+    const float_type dt = calculate_dt (thread_id, total_threads, p_rho, p_u, p_v, p_p);
+
+    float_type q_c[4];
+    float_type q_n[4];
+
+    float_type Q_c[4];
+    float_type Q_n[4];
+
+    float_type F_c[4];
+    float_type F_n[4];
+
+    float_type F_sigma[4];  /// Edge flux in local coordinate system
+    float_type f_sigma[4];  /// Edge flux in global coordinate system
+
+    auto yr = work_range::split (ny, thread_id, total_threads);
+
+    for (unsigned int y = yr.chunk_begin; y < yr.chunk_end; ++y)
     {
-      for (unsigned int step = 0; step < steps; step++)
+      for (unsigned int x = 0; x < nx; ++x)
       {
-        const auto begin = std::chrono::high_resolution_clock::now();
-        float_type *p_rho = step % 2 == 0 ? rho_1.get () : rho_2.get ();
-        float_type *p_u   = step % 2 == 0 ? u_1.get ()   : u_2.get ();
-        float_type *p_v   = step % 2 == 0 ? v_1.get ()   : v_2.get ();
-        float_type *p_p   = step % 2 == 0 ? p_1.get ()   : p_2.get ();
+        auto i = y * nx + x;
 
-        float_type *p_rho_next = (step + 1) % 2 == 0 ? rho_1.get () : rho_2.get ();
-        float_type *p_u_next   = (step + 1) % 2 == 0 ? u_1.get ()   : u_2.get ();
-        float_type *p_v_next   = (step + 1) % 2 == 0 ? v_1.get ()   : v_2.get ();
-        float_type *p_p_next   = (step + 1) % 2 == 0 ? p_1.get ()   : p_2.get ();
+        fill_state_vector (i, p_rho, p_u, p_v, p_p, q_c);
 
-        const float_type dt = calculate_dt (thread_id, total_threads, p_rho, p_u, p_v, p_p);
+        float_type flux[4] = {0.0, 0.0, 0.0, 0.0};
 
-        float_type q_c[4];
-        float_type q_n[4];
-
-        float_type Q_c[4];
-        float_type Q_n[4];
-
-        float_type F_c[4];
-        float_type F_n[4];
-
-        float_type F_sigma[4];  /// Edge flux in local coordinate system
-        float_type f_sigma[4];  /// Edge flux in global coordinate system
-
-        auto yr = work_range::split (ny, thread_id, total_threads);
-
-        for (unsigned int y = yr.chunk_begin; y < yr.chunk_end; ++y)
+        /// Edge flux
+        for (int edge = 0; edge < 4; edge++)
         {
-          for (unsigned int x = 0; x < nx; ++x)
-          {
-            auto i = y * nx + x;
+          const unsigned int j = get_neighbor_index (x, y, edge);
 
-            fill_state_vector (i, p_rho, p_u, p_v, p_p, q_c);
+          fill_state_vector (j, p_rho, p_u, p_v, p_p, q_n);
+          rotate_vector_to_edge_coordinates (edge, q_c, Q_c);
+          rotate_vector_to_edge_coordinates (edge, q_n, Q_n);
+          fill_flux_vector (Q_c, F_c);
+          fill_flux_vector (Q_n, F_n);
 
-            float_type flux[4] = {0.0, 0.0, 0.0, 0.0};
+          const float_type U_c = Q_c[1] / Q_c[0];
+          const float_type U_n = Q_n[1] / Q_n[0];
 
-            /// Edge flux
-            for (int edge = 0; edge < 4; edge++)
-            {
-              const unsigned int j = get_neighbor_index (x, y, edge);
+          rusanov_scheme (p_p[i], p_p[j], p_rho[i], p_rho[j], U_c, U_n, F_c, F_n, Q_n, Q_c, F_sigma);
 
-              fill_state_vector (j, p_rho, p_u, p_v, p_p, q_n);
-              rotate_vector_to_edge_coordinates (edge, q_c, Q_c);
-              rotate_vector_to_edge_coordinates (edge, q_n, Q_n);
-              fill_flux_vector (Q_c, F_c);
-              fill_flux_vector (Q_n, F_n);
+          rotate_vector_from_edge_coordinates (edge, F_sigma, f_sigma);
 
-              const float_type U_c = Q_c[1] / Q_c[0];
-              const float_type U_n = Q_n[1] / Q_n[0];
-
-              rusanov_scheme (p_p[i], p_p[j], p_rho[i], p_rho[j], U_c, U_n, F_c, F_n, Q_n, Q_c, F_sigma);
-
-              rotate_vector_from_edge_coordinates (edge, F_sigma, f_sigma);
-
-              for (int c = 0; c < 4; c++)
-                flux[c] += edge_lengths[edge] * f_sigma[c];
-            }
-
-            float_type new_q[4];
-            for (int c = 0; c < 4; c++)
-              new_q[c] = q_c[c] - (dt / cell_area) * (flux[c]);
-
-            const float_type rho = new_q[0];
-            const float_type u   = new_q[1] / rho;
-            const float_type v   = new_q[2] / rho;
-            const float_type E   = new_q[3] / rho;
-
-            p_rho_next[i] = rho;
-            p_u_next[i] = u;
-            p_v_next[i] = v;
-            p_p_next[i] = calculate_p (E, u, v, rho);
-          }
+          for (int c = 0; c < 4; c++)
+            flux[c] += edge_lengths[edge] * f_sigma[c];
         }
 
-        threads.barrier ();
+        float_type new_q[4];
+        for (int c = 0; c < 4; c++)
+          new_q[c] = q_c[c] - (dt / cell_area) * (flux[c]);
 
-        const auto end = std::chrono::high_resolution_clock::now ();
-        const std::chrono::duration<double> duration = end - begin;
+        const float_type rho = new_q[0];
+        const float_type u   = new_q[1] / rho;
+        const float_type v   = new_q[2] / rho;
+        const float_type E   = new_q[3] / rho;
 
-        if (is_main_thread (thread_id))
-        {
-          std::cout << "Step completed in " << duration.count () << "s\n";
-
-          if (step % 300 == 0)
-            write_vtk ("output_" + std::to_string (step) + ".vtk", dx, dy, nx, ny, p_rho);
-        }
+        p_rho_next[i] = rho;
+        p_u_next[i] = u;
+        p_v_next[i] = v;
+        p_p_next[i] = calculate_p (E, u, v, rho);
       }
-    });
+    }
+
+    threads.barrier ();
   }
 };
 

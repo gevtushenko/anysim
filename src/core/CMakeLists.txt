@@ -4,9 +4,9 @@ set(CORE_SOURCES
         include/core/common/sources.h
         include/core/cpu/sources_holder.h
         include/core/gpu/fdtd_gpu_interface.h
-        include/core/sm/con_simulation_manager.h
+        include/core/sm/simulation_manager.h
         include/core/cpu/euler_2d.h
-        src/sm/con_simulation_manager.cpp
+        src/sm/simulation_manager.cpp
         src/gpu/fdtd_gpu_interface.cpp
         include/core/common/common_defs.h
         src/pm/project_manager.cpp
@@ -18,12 +18,12 @@ set(CORE_SOURCES
         include/core/config/configuration.h
         src/config/configuration.cpp
         include/core/config/configuration_node.h
-        src/config/configuration_node.cpp)
+        src/config/configuration_node.cpp include/core/solver/solver.h)
 
 find_package(Threads REQUIRED)
 
 include_directories(include)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -g")
 add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_THREAD_LIBS_INIT})
 

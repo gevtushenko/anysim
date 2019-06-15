@@ -50,18 +50,13 @@ bool con_parser::parse (int argc, char **argv, bool require_configuration, proje
 
   if (args["configuration"])
   {
-    confituration_reader config (args["configuration"].as<std::string> ());
+    configuration_reader config (args["configuration"].as<std::string> ());
     config.initialize_project (pm);
   }
   else if (require_configuration)
   {
     std::cerr << "Usage: " << argv[0] << " --config=configuration_file.json" << std::endl;
     return true;
-  }
-
-  if (args["use_gpu"])
-  {
-    pm.set_use_gpu (args["gpu_device"].as<int> (0));
   }
 
   return false;

@@ -4,6 +4,8 @@
 
 #include "core/config/configuration_node.h"
 
+#include <iostream>
+
 configuration_node::configuration_node (
     std::string node_name,
     configuration_node_type node_type,
@@ -44,6 +46,11 @@ const configuration_node& configuration_node::child (unsigned int child_id) cons
   return children.at (child_id);
 }
 
+const std::vector<configuration_node>& configuration_node::group () const
+{
+  return children;
+}
+
 std::vector<configuration_node>& configuration_node::group (unsigned int group_id)
 {
   return child (group_id).children;
@@ -52,4 +59,25 @@ std::vector<configuration_node>& configuration_node::group (unsigned int group_i
 const std::vector<configuration_node>& configuration_node::group (unsigned int group_id) const
 {
   return child (group_id).children;
+}
+
+void configuration_node::print (unsigned int offset)
+{
+  std::string offset_str;
+
+  for (unsigned int i = 0; i < offset; i++)
+    offset_str += " ";
+
+  if (type == configuration_node_type::void_value)
+  {
+    std::cout << offset_str << name << ":\n";
+
+    for (auto &child: children)
+      child.print (offset + 2);
+  }
+  else
+  {
+    if (type == configuration_node_type::int_value)
+      std::cout << offset_str << name << " -> " << std::get<int> (value) << std::endl;
+  }
 }

@@ -11,23 +11,25 @@
 class json_wrapper;
 class project_manager;
 
-class confituration_reader
+class configuration_reader
 {
 public:
-  confituration_reader () = delete;
-  ~confituration_reader ();
+  configuration_reader () = delete;
+  ~configuration_reader ();
 
-  explicit confituration_reader (const std::string &filename);
+  explicit configuration_reader (const std::string &filename);
 
   void initialize_project (project_manager &pm);
   bool is_valid () { return data != nullptr; }
 
 private:
-  double max_time = 3.14E-8;
-  double geometry_width = 5.0;
-  double geometry_height = 5.0;
-  unsigned int cells_per_lambda = 40;
+  /// Required options
+  std::string solver_name;
+  std::string project_name;
+  double max_time = 1.0;
+  bool use_double_precision = true;
 
+  /// Solver options
   std::unique_ptr<json_wrapper> data;
 };
 
