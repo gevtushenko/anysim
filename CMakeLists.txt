@@ -33,3 +33,25 @@ if(Qt5Widgets_FOUND)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_gui)
 endif()
 
+option(ANYSIM_TESTS "Build the tests" ON)
+if(ANYSIM_TESTS)
+    enable_testing()
+    add_subdirectory(external/googletest)
+    mark_as_advanced(
+        BUILD_GMOCK BUILD_GTEST BUILD_SHARED_LIBS
+        gmock_build_tests gtest_build_samples gtest_build_tests
+        gtest_disable_pthreads gtest_force_shared_crt gtest_hide_internal_symbols)
+    set_target_properties(gtest PROPERTIES FOLDER extern)
+    set_target_properties(gtest_main PROPERTIES FOLDER extern)
+    set_target_properties(gmock PROPERTIES FOLDER extern)
+    set_target_properties(gmock_main PROPERTIES FOLDER extern)
+    macro(package_add_test TESTNAME)
+        add_executable(${TESTNAME} ${ARGN})
+        target_link_libraries(${TESTNAME} gtest gmock gtest_main)
+        add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
+        set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
+    endmacro()
+
+    set(CORE_TEST_SOURCES test/configuration_test.cpp)
+    package_add_test(core_tests ${CORE_TEST_SOURCES})
+endif()
