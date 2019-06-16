@@ -56,7 +56,7 @@ void simulation_manager::apply_configuration (
     solver_context->apply_configuration (solver_config, solver_grid);
 }
 
-bool simulation_manager::calculate_next_time_step ()
+bool simulation_manager::calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count)
 {
   if (!solver_context)
     return false;
@@ -67,17 +67,12 @@ bool simulation_manager::calculate_next_time_step ()
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
     for (unsigned int local_step = 0; local_step < steps_until_render; local_step++)
       solver_context->solve (step + local_step, thread_id, threads_count);
-    for (auto &extractor: extractors)
-      extractor->extract (thread_id, threads_count);
+    for (unsigned int eid = 0; eid < extractors_count; eid++)
+      extractors[eid]->extract (thread_id, threads_count);
   });
 
   step += steps_until_render;
 
   return step < 3000;
-}
-
-void simulation_manager::append_extractor (result_extractor *extractor)
-{
-  extractors.push_back (extractor);
 }
 

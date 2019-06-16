@@ -6,11 +6,13 @@
 #define ANYSIM_PROJECT_MANAGER_H
 
 #include <memory>
+#include <vector>
 
 class grid;
 class workspace;
 class configuration;
 class simulation_manager;
+class result_extractor;
 
 class project_manager
 {
@@ -30,9 +32,9 @@ public:
   configuration &get_configuration ();
 
   const workspace &get_solver_workspace () const;
-  simulation_manager &get_simulation_manager ();
-
   const grid &get_grid () const;
+
+  void append_extractor (result_extractor *extractor);
 
   bool is_double_precision_used () { return use_double_precision; }
 
@@ -47,6 +49,7 @@ private:
   std::unique_ptr<configuration> solver_configuration;
   std::unique_ptr<configuration> solver_configuration_scheme;
   std::unique_ptr<simulation_manager> simulation;
+  std::vector<result_extractor*> extractors;
 };
 
 #endif //ANYSIM_PROJECT_MANAGER_H

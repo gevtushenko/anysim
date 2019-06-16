@@ -25,15 +25,13 @@ public:
       workspace &workspace_arg);
   void fill_configuration_scheme (configuration_node &solver_scheme);
   void apply_configuration (const configuration_node &solver_config, grid &solver_grid);
-  bool calculate_next_time_step ();
-  void append_extractor (result_extractor *extractor);
+  bool calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count);
 
 private:
   size_t step = 0;
   thread_pool threads;
   workspace &solver_workspace;
   std::unique_ptr<solver> solver_context;
-  std::vector<result_extractor*> extractors;
 };
 
 #endif  // ANYSIM_SIMULATION_MANAGER_H

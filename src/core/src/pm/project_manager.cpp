@@ -72,7 +72,7 @@ void project_manager::update_project ()
 bool project_manager::run ()
 {
   update_project ();
-  return simulation->calculate_next_time_step ();
+  return simulation->calculate_next_time_step (extractors.data (), extractors.size ());
 }
 
 const workspace &project_manager::get_solver_workspace () const
@@ -80,12 +80,12 @@ const workspace &project_manager::get_solver_workspace () const
   return *solver_workspace;
 }
 
-simulation_manager &project_manager::get_simulation_manager ()
-{
-  return *simulation;
-}
-
 const grid &project_manager::get_grid () const
 {
   return *solver_grid;
+}
+
+void project_manager::append_extractor (result_extractor *extractor)
+{
+  extractors.push_back (extractor);
 }

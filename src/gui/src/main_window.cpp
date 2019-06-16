@@ -56,6 +56,8 @@ main_window::main_window (project_manager &pm_arg)
 
   create_actions ();
 
+  pm.append_extractor (cpu_visualizer.get ());
+
   statusBar ()->showMessage ("Ready");
 }
 
@@ -79,9 +81,7 @@ void main_window::start_simulation()
 
   pm.update_project ();
   graphics->gl->update_project (pm);
-
   cpu_visualizer->set_target ("rho", graphics->gl->get_colors (false));
-  pm.get_simulation_manager ().append_extractor (cpu_visualizer.get ());
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
   renderer.render ();
