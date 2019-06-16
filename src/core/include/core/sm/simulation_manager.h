@@ -10,10 +10,11 @@
 
 #include "core/cpu/thread_pool.h"
 
+class grid;
 class solver;
 class workspace;
-class configuration;
 class result_extractor;
+class configuration_node;
 
 class simulation_manager
 {
@@ -22,8 +23,8 @@ public:
       const std::string &solver_arg,
       bool use_double_precision_arg,
       workspace &workspace_arg);
-  void fill_configuration_scheme (configuration &scheme);
-  void apply_configuration (const configuration &config);
+  void fill_configuration_scheme (configuration_node &solver_scheme);
+  void apply_configuration (const configuration_node &solver_config, grid &solver_grid);
   bool calculate_next_time_step ();
   void append_extractor (result_extractor *extractor);
 

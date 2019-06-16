@@ -33,20 +33,27 @@ simulation_manager::simulation_manager (
     bool use_double_precision_arg,
     workspace &workspace_arg)
   : solver_workspace (workspace_arg)
-  , solver_context (solver_abstract_method (solver_arg, use_double_precision_arg, threads, solver_workspace))
+  , solver_context (
+      solver_abstract_method (
+          solver_arg,
+          use_double_precision_arg,
+          threads,
+          solver_workspace))
 {
 }
 
-void simulation_manager::fill_configuration_scheme (configuration &scheme)
+void simulation_manager::fill_configuration_scheme (configuration_node &solver_scheme)
 {
   if (solver_context)
-    solver_context->fill_configuration_scheme (scheme);
+    solver_context->fill_configuration_scheme (solver_scheme);
 }
 
-void simulation_manager::apply_configuration (const configuration &config)
+void simulation_manager::apply_configuration (
+    const configuration_node &solver_config,
+    grid &solver_grid)
 {
   if (solver_context)
-    solver_context->apply_configuration (config);
+    solver_context->apply_configuration (solver_config, solver_grid);
 }
 
 bool simulation_manager::calculate_next_time_step ()
@@ -56,15 +63,15 @@ bool simulation_manager::calculate_next_time_step ()
 
   solver_workspace.set_active_layer ("rho", 0);
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
-    for (unsigned int local_step = 0; local_step < 100; local_step++)
+    for (unsigned int local_step = 0; local_step < 1; local_step++)
       solver_context->solve (step + local_step, thread_id, threads_count);
     for (auto &extractor: extractors)
       extractor->extract (thread_id, threads_count);
   });
 
-  step += 10;
+  step += 1;
 
-  return step < 1000;
+  return step < 20;
 }
 
 void simulation_manager::append_extractor (result_extractor *extractor)

@@ -7,6 +7,7 @@
 
 #include <memory>
 
+class grid;
 class workspace;
 class configuration;
 class simulation_manager;
@@ -36,6 +37,7 @@ private:
   std::string project_name;
   bool use_double_precision = true;
 
+  std::unique_ptr<grid> solver_grid;
   std::unique_ptr<workspace> solver_workspace;
   std::unique_ptr<configuration> solver_configuration;
   std::unique_ptr<configuration> solver_configuration_scheme;

@@ -18,7 +18,7 @@ set(CORE_SOURCES
         include/core/config/configuration.h
         src/config/configuration.cpp
         include/core/config/configuration_node.h
-        src/config/configuration_node.cpp include/core/solver/solver.h include/core/sm/result_extractor.h include/core/solver/workspace.h src/solver/workspace.cpp)
+        src/config/configuration_node.cpp include/core/solver/solver.h include/core/sm/result_extractor.h include/core/solver/workspace.h src/solver/workspace.cpp include/core/grid/grid.h src/grid.cpp)
 
 find_package(Threads REQUIRED)
 

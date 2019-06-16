@@ -79,5 +79,7 @@ void configuration_node::print (unsigned int offset)
   {
     if (type == configuration_node_type::int_value)
       std::cout << offset_str << name << " -> " << std::get<int> (value) << std::endl;
+    if (type == configuration_node_type::double_value)
+      std::cout << offset_str << name << " -> " << std::get<double> (value) << std::endl;
   }
 }

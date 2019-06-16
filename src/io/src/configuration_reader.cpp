@@ -60,12 +60,15 @@ configuration_reader::configuration_reader (const std::string &filename)
   data = std::make_unique<json_wrapper> (configuration["configuration"]);
 }
 
-static void read_node (const configuration_node &scheme_node, configuration_node &config, const json &data)
+static bool read_node (const configuration_node &scheme_node, configuration_node &config, const json &data)
 {
   const auto &name = scheme_node.name;
 
   if (data.find (name) == data.end ())
-    return;
+  {
+    std::cerr << "Error! Configuration file must contain '" << name << "' field." << std::endl;
+    return true;
+  }
 
   switch (scheme_node.type)
   {
@@ -77,22 +80,28 @@ static void read_node (const configuration_node &scheme_node, configuration_node
       {
         auto &group = config.append_and_get_group (name);
         for (auto &child: scheme_node.group ())
-          read_node (child, group, data[name]);
+          if (read_node (child, group, data[name]))
+            return true;
         break;
       }
   }
+
+  return false;
 }
 
-void configuration_reader::initialize_project (project_manager &pm)
+bool configuration_reader::initialize_project (project_manager &pm)
 {
   if (!is_valid ())
-    return;
+    return true;
 
   pm.initialize (project_name, solver_name, use_double_precision);
   auto &scheme = pm.get_configuration_scheme ();
   auto &config = pm.get_configuration ();
 
   for (auto &scheme_node: scheme.get_root ().group ())
-    read_node (scheme_node, config.get_root (), data->json_content);
+    if (read_node (scheme_node, config.get_root (), data->json_content))
+      return true;
+
   config.get_root ().print ();
+  return false;
 }

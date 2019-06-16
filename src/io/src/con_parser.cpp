@@ -51,7 +51,7 @@ bool con_parser::parse (int argc, char **argv, bool require_configuration, proje
   if (args["configuration"])
   {
     configuration_reader config (args["configuration"].as<std::string> ());
-    config.initialize_project (pm);
+    return config.initialize_project (pm);
   }
   else if (require_configuration)
   {

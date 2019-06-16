@@ -6,7 +6,13 @@
   "configuration": {
     "grid": {
       "nx": 200,
-      "ny": 100
+      "ny": 100,
+      "width": 7.0,
+      "height": 3.0
+    },
+    "solver": {
+      "cfl": 0.1,
+      "gamma": 1.4
     }
   }
 }

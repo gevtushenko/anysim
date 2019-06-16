@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cmath>
 
+#include "core/grid/grid.h"
 #include "core/config/configuration.h"
 #include "core/solver/workspace.h"
 #include "core/cpu/thread_pool.h"
@@ -31,7 +32,9 @@ class euler_2d : public solver
 
   float_type cfl = 0.1;
   float_type gamma = 1.4;
-  float_type dx = 0.1, dy = 0.1;
+
+  float_type dx = 1.0;
+  float_type dy = 1.0;
 
   float_type edge_lengths[4];
   float_type normals_x[4];
@@ -43,8 +46,6 @@ public:
       workspace &solver_workspace_arg)
     : solver (threads_arg, solver_workspace_arg)
   {
-    edge_lengths[LEFT] = edge_lengths[RIGHT] = dx;
-    edge_lengths[BOTTOM] = edge_lengths[TOP] = dy;
     normals_x[LEFT] = -1.0f;  normals_y[LEFT] = 0.0f;
     normals_x[BOTTOM] = 0.0f; normals_y[BOTTOM] = -1.0f;
     normals_x[RIGHT] = 1.0f;  normals_y[RIGHT] = 0.0f;
@@ -53,31 +54,30 @@ public:
 
   ~euler_2d () override = default;
 
-  void fill_configuration_scheme (configuration &configuration_scheme)
+  void fill_configuration_scheme (configuration_node &configuration_scheme)
   {
-    auto &root = configuration_scheme.get_root ();
-    auto &grid = root.append_and_get_group ("grid");
-    grid.append_node ("nx", 10 /* default value */);
-    grid.append_node ("ny", 10 /* default value */);
+    configuration_scheme.append_node ("cfl", 0.1);
+    configuration_scheme.append_node ("gamma", 1.4);
   }
 
-  void apply_configuration (const configuration &config) final
+  void apply_configuration (const configuration_node &config, grid &solver_grid) final
   {
-    auto grid = config.get_root ().child (0);
-    nx = std::get<int> (grid.child (0).value);
-    ny = std::get<int> (grid.child (1).value);
+    cfl = std::get<double> (config.child (0).value);
+    gamma = std::get<double> (config.child (1).value);
 
-    // TODO Move to configuration
-    const float_type width = 7.0;
-    const float_type height = 3.0;
+    dx = solver_grid.dx;
+    dy = solver_grid.dy;
 
-    dx = width / nx;
-    dy = height / ny;
+    edge_lengths[LEFT] = edge_lengths[RIGHT] = dx;
+    edge_lengths[BOTTOM] = edge_lengths[TOP] = dy;
 
-    solver_workspace.allocate ("rho", memory_holder_type::host, nx * ny * sizeof (float_type), 2);
-    solver_workspace.allocate ("u",   memory_holder_type::host, nx * ny * sizeof (float_type), 2);
-    solver_workspace.allocate ("v",   memory_holder_type::host, nx * ny * sizeof (float_type), 2);
-    solver_workspace.allocate ("p",   memory_holder_type::host, nx * ny * sizeof (float_type), 2);
+    nx = solver_grid.nx;
+    ny = solver_grid.ny;
+
+    solver_grid.create_field<float_type> ("rho", memory_holder_type::host, 2);
+    solver_grid.create_field<float_type> ("u",   memory_holder_type::host, 2);
+    solver_grid.create_field<float_type> ("v",   memory_holder_type::host, 2);
+    solver_grid.create_field<float_type> ("p",   memory_holder_type::host, 2);
 
     auto rho_1 = reinterpret_cast<float_type *> (solver_workspace.get ("rho", 0));
     auto u_1   = reinterpret_cast<float_type *> (solver_workspace.get ("u", 0));

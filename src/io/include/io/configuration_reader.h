@@ -19,7 +19,7 @@ public:
 
   explicit configuration_reader (const std::string &filename);
 
-  void initialize_project (project_manager &pm);
+  bool initialize_project (project_manager &pm);
   bool is_valid () { return data != nullptr; }
 
 private:

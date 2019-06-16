@@ -5,8 +5,9 @@
 #ifndef ANYSIM_SOLVER_H
 #define ANYSIM_SOLVER_H
 
+class grid;
 class workspace;
-class configuration;
+class configuration_node;
 
 class solver
 {
@@ -23,8 +24,8 @@ public:
 
   /// Computes one step
   virtual void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) = 0;
-  virtual void apply_configuration (const configuration &config) = 0;
-  virtual void fill_configuration_scheme (configuration &config) = 0;
+  virtual void apply_configuration (const configuration_node &config, grid &solver_grid) = 0;
+  virtual void fill_configuration_scheme (configuration_node &config) = 0;
 
 protected:
   thread_pool &threads;
