@@ -7,6 +7,7 @@
 
 #include <memory>
 
+class workspace;
 class configuration;
 class simulation_manager;
 
@@ -26,12 +27,16 @@ public:
   const configuration &get_configuration_scheme () const;
   configuration &get_configuration ();
 
+  const workspace &get_solver_workspace () const;
+  simulation_manager &get_simulation_manager ();
+
 private:
   unsigned int version = 0;
   std::string solver_name;
   std::string project_name;
   bool use_double_precision = true;
 
+  std::unique_ptr<workspace> solver_workspace;
   std::unique_ptr<configuration> solver_configuration;
   std::unique_ptr<configuration> solver_configuration_scheme;
   std::unique_ptr<simulation_manager> simulation;

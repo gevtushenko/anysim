@@ -13,6 +13,7 @@
 #include <cmath>
 
 #include "core/config/configuration.h"
+#include "core/solver/workspace.h"
 #include "core/cpu/thread_pool.h"
 #include "core/solver/solver.h"
 #include "io/vtk/vtk.h"
@@ -20,7 +21,6 @@
 template<class float_type>
 class euler_2d : public solver
 {
-  thread_pool &threads;
   constexpr static int LEFT = 0;
   constexpr static int BOTTOM = 1;
   constexpr static int RIGHT = 2;
@@ -37,16 +37,11 @@ class euler_2d : public solver
   float_type normals_x[4];
   float_type normals_y[4];
 
-  std::unique_ptr<float_type[]> rho_1;
-  std::unique_ptr<float_type[]> rho_2;
-  std::unique_ptr<float_type[]> u_1;
-  std::unique_ptr<float_type[]> u_2;
-  std::unique_ptr<float_type[]> v_1;
-  std::unique_ptr<float_type[]> v_2;
-  std::unique_ptr<float_type[]> p_1;
-  std::unique_ptr<float_type[]> p_2;
 public:
-  euler_2d (thread_pool &thread_pool) : threads (thread_pool)
+  euler_2d (
+      thread_pool &threads_arg,
+      workspace &solver_workspace_arg)
+    : solver (threads_arg, solver_workspace_arg)
   {
     edge_lengths[LEFT] = edge_lengths[RIGHT] = dx;
     edge_lengths[BOTTOM] = edge_lengths[TOP] = dy;
@@ -79,23 +74,15 @@ public:
     nx = std::get<int> (grid.child (0).value);
     ny = std::get<int> (grid.child (1).value);
 
-    rho_1.reset ();
-    rho_2.reset ();
-    u_1.reset ();
-    u_2.reset ();
-    v_1.reset ();
-    v_2.reset ();
-    p_1.reset ();
-    p_2.reset ();
+    solver_workspace.allocate ("rho", memory_holder_type::host, nx * ny * sizeof (float_type), 2);
+    solver_workspace.allocate ("u",   memory_holder_type::host, nx * ny * sizeof (float_type), 2);
+    solver_workspace.allocate ("v",   memory_holder_type::host, nx * ny * sizeof (float_type), 2);
+    solver_workspace.allocate ("p",   memory_holder_type::host, nx * ny * sizeof (float_type), 2);
 
-    rho_1.reset (new float_type[nx * ny]);
-    rho_2.reset (new float_type[nx * ny]);
-    u_1.reset (new float_type[nx * ny]);
-    u_2.reset (new float_type[nx * ny]);
-    v_1.reset (new float_type[nx * ny]);
-    v_2.reset (new float_type[nx * ny]);
-    p_1.reset (new float_type[nx * ny]);
-    p_2.reset (new float_type[nx * ny]);
+    auto rho_1 = reinterpret_cast<float_type *> (solver_workspace.get ("rho", 0));
+    auto u_1   = reinterpret_cast<float_type *> (solver_workspace.get ("u", 0));
+    auto v_1   = reinterpret_cast<float_type *> (solver_workspace.get ("v", 0));
+    auto p_1   = reinterpret_cast<float_type *> (solver_workspace.get ("p", 0));
 
     // TODO Extract initialization
 #if 0
@@ -351,15 +338,14 @@ public:
   {
     const float_type cell_area = dx * dy;
 
-    float_type *p_rho = step % 2 == 0 ? rho_1.get () : rho_2.get ();
-    float_type *p_u   = step % 2 == 0 ? u_1.get ()   : u_2.get ();
-    float_type *p_v   = step % 2 == 0 ? v_1.get ()   : v_2.get ();
-    float_type *p_p   = step % 2 == 0 ? p_1.get ()   : p_2.get ();
-
-    float_type *p_rho_next = (step + 1) % 2 == 0 ? rho_1.get () : rho_2.get ();
-    float_type *p_u_next   = (step + 1) % 2 == 0 ? u_1.get ()   : u_2.get ();
-    float_type *p_v_next   = (step + 1) % 2 == 0 ? v_1.get ()   : v_2.get ();
-    float_type *p_p_next   = (step + 1) % 2 == 0 ? p_1.get ()   : p_2.get ();
+    auto p_rho      = reinterpret_cast<float_type *> (solver_workspace.get ("rho", (step + 0) % 2));
+    auto p_rho_next = reinterpret_cast<float_type *> (solver_workspace.get ("rho", (step + 1) % 2));
+    auto p_u        = reinterpret_cast<float_type *> (solver_workspace.get ("u",   (step + 0) % 2));
+    auto p_u_next   = reinterpret_cast<float_type *> (solver_workspace.get ("u",   (step + 1) % 2));
+    auto p_v        = reinterpret_cast<float_type *> (solver_workspace.get ("v",   (step + 0) % 2));
+    auto p_v_next   = reinterpret_cast<float_type *> (solver_workspace.get ("v",   (step + 1) % 2));
+    auto p_p        = reinterpret_cast<float_type *> (solver_workspace.get ("p",   (step + 0) % 2));
+    auto p_p_next   = reinterpret_cast<float_type *> (solver_workspace.get ("p",   (step + 1) % 2));
 
     const float_type dt = calculate_dt (thread_id, total_threads, p_rho, p_u, p_v, p_p);
 

@@ -34,13 +34,13 @@ void render_thread::halt ()
 
 void render_thread::run()
 {
-  bool use_gpu = pm->get_use_gpu ();
+  // bool use_gpu = pm->get_use_gpu ();
 
   for (unsigned int i = 0; i < 4000; i++)
   {
-    pm->calculate (20);
-    pm->render_function (gl->get_colors (use_gpu));
-    emit steps_completed (use_gpu);
+    pm->run ();
+    // pm->render_function (gl->get_colors (use_gpu));
+    emit steps_completed (false);
 
     {
       std::lock_guard guard (lock);

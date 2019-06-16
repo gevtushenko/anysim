@@ -23,7 +23,7 @@ add_executable(${CMAKE_PROJECT_NAME}-con ${SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME}-con ${CMAKE_PROJECT_NAME}_io)
 target_compile_definitions(${CMAKE_PROJECT_NAME}-con PRIVATE CON_BUILD)
 
-# find_package(Qt5Widgets QUIET)
+find_package(Qt5Widgets QUIET)
 if(Qt5Widgets_FOUND)
     add_compile_definitions(GUI_BUILD)
     include_directories(src/gui/include)

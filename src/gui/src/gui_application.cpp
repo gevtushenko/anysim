@@ -2,13 +2,13 @@
 // Created by egi on 5/12/19.
 //
 
-#include "gui_simulation_manager.h"
+#include "gui_application.h"
 #include "main_window.h"
 
 #include <QApplication>
 #include <QFile>
 
-gui_simulation_manager::gui_simulation_manager(
+gui_application::gui_application(
     project_manager &pm_arg,
     int argc_arg,
     char **argv_arg)
@@ -17,7 +17,7 @@ gui_simulation_manager::gui_simulation_manager(
   , argv (argv_arg)
 { }
 
-int gui_simulation_manager::run()
+int gui_application::run()
 {
   Q_INIT_RESOURCE (resources);
 

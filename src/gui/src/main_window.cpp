@@ -8,6 +8,8 @@
 
 #include "settings/global_parameters_widget.h"
 #include "settings/source_settings_widget.h"
+#include "core/sm/simulation_manager.h"
+#include "core/sm/result_extractor.h"
 
 #include "main_window.h"
 #include "settings_widget.h"
@@ -54,22 +56,19 @@ main_window::main_window (project_manager &pm_arg)
   create_actions ();
 
   statusBar ()->showMessage ("Ready");
-
-  pm.set_use_gpu (-1);
 }
 
 main_window::~main_window() = default;
 
-void main_window::create_source (double x, double y, double frequency)
+void main_window::create_source (double , double , double )
 {
-  pm.append_source (frequency, x, y);
+  // pm.append_source (frequency, x, y);
   settings->hide ();
 }
 
 
-void main_window::update_cells_per_lambda (unsigned int cells_per_lambda)
+void main_window::update_cells_per_lambda (unsigned int )
 {
-  pm.set_cells_per_lambda (cells_per_lambda);
   settings->hide ();
 }
 
@@ -78,8 +77,11 @@ void main_window::start_simulation()
   run_action->setEnabled (false);
   stop_action->setEnabled (true);
 
-  pm.prepare_simulation ();
   graphics->gl->update_project (&pm);
+
+  cpu_visualizer = std::make_unique<cpu_results_visualizer> (pm.get_solver_workspace (), 200, 100, graphics->gl->get_colors (false));
+  cpu_visualizer->set_target ("rho");
+  pm.get_simulation_manager ().append_extractor (cpu_visualizer.get ());
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
   renderer.render ();
@@ -109,9 +111,8 @@ void main_window::halt_simulation()
 #include <cuda_runtime.h>
 #endif
 
-void main_window::set_use_gpu (bool checked)
+void main_window::set_use_gpu (bool )
 {
-  pm.set_use_gpu (checked ? 0 : -1);
 }
 
 void main_window::create_actions()

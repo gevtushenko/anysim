@@ -100,14 +100,14 @@ void opengl_widget::update_colors (bool use_gpu)
   update ();
 }
 
-void opengl_widget::update_project (project_manager *pm)
+void opengl_widget::update_project (project_manager *)
 {
   is_initialized = false;
-  const unsigned int nx = pm->get_nx ();
-  const unsigned int ny = pm->get_ny ();
+  const unsigned int nx = 200; // TODO Use grid pm->get_nx ();
+  const unsigned int ny = 100; // TODO Use grid pm->get_ny ();
 
-  x_size = pm->get_calculation_area_width ();
-  y_size = pm->get_calculation_area_height ();
+  x_size = 7.0; // TODO Use grid parameter pm->get_calculation_area_width ();
+  y_size = 3.0; // TODO Use grid parameter pm->get_calculation_area_height ();
 
   axes.prepare (44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
 

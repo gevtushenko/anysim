@@ -11,7 +11,7 @@
 #include <mutex>
 
 #include "core/pm/project_manager.h"
-#include "gui_simulation_manager.h"
+#include "gui_application.h"
 
 class opengl_widget;
 

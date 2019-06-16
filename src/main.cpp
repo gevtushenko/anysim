@@ -10,8 +10,20 @@
 #include "core/cpu/euler_2d.h"
 
 #ifndef CON_BUILD
-#include "gui_simulation_manager.h"
+#include "gui_application.h"
 #endif
+
+int start_application (bool console_run, project_manager &pm, int argc, char *argv[])
+{
+  cpp_unreferenced (console_run, argc, argv);
+
+#ifndef CON_BUILD
+  if (!console_run)
+    return gui_application (pm, argc, argv).run ();
+#endif
+
+  return pm.run ();
+}
 
 int main (int argc, char *argv[])
 {
@@ -21,5 +33,5 @@ int main (int argc, char *argv[])
   if (args.parse (argc, argv, true /* require configuration */, pm))
     return 0;
 
-  return pm.run ();
+  return start_application (false, pm, argc, argv);
 }

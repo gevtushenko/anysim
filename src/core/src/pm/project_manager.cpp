@@ -7,8 +7,12 @@
 #include "core/sm/simulation_manager.h"
 #include "core/solver/solver.h"
 #include "core/cpu/euler_2d.h"
+#include "core/solver/workspace.h"
 
-project_manager::project_manager () = default;
+project_manager::project_manager ()
+  : solver_workspace (new workspace ())
+{ }
+
 project_manager::~project_manager () = default;
 
 void project_manager::initialize (
@@ -22,7 +26,7 @@ void project_manager::initialize (
 
   solver_configuration = std::make_unique<configuration> ();
   solver_configuration_scheme = std::make_unique<configuration> ();
-  simulation = std::make_unique<simulation_manager> (solver_name, use_double_precision);
+  simulation = std::make_unique<simulation_manager> (solver_name, use_double_precision, *solver_workspace);
 
   simulation->fill_configuration_scheme (*solver_configuration_scheme);
 }
@@ -47,4 +51,14 @@ int project_manager::run ()
 
   simulation->calculate_next_time_step ();
   return 0;
+}
+
+const workspace &project_manager::get_solver_workspace () const
+{
+  return *solver_workspace;
+}
+
+simulation_manager &project_manager::get_simulation_manager ()
+{
+  return *simulation;
 }

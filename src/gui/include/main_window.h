@@ -14,6 +14,7 @@
 class QCheckBox;
 class QComboBox;
 
+class cpu_results_visualizer;
 class graphics_widget;
 class settings_widget;
 class project_manager;
@@ -25,7 +26,7 @@ class main_window : public QMainWindow
 
 public:
   main_window () = delete;
-  main_window (project_manager &pm_arg);
+  explicit main_window (project_manager &pm_arg);
   ~main_window () override;
 
 private slots:
@@ -49,6 +50,8 @@ private:
   settings_widget *settings;
   graphics_widget *graphics;
   model_widget *model;
+
+  std::unique_ptr<cpu_results_visualizer> cpu_visualizer;
 
   QAction *run_action = nullptr;
   QAction *stop_action = nullptr;

@@ -20,8 +20,8 @@ set(GUI_SOURCES
         include/main_window.h
         include/opengl_widget.h
         include/render_thread.h
-        include/gui_simulation_manager.h
-        src/gui_simulation_manager.cpp
+        include/gui_application.h
+        src/gui_application.cpp
         include/axes_grid.h
         src/axes_grid.cpp include/text_renderer.h
         src/text_renderer.cpp include/camera.h

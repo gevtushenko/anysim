@@ -11,19 +11,27 @@
 #include "core/cpu/thread_pool.h"
 
 class solver;
+class workspace;
 class configuration;
+class result_extractor;
 
 class simulation_manager
 {
 public:
-  simulation_manager (const std::string &solver_arg, bool use_double_precision_arg);
+  simulation_manager (
+      const std::string &solver_arg,
+      bool use_double_precision_arg,
+      workspace &workspace_arg);
   void fill_configuration_scheme (configuration &scheme);
   void apply_configuration (const configuration &config);
   void calculate_next_time_step ();
+  void append_extractor (result_extractor *extractor);
 
 private:
   thread_pool threads;
+  workspace &solver_workspace;
   std::unique_ptr<solver> solver_context;
+  std::vector<result_extractor*> extractors;
 };
 
 #endif  // ANYSIM_SIMULATION_MANAGER_H
