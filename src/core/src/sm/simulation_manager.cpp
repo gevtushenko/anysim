@@ -61,17 +61,19 @@ bool simulation_manager::calculate_next_time_step ()
   if (!solver_context)
     return false;
 
+  const unsigned int steps_until_render = 10;
+
   solver_workspace.set_active_layer ("rho", 0);
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
-    for (unsigned int local_step = 0; local_step < 1; local_step++)
+    for (unsigned int local_step = 0; local_step < steps_until_render; local_step++)
       solver_context->solve (step + local_step, thread_id, threads_count);
     for (auto &extractor: extractors)
       extractor->extract (thread_id, threads_count);
   });
 
-  step += 1;
+  step += steps_until_render;
 
-  return step < 20;
+  return step < 3000;
 }
 
 void simulation_manager::append_extractor (result_extractor *extractor)

@@ -52,11 +52,12 @@ configuration &project_manager::get_configuration ()
 
 bool project_manager::run ()
 {
-  if (version != solver_configuration->get_version ())
+  const auto &config = *solver_configuration;
+  if (version != config.get_version ())
   {
-    version = solver_configuration->get_version ();
+    version = config.get_version ();
 
-    auto &grid_node = solver_configuration->get_root ().child (0);
+    auto &grid_node = config.get_root ().child (0);
     const unsigned int nx = std::get<int> (grid_node.child (0).value);
     const unsigned int ny = std::get<int> (grid_node.child (1).value);
 
@@ -64,7 +65,7 @@ bool project_manager::run ()
     const double height = std::get<double> (grid_node.child (3).value);
 
     solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
-    simulation->apply_configuration (solver_configuration->get_root ().child (1), *solver_grid);
+    simulation->apply_configuration (config.get_root ().child (1), *solver_grid);
   }
 
   return simulation->calculate_next_time_step ();
@@ -78,4 +79,9 @@ const workspace &project_manager::get_solver_workspace () const
 simulation_manager &project_manager::get_simulation_manager ()
 {
   return *simulation;
+}
+
+const grid &project_manager::get_grid () const
+{
+  return *solver_grid;
 }

@@ -31,6 +31,10 @@ public:
   const workspace &get_solver_workspace () const;
   simulation_manager &get_simulation_manager ();
 
+  const grid &get_grid () const;
+
+  bool is_double_precision_used () { return use_double_precision; }
+
 private:
   unsigned int version = 0;
   std::string solver_name;

@@ -79,7 +79,7 @@ void main_window::start_simulation()
 
   graphics->gl->update_project (&pm);
 
-  cpu_visualizer = std::make_unique<cpu_results_visualizer> (pm.get_solver_workspace (), 200, 100, graphics->gl->get_colors (false));
+  cpu_visualizer = std::make_unique<cpu_results_visualizer> (pm, graphics->gl->get_colors (false));
   cpu_visualizer->set_target ("rho");
   pm.get_simulation_manager ().append_extractor (cpu_visualizer.get ());
 
