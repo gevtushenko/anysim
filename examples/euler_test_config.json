@@ -5,8 +5,8 @@
   "solver_name": "euler_2d",
   "configuration": {
     "grid": {
-      "nx": 200,
-      "ny": 100,
+      "nx": 400,
+      "ny": 200,
       "width": 7.0,
       "height": 3.0
     },

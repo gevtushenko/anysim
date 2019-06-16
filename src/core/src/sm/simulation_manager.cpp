@@ -61,7 +61,7 @@ bool simulation_manager::calculate_next_time_step ()
   if (!solver_context)
     return false;
 
-  const unsigned int steps_until_render = 10;
+  const unsigned int steps_until_render = 100;
 
   solver_workspace.set_active_layer ("rho", 0);
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {

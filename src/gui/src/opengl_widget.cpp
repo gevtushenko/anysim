@@ -5,6 +5,7 @@
 #include "gui/include/opengl_widget.h"
 #include "core/pm/project_manager.h"
 #include "cpp/common_funcs.h"
+#include "core/grid/grid.h"
 #include "text_renderer.h"
 
 #include <QDirIterator>
@@ -100,14 +101,16 @@ void opengl_widget::update_colors (bool use_gpu)
   update ();
 }
 
-void opengl_widget::update_project (project_manager *)
+void opengl_widget::update_project (project_manager &pm)
 {
-  is_initialized = false;
-  const unsigned int nx = 200; // TODO Use grid pm->get_nx ();
-  const unsigned int ny = 100; // TODO Use grid pm->get_ny ();
+  const auto& solver_grid = pm.get_grid ();
 
-  x_size = 7.0; // TODO Use grid parameter pm->get_calculation_area_width ();
-  y_size = 3.0; // TODO Use grid parameter pm->get_calculation_area_height ();
+  is_initialized = false;
+  const unsigned int nx = solver_grid.nx;
+  const unsigned int ny = solver_grid.ny;
+
+  x_size = solver_grid.width;
+  y_size = solver_grid.height;
 
   axes.prepare (44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
 

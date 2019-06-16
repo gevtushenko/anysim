@@ -22,6 +22,7 @@ main_window::main_window (project_manager &pm_arg)
   , settings (new settings_widget ())
   , graphics (new graphics_widget ())
   , model (new model_widget (settings))
+  , cpu_visualizer (new cpu_results_visualizer (pm))
   , renderer (graphics->gl, &pm)
 {
   // Set OpenGL Version information
@@ -66,7 +67,6 @@ void main_window::create_source (double , double , double )
   settings->hide ();
 }
 
-
 void main_window::update_cells_per_lambda (unsigned int )
 {
   settings->hide ();
@@ -77,10 +77,10 @@ void main_window::start_simulation()
   run_action->setEnabled (false);
   stop_action->setEnabled (true);
 
-  graphics->gl->update_project (&pm);
+  pm.update_project ();
+  graphics->gl->update_project (pm);
 
-  cpu_visualizer = std::make_unique<cpu_results_visualizer> (pm, graphics->gl->get_colors (false));
-  cpu_visualizer->set_target ("rho");
+  cpu_visualizer->set_target ("rho", graphics->gl->get_colors (false));
   pm.get_simulation_manager ().append_extractor (cpu_visualizer.get ());
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0

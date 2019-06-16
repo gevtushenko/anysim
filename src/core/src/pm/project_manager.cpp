@@ -50,7 +50,7 @@ configuration &project_manager::get_configuration ()
   return *solver_configuration;
 }
 
-bool project_manager::run ()
+void project_manager::update_project ()
 {
   const auto &config = *solver_configuration;
   if (version != config.get_version ())
@@ -67,7 +67,11 @@ bool project_manager::run ()
     solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
     simulation->apply_configuration (config.get_root ().child (1), *solver_grid);
   }
+}
 
+bool project_manager::run ()
+{
+  update_project ();
   return simulation->calculate_next_time_step ();
 }
 

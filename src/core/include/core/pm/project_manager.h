@@ -24,6 +24,7 @@ public:
       bool use_double_precision_arg);
 
   bool run ();
+  void update_project ();
 
   const configuration &get_configuration_scheme () const;
   configuration &get_configuration ();

@@ -45,14 +45,14 @@ private:
   }
 
 public:
-  cpu_results_visualizer (project_manager &pm_arg, float *colors_arg)
+  explicit cpu_results_visualizer (project_manager &pm_arg)
     : result_extractor ()
-    , colors (colors_arg) // TODO Can't access this pointer after resize!
     , pm (pm_arg)
   { }
 
-  void set_target (const std::string &target)
+  void set_target (const std::string &target, float *colors_arg)
   {
+    colors = colors_arg;
     target_name = target;
   }
 
