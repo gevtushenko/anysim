@@ -41,7 +41,7 @@ configuration &project_manager::get_configuration ()
   return *solver_configuration;
 }
 
-int project_manager::run ()
+bool project_manager::run ()
 {
   if (version != solver_configuration->get_version ())
   {
@@ -49,8 +49,7 @@ int project_manager::run ()
     simulation->apply_configuration (*solver_configuration);
   }
 
-  simulation->calculate_next_time_step ();
-  return 0;
+  return simulation->calculate_next_time_step ();
 }
 
 const workspace &project_manager::get_solver_workspace () const

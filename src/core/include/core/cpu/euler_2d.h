@@ -49,13 +49,6 @@ public:
     normals_x[BOTTOM] = 0.0f; normals_y[BOTTOM] = -1.0f;
     normals_x[RIGHT] = 1.0f;  normals_y[RIGHT] = 0.0f;
     normals_x[TOP] = 0.0f;    normals_y[TOP] = 1.0f;
-
-    // TODO Move to configuration
-    const float_type width = 7.0;
-    const float_type height = 3.0;
-
-    dx = width / nx;
-    dy = height / ny;
   }
 
   ~euler_2d () override = default;
@@ -73,6 +66,13 @@ public:
     auto grid = config.get_root ().child (0);
     nx = std::get<int> (grid.child (0).value);
     ny = std::get<int> (grid.child (1).value);
+
+    // TODO Move to configuration
+    const float_type width = 7.0;
+    const float_type height = 3.0;
+
+    dx = width / nx;
+    dy = height / ny;
 
     solver_workspace.allocate ("rho", memory_holder_type::host, nx * ny * sizeof (float_type), 2);
     solver_workspace.allocate ("u",   memory_holder_type::host, nx * ny * sizeof (float_type), 2);

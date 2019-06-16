@@ -24,10 +24,11 @@ public:
       workspace &workspace_arg);
   void fill_configuration_scheme (configuration &scheme);
   void apply_configuration (const configuration &config);
-  void calculate_next_time_step ();
+  bool calculate_next_time_step ();
   void append_extractor (result_extractor *extractor);
 
 private:
+  size_t step = 0;
   thread_pool threads;
   workspace &solver_workspace;
   std::unique_ptr<solver> solver_context;

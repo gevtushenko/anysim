@@ -22,7 +22,7 @@ public:
       std::string solver_arg,
       bool use_double_precision_arg);
 
-  int run ();
+  bool run ();
 
   const configuration &get_configuration_scheme () const;
   configuration &get_configuration ();

@@ -66,7 +66,7 @@ inline CPU_GPU void hsv_to_rgb (int h, double s, double v, float output[3])
 
 inline void fill_vertex_color (float ez, float *colors)
 {
-  int hue = map (ez, -0.01, 0.01, 180.0, 360.0);
+  int hue = map (ez, 0.125, 1.00, 180.0, 360.0);
   hsv_to_rgb (hue, 0.6, 1.0, colors);
 }
 

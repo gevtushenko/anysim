@@ -49,17 +49,22 @@ void simulation_manager::apply_configuration (const configuration &config)
     solver_context->apply_configuration (config);
 }
 
-void simulation_manager::calculate_next_time_step ()
+bool simulation_manager::calculate_next_time_step ()
 {
   if (!solver_context)
-    return;
+    return false;
 
+  solver_workspace.set_active_layer ("rho", 0);
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
-    for (unsigned int step = 0; step < 100; step++)
-      solver_context->solve (step, thread_id, threads_count);
+    for (unsigned int local_step = 0; local_step < 100; local_step++)
+      solver_context->solve (step + local_step, thread_id, threads_count);
     for (auto &extractor: extractors)
       extractor->extract (thread_id, threads_count);
   });
+
+  step += 10;
+
+  return step < 1000;
 }
 
 void simulation_manager::append_extractor (result_extractor *extractor)

@@ -36,10 +36,8 @@ void render_thread::run()
 {
   // bool use_gpu = pm->get_use_gpu ();
 
-  for (unsigned int i = 0; i < 4000; i++)
+  while (pm->run ())
   {
-    pm->run ();
-    // pm->render_function (gl->get_colors (use_gpu));
     emit steps_completed (false);
 
     {
