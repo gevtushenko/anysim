@@ -20,10 +20,6 @@ public:
 public:
   source_settings_widget *source_widget = nullptr;
   global_parameters_widget *global_params_widget = nullptr;
-
-public slots:
-  void show_global_parameters ();
-  void show_source_settings ();
 };
 
 #endif //ANYSIM_SETTINGS_WIDGET_H

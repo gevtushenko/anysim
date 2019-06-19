@@ -58,6 +58,7 @@ public:
   void print (unsigned int offset=0);
 
   bool is_leaf () const { return children.empty (); }
+  bool is_group () const { return type == configuration_node_type::void_value; }
 
   configuration_node &child (unsigned int child_id);
   const configuration_node &child (unsigned int child_id) const;

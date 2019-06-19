@@ -38,6 +38,8 @@ public:
 
   bool is_double_precision_used () { return use_double_precision; }
 
+  const std::string &get_project_name () { return project_name; }
+
 private:
   unsigned int version = 0;
   std::string solver_name;

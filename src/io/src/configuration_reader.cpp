@@ -56,6 +56,7 @@ configuration_reader::configuration_reader (const std::string &filename)
   max_time = configuration["max_time"];
   use_double_precision = configuration["use_double_precision"];
   solver_name = configuration["solver_name"];
+  project_name = configuration["project_name"];
 
   data = std::make_unique<json_wrapper> (configuration["configuration"]);
 }

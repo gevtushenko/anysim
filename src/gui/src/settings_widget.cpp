@@ -30,14 +30,3 @@ settings_widget::settings_widget ()
   setLayout (main_layout);
 }
 
-void settings_widget::show_global_parameters ()
-{
-  global_params_widget->show ();
-  show ();
-}
-
-void settings_widget::show_source_settings ()
-{
-  source_widget->show ();
-  show ();
-}

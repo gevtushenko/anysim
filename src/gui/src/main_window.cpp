@@ -21,7 +21,7 @@ main_window::main_window (project_manager &pm_arg)
   : pm (pm_arg)
   , settings (new settings_widget ())
   , graphics (new graphics_widget ())
-  , model (new model_widget (settings))
+  , model (new model_widget (pm_arg))
   , cpu_visualizer (new cpu_results_visualizer (pm))
   , renderer (graphics->gl, &pm)
 {
