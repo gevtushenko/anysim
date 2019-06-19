@@ -28,9 +28,9 @@ template <> inline configuration_node_type get_configuration_node_type<std::stri
 
 class configuration_node
 {
+public:
   using value_type = std::variant<bool, int, double, std::string>;
 
-public:
   configuration_node ();
   explicit configuration_node (const std::string &node_name);
   configuration_node (std::string node_name, configuration_node_type node_type, value_type node_value);
@@ -38,21 +38,31 @@ public:
   template <class data_type>
   configuration_node &append_node (const std::string &node_name, const data_type &node_value)
   {
+    update_version ();
     append (node_name, get_configuration_node_type<data_type> (), node_value);
     return *this;
   }
 
   configuration_node &append_group (const std::string &node_name)
   {
+    update_version ();
     append (node_name);
     return *this;
   }
 
   configuration_node &append_and_get_group (const std::string &node_name)
   {
+    update_version ();
     const size_t gid = children.size ();
     append (node_name);
     return children.at (gid);
+  }
+
+  std::size_t get_version () const;
+
+  void update_version ()
+  {
+    version++;
   }
 
   void print (unsigned int offset=0);
@@ -75,8 +85,9 @@ private:
 public:
   const std::string name;
   const configuration_node_type type;
-  const value_type value;
+  value_type value;
 
+  static std::size_t version;
   std::vector<configuration_node> children;
 };
 

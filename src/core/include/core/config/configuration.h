@@ -23,7 +23,6 @@ public:
   unsigned int get_version () const;
 
 private:
-  unsigned int version = 0;
   configuration_node root;
 };
 

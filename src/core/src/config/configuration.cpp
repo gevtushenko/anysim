@@ -10,7 +10,6 @@ configuration::configuration () = default;
 
 configuration_node& configuration::get_root ()
 {
-  version++;
   return root;
 }
 
@@ -21,5 +20,5 @@ const configuration_node& configuration::get_root () const
 
 unsigned int configuration::get_version () const
 {
-  return version;
+  return root.get_version ();
 }

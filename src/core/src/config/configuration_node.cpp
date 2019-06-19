@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+std::size_t configuration_node::version = 0;
+
 configuration_node::configuration_node (
     std::string node_name,
     configuration_node_type node_type,
@@ -87,4 +89,14 @@ void configuration_node::print (unsigned int offset)
     if (type == configuration_node_type::double_value)
       std::cout << offset_str << name << " -> " << std::get<double> (value) << std::endl;
   }
+}
+
+std::size_t configuration_node::get_version () const
+{
+  std::size_t children_version = version;
+
+  for (auto &child: group ())
+    children_version = std::max (child.get_version (), children_version);
+
+  return children_version;
 }

@@ -58,6 +58,15 @@ void settings_widget::setup_configuration_node (configuration_node *root)
     param_layout->addWidget (param_name);
     param_layout->addWidget (param_value);
 
+    connect (param_value, &QLineEdit::textChanged, this, [&] (const QString &new_value)
+    {
+      if (node.type == configuration_node_type::int_value)
+        node.value = new_value.toInt ();
+      if (node.type == configuration_node_type::double_value)
+        node.value = new_value.toDouble ();
+      node.update_version ();
+    });
+
     node_layout->addLayout (param_layout);
   }
 

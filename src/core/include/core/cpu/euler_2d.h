@@ -74,6 +74,8 @@ public:
     nx = solver_grid.nx;
     ny = solver_grid.ny;
 
+    std::cout << "NX: " << nx << std::endl;
+
     solver_grid.create_field<float_type> ("rho", memory_holder_type::host, 2);
     solver_grid.create_field<float_type> ("u",   memory_holder_type::host, 2);
     solver_grid.create_field<float_type> ("v",   memory_holder_type::host, 2);
