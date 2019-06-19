@@ -24,21 +24,19 @@ public:
   model_widget () = delete;
   explicit model_widget (project_manager &pm);
 
+signals:
+  void configuration_node_selected (configuration_node *node);
+
 private slots:
   void on_tree_view_context_menu (const QPoint &pos);
   void on_tree_view_clicked (const QModelIndex &);
-  void create_source_slot ();
-
-signals:
-  void create_source ();
-  void update_global_parameters ();
 
 private:
   QTreeView *view = nullptr;
   QStandardItem *sources = nullptr;
   unsigned int last_source_id = 0;
 
-  std::vector<configuration_node> linearized_tree;
+  std::vector<configuration_node*> linearized_tree;
 };
 
 #endif //ANYSIM_MODEL_WIDGET_H

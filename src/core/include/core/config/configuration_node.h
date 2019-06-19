@@ -64,6 +64,7 @@ public:
   const configuration_node &child (unsigned int child_id) const;
 
   std::vector<configuration_node> &group (unsigned int group_id);
+  std::vector<configuration_node> &group ();
   const std::vector<configuration_node> &group () const;
   const std::vector<configuration_node> &group (unsigned int group_id) const;
 

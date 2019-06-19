@@ -33,8 +33,6 @@ private slots:
   void start_simulation ();
   void simulation_completed ();
   void halt_simulation ();
-  void create_source (double x, double y, double frequency);
-  void update_cells_per_lambda (unsigned int cells_per_lambda);
   void set_use_gpu (bool checked);
 
 signals:

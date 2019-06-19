@@ -13,16 +13,16 @@
 
 #include "settings_widget.h"
 
-static void append_to_model (const configuration_node &root, QStandardItem *parent, std::vector<configuration_node> &linearized_tree)
+static void append_to_model (configuration_node &root, QStandardItem *parent, std::vector<configuration_node*> &linearized_tree)
 {
-  for (const auto &node: root.group ())
+  for (auto &node: root.group ())
   {
     if (node.is_group ())
     {
       auto new_item = new QStandardItem (QString::fromStdString (node.name));
       new_item->setData (static_cast<unsigned int> (linearized_tree.size ()), Qt::UserRole + 1);
       parent->appendRow (new_item);
-      linearized_tree.push_back (node);
+      linearized_tree.push_back (&node);
       append_to_model (node, new_item, linearized_tree);
     }
   }
@@ -98,14 +98,6 @@ void model_widget::on_tree_view_clicked (const QModelIndex &index)
 {
   auto selected = index.data ().toString ().toStdString ();
   auto id = index.data (Qt::UserRole + 1).toUInt ();
-  std::cout << linearized_tree[id].name << std::endl;
-
-  if (selected == "Parameters")
-    emit update_global_parameters ();
+  emit configuration_node_selected (linearized_tree[id]);
 }
 
-void model_widget::create_source_slot ()
-{
-  sources->appendRow (new QStandardItem (QString ("Source %1").arg (last_source_id++)));
-  emit create_source ();
-}

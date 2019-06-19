@@ -36,9 +36,6 @@ main_window::main_window (project_manager &pm_arg)
 
   settings->setHidden (true);
 
-  connect (settings->source_widget, SIGNAL (source_ready (double, double, double)), this, SLOT (create_source (double, double, double)));
-  connect (settings->global_params_widget, SIGNAL (cells_per_lambda_changed (unsigned int)), this, SLOT (update_cells_per_lambda (unsigned int)));
-
   auto layout = new QHBoxLayout ();
   layout->addWidget (model, 1);
   layout->addWidget (settings, 1);
@@ -47,6 +44,8 @@ main_window::main_window (project_manager &pm_arg)
   auto central_widget = new QWidget ();
   central_widget->setLayout (layout);
   setCentralWidget (central_widget);
+
+  connect (model, SIGNAL (configuration_node_selected (configuration_node *)), settings, SLOT (setup_configuration_node (configuration_node *)));
 
   connect (&renderer, SIGNAL (steps_completed (bool)), graphics->gl, SLOT (update_colors (bool)));
   connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));
@@ -62,17 +61,6 @@ main_window::main_window (project_manager &pm_arg)
 }
 
 main_window::~main_window() = default;
-
-void main_window::create_source (double , double , double )
-{
-  // pm.append_source (frequency, x, y);
-  settings->hide ();
-}
-
-void main_window::update_cells_per_lambda (unsigned int )
-{
-  settings->hide ();
-}
 
 void main_window::start_simulation()
 {

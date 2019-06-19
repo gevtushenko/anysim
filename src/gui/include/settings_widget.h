@@ -7,8 +7,8 @@
 
 #include <QWidget>
 
-class source_settings_widget;
-class global_parameters_widget;
+class QVBoxLayout;
+class configuration_node;
 
 class settings_widget : public QWidget
 {
@@ -17,9 +17,12 @@ Q_OBJECT
 public:
   settings_widget ();
 
-public:
-  source_settings_widget *source_widget = nullptr;
-  global_parameters_widget *global_params_widget = nullptr;
+public slots:
+  void setup_configuration_node (configuration_node *node);
+
+private:
+  QVBoxLayout *main_layout = nullptr;
+  QVBoxLayout *node_layout = nullptr;
 };
 
 #endif //ANYSIM_SETTINGS_WIDGET_H

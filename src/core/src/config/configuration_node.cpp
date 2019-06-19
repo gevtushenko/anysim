@@ -51,6 +51,11 @@ const std::vector<configuration_node>& configuration_node::group () const
   return children;
 }
 
+std::vector<configuration_node>& configuration_node::group ()
+{
+  return children;
+}
+
 std::vector<configuration_node>& configuration_node::group (unsigned int group_id)
 {
   return child (group_id).children;

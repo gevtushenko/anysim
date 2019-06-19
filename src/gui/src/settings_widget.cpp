@@ -5,28 +5,62 @@
 #include "settings_widget.h"
 #include "settings/global_parameters_widget.h"
 #include "settings/source_settings_widget.h"
-
+#include "core/config/configuration_node.h"
 
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QLineEdit>
 #include <QLabel>
 
 settings_widget::settings_widget ()
 {
-  auto main_layout = new QVBoxLayout ();
+  main_layout = new QVBoxLayout ();
+  node_layout = new QVBoxLayout ();
   auto widget_label = new QLabel ("Settings");
 
-  source_widget = new source_settings_widget ();
-  global_params_widget = new global_parameters_widget ();
-
-  source_widget->hide ();
-  global_params_widget->hide ();
-
   main_layout->addWidget (widget_label);
-  main_layout->addWidget (source_widget);
-  main_layout->addWidget (global_params_widget);
+  main_layout->addLayout (node_layout);
   main_layout->addStretch (1);
 
   setLayout (main_layout);
+}
+
+static void clear_layout (QLayout *layout)
+{
+  if (!layout)
+    return;
+
+  while (auto item = layout->takeAt (0))
+  {
+    delete item->widget ();
+    clear_layout (item->layout ());
+  }
+}
+
+static std::string get_node_value (configuration_node &node)
+{
+  if (node.type == configuration_node_type::int_value)
+    return std::to_string (std::get<int> (node.value));
+  if (node.type == configuration_node_type::double_value)
+    return std::to_string (std::get<double> (node.value));
+  return "";
+}
+
+void settings_widget::setup_configuration_node (configuration_node *root)
+{
+  clear_layout (node_layout);
+  for (auto &node: root->group ())
+  {
+    auto param_layout = new QHBoxLayout ();
+    auto param_name = new QLabel (QString::fromStdString (node.name));
+    auto param_value = new QLineEdit (QString::fromStdString (get_node_value (node)));
+
+    param_layout->addWidget (param_name);
+    param_layout->addWidget (param_value);
+
+    node_layout->addLayout (param_layout);
+  }
+
+  show ();
 }
 
