@@ -157,7 +157,7 @@ public:
 
     const float_type cfl = std::get<double> (config.child (0).value);
     dt = cfl * std::min (dx, dy) / C0;
-    t = 0.0;
+    t = 0.0; /// Reset time
 
     nx = solver_grid.nx;
     ny = solver_grid.ny;
@@ -175,10 +175,10 @@ public:
       sources->append_source (frequency, nx * grid_y + grid_x);
     }
 
+    solver_grid.create_field<float_type> ("ez", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("me", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("mh", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("dz", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("ez", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("hx", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("hy", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("er", memory_holder_type::host, 1);

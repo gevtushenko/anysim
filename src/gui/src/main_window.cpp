@@ -69,7 +69,10 @@ void main_window::start_simulation()
 
   pm.update_project ();
   graphics->gl->update_project (pm);
-  cpu_visualizer->set_target ("ez", graphics->gl->get_colors (false));
+
+  auto &grid = pm.get_grid ();
+  auto first_field = grid.get_fields_names ().front ();
+  cpu_visualizer->set_target (first_field, graphics->gl->get_colors (false));
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
   renderer.render ();

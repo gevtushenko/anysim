@@ -37,10 +37,12 @@ public:
   {
     if (solver_workspace.allocate (field_name, holder, size * sizeof (field_type), layouts))
       return true;
-    if (std::find (fields_names.begin (), fields_names.end (), field_name) != fields_names.end ())
+    if (std::find (fields_names.begin (), fields_names.end (), field_name) == fields_names.end ())
       fields_names.push_back (field_name);
     return false;
   }
+
+  const std::vector<std::string> &get_fields_names () const { return fields_names; }
 
 public:
   const unsigned int nx;
