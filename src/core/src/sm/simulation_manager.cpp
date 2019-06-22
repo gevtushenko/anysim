@@ -81,7 +81,7 @@ bool simulation_manager::calculate_next_time_step (result_extractor **extractors
     for (unsigned int local_step = 0; local_step < steps_until_render; local_step++)
       solver_context->solve (step + local_step, thread_id, threads_count);
     for (unsigned int eid = 0; eid < extractors_count; eid++)
-      extractors[eid]->extract (thread_id, threads_count);
+      extractors[eid]->extract (thread_id, threads_count, threads);
   });
 
   const auto calculation_end = std::chrono::high_resolution_clock::now ();

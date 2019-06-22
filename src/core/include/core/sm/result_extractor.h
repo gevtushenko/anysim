@@ -19,14 +19,15 @@ public:
   virtual ~result_extractor () = default;
   virtual void extract (
     unsigned int thread_id,
-    unsigned int threads_count) = 0;
+    unsigned int threads_count,
+    thread_pool &threads) = 0;
 };
 
 class cpu_results_visualizer : public result_extractor
 {
 private:
   template <class data_type>
-  void render (unsigned int thread_id, unsigned int threads_count)
+  void render (unsigned int thread_id, unsigned int threads_count, thread_pool &threads)
   {
     const auto &solver_grid = pm.get_grid ();
     const auto &solver_workspace = pm.get_solver_workspace ();
@@ -38,10 +39,26 @@ private:
     if (!data)
       return;
 
+    data_type min = std::numeric_limits<data_type>::max ();
+    data_type max = std::numeric_limits<data_type>::min ();
+
+    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
+    {
+      for (unsigned int i = 0; i < nx; i++)
+      {
+        const data_type val = data[j * nx + i];
+        if (val > max) max = val;
+        if (val < min) min = val;
+      }
+    }
+
+    threads.reduce_min (thread_id, min);
+    threads.reduce_max (thread_id, max);
+
     for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
       for (unsigned int i = 0; i < nx; i++)
         for (unsigned int k = 0; k < 4; k++)
-          fill_vertex_color (data[j * nx + i], colors + 3 * 4 * (j * nx + i) + 3 * k);
+          fill_vertex_color (data[j * nx + i], colors + 3 * 4 * (j * nx + i) + 3 * k, min, max);
   }
 
 public:
@@ -58,12 +75,13 @@ public:
 
   void extract (
     unsigned int thread_id,
-    unsigned int threads_count) final
+    unsigned int threads_count,
+    thread_pool &threads) final
   {
     if (pm.is_double_precision_used ())
-      render<double> (thread_id, threads_count);
+      render<double> (thread_id, threads_count, threads);
     else
-      render<float> (thread_id, threads_count);
+      render<float> (thread_id, threads_count, threads);
   }
 
 private:
