@@ -54,18 +54,18 @@ simulation_manager::simulation_manager (
 {
 }
 
-void simulation_manager::fill_configuration_scheme (configuration_node &solver_scheme)
+void simulation_manager::fill_configuration_scheme (configuration_node &)
 {
-  if (solver_context)
-    solver_context->fill_configuration_scheme (solver_scheme);
+  // if (solver_context)
+  //   solver_context->fill_configuration_scheme (solver_scheme);
 }
 
 void simulation_manager::apply_configuration (
-    const configuration_node &solver_config,
-    grid &solver_grid)
+    const configuration_node &,
+    grid &)
 {
-  if (solver_context)
-    solver_context->apply_configuration (solver_config, solver_grid);
+  // if (solver_context)
+  //   solver_context->apply_configuration (solver_config, solver_grid);
 }
 
 bool simulation_manager::calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count)

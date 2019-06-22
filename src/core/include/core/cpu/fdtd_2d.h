@@ -7,7 +7,7 @@
 #include <cuda_gl_interop.h>
 #endif
 
-#include "core/config/configuration_node.h"
+#include "core/config/configuration.h"
 #include "core/gpu/fdtd_gpu_interface.h"
 #include "core/gpu/coloring.cuh"
 #include "core/cpu/sources_holder.h"
@@ -138,42 +138,44 @@ public:
   , top_bc (boundary_condition::periodic)
   { }
 
-  void fill_configuration_scheme (configuration_node &configuration_scheme) final
+  void fill_configuration_scheme (std::size_t ) final
   {
-    configuration_scheme.append_node ("cfl", 0.5);
+    // auto configuration_scheme = configuration_node::node (configuration_scheme_id);
+    // configuration_scheme->append_value ("cfl", 0.5);
 
-    configuration_node source_scheme ("source_scheme");
-    source_scheme.append_node ("frequency", 1E+8);
-    source_scheme.append_node ("x", 0.5);
-    source_scheme.append_node ("y", 0.5);
+    // auto sid = configuration_scheme->append_group ("source_scheme");
+    // auto fid = configuration_scheme
+    // source_scheme.append_node ("frequency", 1E+8);
+    // source_scheme.append_node ("x", 0.5);
+    // source_scheme.append_node ("y", 0.5);
 
-    configuration_scheme.append_array ("sources", source_scheme);
+    // configuration_scheme.append_array ("sources", source_scheme);
   }
 
-  void apply_configuration (const configuration_node &config, grid &solver_grid) final
+  void apply_configuration (std::size_t , grid &solver_grid) final
   {
     dx = solver_grid.dx;
     dy = solver_grid.dy;
 
-    const float_type cfl = std::get<double> (config.child (0).value);
-    dt = cfl * std::min (dx, dy) / C0;
+    // const float_type cfl = std::get<double> (config.child (0).value);
+    // dt = cfl * std::min (dx, dy) / C0;
     t = 0.0; /// Reset time
 
     nx = solver_grid.nx;
     ny = solver_grid.ny;
 
     sources = std::make_unique<sources_holder<float_type>> ();
-    for (auto &source: config.child (1).group ())
-    {
-      const double frequency = std::get<double> (source.child (0).value);
-      const double x = std::get<double> (source.child (1).value);
-      const double y = std::get<double> (source.child (2).value);
+    // for (auto &source: config.child (1).group ())
+    // {
+    //   const double frequency = std::get<double> (source->child (0).value);
+    //   const double x = std::get<double> (source->child (1).value);
+    //   const double y = std::get<double> (source->child (2).value);
 
-      const unsigned int grid_x = std::ceil (x / dx);
-      const unsigned int grid_y = std::ceil (y / dy);
+    //   const unsigned int grid_x = std::ceil (x / dx);
+    //   const unsigned int grid_y = std::ceil (y / dy);
 
-      sources->append_source (frequency, nx * grid_y + grid_x);
-    }
+    //   sources->append_source (frequency, nx * grid_y + grid_x);
+    // }
 
     solver_grid.create_field<float_type> ("ez", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("me", memory_holder_type::host, 1);

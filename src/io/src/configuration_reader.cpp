@@ -79,9 +79,9 @@ static bool read_node (const configuration_node &scheme_node, configuration_node
     case configuration_node_type::string_value: config.append_node (name, data[name].get<std::string> ()); break;
     case configuration_node_type::void_value:
       {
-        auto &group = config.append_and_get_group (name);
+        auto group = config.append_and_get_group (name);
         for (auto &child: scheme_node.group ())
-          if (read_node (child, group, data[name]))
+          if (read_node (*child, *group, data[name]))
             return true;
         break;
       }
@@ -95,13 +95,14 @@ static bool read_node (const configuration_node &scheme_node, configuration_node
 
       auto &array = config.append_and_get_array (name);
       auto &array_element_scheme = scheme_node.child (0);
+      array.array_child_scheme = &array_element_scheme;
 
       unsigned int elem_id = 0;
       for (auto &elem: data[name])
       {
         auto &array_elem = array.append_and_get_array (std::to_string (elem_id++));
         for (auto &elem_field: array_element_scheme.group ())
-          if (read_node (elem_field, array_elem, elem))
+          if (read_node (*elem_field, array_elem, elem))
             return true;
       }
       break;
@@ -121,7 +122,7 @@ bool configuration_reader::initialize_project (project_manager &pm)
   auto &config = pm.get_configuration ();
 
   for (auto &scheme_node: scheme.get_root ().group ())
-    if (read_node (scheme_node, config.get_root (), data->json_content))
+    if (read_node (*scheme_node, config.get_root (), data->json_content))
       return true;
 
   config.get_root ().print ();

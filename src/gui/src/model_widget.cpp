@@ -17,13 +17,14 @@ static void append_to_model (configuration_node &root, QStandardItem *parent, st
 {
   for (auto &node: root.group ())
   {
-    if (node.is_group () || node.is_array ())
+    if (node->is_group () || node->is_array ())
     {
-      auto new_item = new QStandardItem (QString::fromStdString (node.name));
+      auto new_item = new QStandardItem (QString::fromStdString (node->name));
       new_item->setData (static_cast<unsigned int> (linearized_tree.size ()), Qt::UserRole + 1);
+      new_item->setEditable (false);
       parent->appendRow (new_item);
-      linearized_tree.push_back (&node);
-      append_to_model (node, new_item, linearized_tree);
+      linearized_tree.push_back (node);
+      append_to_model (*node, new_item, linearized_tree);
     }
   }
 }
@@ -33,7 +34,7 @@ model_widget::model_widget (project_manager &pm)
   auto main_layout = new QVBoxLayout ();
   auto widget_label = new QLabel ("Model");
 
-  auto model = new QStandardItemModel ();
+  model = new QStandardItemModel ();
   auto root = model->invisibleRootItem ();
   auto project = new QStandardItem (QIcon (":/icons/box.svg"), QString::fromStdString (pm.get_project_name ()));
   root->appendRow (project);
@@ -86,17 +87,29 @@ void model_widget::on_tree_view_context_menu (const QPoint &pos)
   if (!index.isValid ())
     return;
 
-  if (index.data ().toString () == "sources")
+  auto id = index.data (Qt::UserRole + 1).toUInt ();
+
+  if (linearized_tree[id]->is_array () && linearized_tree[id]->array_child_scheme != nullptr)
     {
       auto menu = new QMenu (this);
-      menu->addAction (QString ("Create source"), this, SLOT (create_source_slot ()));
+      auto parent = model->itemFromIndex (index);
+      menu->addAction (QString ("Append element"), this, [=] () {
+        configuration_node node (*linearized_tree[id]->array_child_scheme);
+        linearized_tree[id]->append (node);
+        auto new_item = new QStandardItem (QString::fromStdString (node.name));
+        new_item->setData (static_cast<unsigned int> (linearized_tree.size ()), Qt::UserRole + 1);
+        new_item->setEditable (false);
+        parent->appendRow (new_item);
+        linearized_tree.push_back (&node);
+
+        append_to_model (node, new_item, linearized_tree);
+      });
       menu->popup (view->viewport ()->mapToGlobal (pos));
     }
 }
 
 void model_widget::on_tree_view_clicked (const QModelIndex &index)
 {
-  auto selected = index.data ().toString ().toStdString ();
   auto id = index.data (Qt::UserRole + 1).toUInt ();
   emit configuration_node_selected (linearized_tree[id]);
 }

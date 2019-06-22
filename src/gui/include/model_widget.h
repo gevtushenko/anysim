@@ -14,6 +14,7 @@
 
 class QModelIndex;
 class QStandardItem;
+class QStandardItemModel;
 class project_manager;
 
 class model_widget : public QWidget
@@ -33,6 +34,7 @@ private slots:
 
 private:
   QTreeView *view = nullptr;
+  QStandardItemModel *model = nullptr;
   QStandardItem *sources = nullptr;
   unsigned int last_source_id = 0;
 

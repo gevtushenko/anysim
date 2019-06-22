@@ -5,7 +5,6 @@
 #include "settings_widget.h"
 #include "settings/global_parameters_widget.h"
 #include "settings/source_settings_widget.h"
-#include "core/config/configuration_node.h"
 
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -51,23 +50,23 @@ void settings_widget::setup_configuration_node (configuration_node *root)
   clear_layout (node_layout);
   for (auto &node: root->group ())
   {
-    if (node.is_group () || node.is_array ())
+    if (node->is_group () || node->is_array ())
       continue;
 
     auto param_layout = new QHBoxLayout ();
-    auto param_name = new QLabel (QString::fromStdString (node.name));
-    auto param_value = new QLineEdit (QString::fromStdString (get_node_value (node)));
+    auto param_name = new QLabel (QString::fromStdString (node->name));
+    auto param_value = new QLineEdit (QString::fromStdString (get_node_value (*node)));
 
     param_layout->addWidget (param_name);
     param_layout->addWidget (param_value);
 
     connect (param_value, &QLineEdit::textChanged, this, [&] (const QString &new_value)
     {
-      if (node.type == configuration_node_type::int_value)
-        node.value = new_value.toInt ();
-      if (node.type == configuration_node_type::double_value)
-        node.value = new_value.toDouble ();
-      node.update_version ();
+      if (node->type == configuration_node_type::int_value)
+        node->value = new_value.toInt ();
+      if (node->type == configuration_node_type::double_value)
+        node->value = new_value.toDouble ();
+      node->update_version ();
     });
 
     node_layout->addLayout (param_layout);

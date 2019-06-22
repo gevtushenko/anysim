@@ -54,16 +54,18 @@ public:
 
   ~euler_2d () override = default;
 
-  void fill_configuration_scheme (configuration_node &configuration_scheme) final
+  void fill_configuration_scheme (std::size_t ) final
   {
-    configuration_scheme.append_node ("cfl", 0.1);
-    configuration_scheme.append_node ("gamma", 1.4);
+    // auto configuration_scheme = configuration_node::node (configuration_scheme_id);
+    // configuration_scheme->append_value ("cfl", 0.1);
+    // configuration_scheme->append_value ("gamma", 1.4);
   }
 
-  void apply_configuration (const configuration_node &config, grid &solver_grid) final
+  void apply_configuration (std::size_t , grid &solver_grid) final
   {
-    cfl = std::get<double> (config.child (0).value);
-    gamma = std::get<double> (config.child (1).value);
+    // auto config = configuration_node::node (config_id);
+    // cfl = std::get<double> (configuration_node::node (config->child (0))->value);
+    // gamma = std::get<double> (configuration_node::node (config->child (1))->value);
 
     dx = solver_grid.dx;
     dy = solver_grid.dy;

@@ -29,15 +29,16 @@ void project_manager::initialize (
   solver_configuration_scheme = std::make_unique<configuration> ();
   simulation = std::make_unique<simulation_manager> (solver_name, use_double_precision, *solver_workspace);
 
-  auto &grid_part = solver_configuration_scheme->get_root ().append_and_get_group ("grid");
-  grid_part.append_node ("nx", 10 /* default value */);
-  grid_part.append_node ("ny", 10 /* default value */);
-  grid_part.append_node ("width",  1.0 /* default value */);
-  grid_part.append_node ("height", 1.0 /* default value */);
+  // configuration_node grid_part ("grid");
+  // grid_part.append_node ("nx", 10 /* default value */);
+  // grid_part.append_node ("ny", 10 /* default value */);
+  // grid_part.append_node ("width",  1.0 /* default value */);
+  // grid_part.append_node ("height", 1.0 /* default value */);
+  // solver_configuration_scheme->get_root ().append_node (grid_part);
 
-  auto &solver_part = solver_configuration_scheme->get_root ().append_and_get_group ("solver");
-  simulation->fill_configuration_scheme (solver_part);
-  solver_configuration_scheme->get_root ().print ();
+  // auto solver_part = solver_configuration_scheme->get_root ().append_and_get_group ("solver");
+  // simulation->fill_configuration_scheme (*solver_part);
+  // solver_configuration_scheme->get_root ().print ();
 }
 
 const configuration& project_manager::get_configuration_scheme () const
@@ -52,21 +53,21 @@ configuration &project_manager::get_configuration ()
 
 void project_manager::update_project ()
 {
-  const auto &config = *solver_configuration;
-  if (version != config.get_version ())
-  {
-    version = config.get_version ();
+  // const auto &config = *solver_configuration;
+  // if (version != config.get_version ())
+  // {
+  //   version = config.get_version ();
 
-    auto &grid_node = config.get_root ().child (0);
-    const unsigned int nx = std::get<int> (grid_node.child (0).value);
-    const unsigned int ny = std::get<int> (grid_node.child (1).value);
+  //   auto &grid_node = config.get_root ().child (0);
+  //   const unsigned int nx = std::get<int> (grid_node.child (0).value);
+  //   const unsigned int ny = std::get<int> (grid_node.child (1).value);
 
-    const double width  = std::get<double> (grid_node.child (2).value);
-    const double height = std::get<double> (grid_node.child (3).value);
+  //   const double width  = std::get<double> (grid_node.child (2).value);
+  //   const double height = std::get<double> (grid_node.child (3).value);
 
-    solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
-    simulation->apply_configuration (config.get_root ().child (1), *solver_grid);
-  }
+  //   solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
+  //   simulation->apply_configuration (config.get_root ().child (1), *solver_grid);
+  // }
 }
 
 bool project_manager::run ()
