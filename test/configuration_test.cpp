@@ -7,6 +7,8 @@ TEST(configuration, leaf_nodes)
 {
   configuration config;
 
+  ASSERT_EQ (config.get_root (), 0);
+
   // Bool
   {
     const bool target_value = true;
@@ -80,7 +82,7 @@ TEST(configuration, group_nodes)
     const auto nid = config.create_node ("name", std::string ("Source 2"));
     const auto fid = config.create_node ("frequency", 2.E+10);
     const auto xid = config.create_node ("x", 2);
-    const auto yid = config.create_node ("y", 3);
+    const auto yid = config.create_node ("y", 2);
 
     config.add_child (source_2, nid);
     config.add_child (source_2, fid);
@@ -89,4 +91,26 @@ TEST(configuration, group_nodes)
   }
 
   config.add_children (sources, { source_1, source_2 });
+
+  auto &all_sources = config.children_for (sources);
+  ASSERT_EQ (all_sources.size (), 2);
+
+  std::size_t source_id = 1;
+  for (auto &source: all_sources)
+  {
+    auto source_conf = config.children_for (source);
+    ASSERT_EQ (source_conf.size (), 4);
+
+    std::string target_name = "Source " + std::to_string (source_id);
+    std::string actual_name = config.get_node_value (source_conf[0]);
+    ASSERT_EQ (target_name, actual_name);
+
+    int actual_x = config.get_node_value (source_conf[2]);
+    int actual_y = config.get_node_value (source_conf[2]);
+
+    ASSERT_EQ (source_id, actual_x);
+    ASSERT_EQ (source_id, actual_y);
+
+    source_id++;
+  }
 }

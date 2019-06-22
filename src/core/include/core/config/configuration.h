@@ -60,6 +60,8 @@ class configuration
 public:
   configuration ();
 
+  std::size_t get_root () const { return root; }
+
   std::size_t create_group (const std::string &group_name) { return create_group_or_array (group_name, group_type); }
   std::size_t create_array (const std::string &array_name) { return create_group_or_array (array_name, array_type); }
 
@@ -96,6 +98,8 @@ public:
       add_child (parent, child);
   }
 
+  const std::vector<std::size_t> children_for (std::size_t parent) const { return nodes_children[parent]; }
+
 private:
   template <class data_type>
   std::vector<data_type> *get_storage () { static_assert (true, "Unsupported data type!"); return nullptr; }
@@ -115,6 +119,7 @@ private:
   }
 
 private:
+  std::size_t root = 0;
   std::size_t nodes_count = 0;
   mutable std::vector<int> int_storage;
   mutable std::vector<double> dbl_storage;

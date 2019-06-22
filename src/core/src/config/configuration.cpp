@@ -6,7 +6,10 @@
 
 // TODO Use momento pattern to easily undo configuration changes
 
-configuration::configuration () = default;
+configuration::configuration ()
+{
+  root = create_group ("root");
+}
 
 template <class data_type>
 std::size_t configuration::create_node (
