@@ -1,7 +1,7 @@
 {
   "project_name": "Euler test",
   "max_time": 3.14E-8,
-  "use_double_precision": true,
+  "use_double_precision": false,
   "solver_name": "euler_2d",
   "configuration": {
     "grid": {
