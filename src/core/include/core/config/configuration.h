@@ -5,6 +5,7 @@
 #ifndef ANYSIM_CONFIGURATION_H
 #define ANYSIM_CONFIGURATION_H
 
+#include <type_traits>
 #include <vector>
 #include <string>
 
@@ -25,9 +26,11 @@ template <> inline configuration_value_type get_configuration_node_type<int> () 
 template <> inline configuration_value_type get_configuration_node_type<double> () { return double_type; }
 template <> inline configuration_value_type get_configuration_node_type<std::string> () { return string_type; }
 
+template<class T> struct dependent_false : std::false_type {};
+
 struct configuration_value
 {
-  std::size_t node_id;
+  std::size_t data_id;
   configuration_value_type type;
 
   int *int_storage;
@@ -37,12 +40,17 @@ struct configuration_value
   template <class T>
   operator T () const /// Implicitly convert into T
   {
-    static_assert (true, "Unsupported data type!");
-    return {};
+    if constexpr (std::is_same<T, int>::value)              return int_storage[data_id];
+    else if constexpr (std::is_same<T, bool>::value)        return int_storage[data_id];
+    else if constexpr (std::is_same<T, double>::value)      return dbl_storage[data_id];
+    else if constexpr (std::is_same<T, std::string>::value) return str_storage[data_id];
+    else
+    {
+      static_assert (dependent_false<T>::value, "Unsupported data type!");
+      return {};
+    }
   }
 };
-
-template<> inline configuration_value::operator double () const { return dbl_storage[node_id]; }
 
 /**
  * Configuration tree. It's supposed that accessing non constant
@@ -62,6 +70,11 @@ public:
     nodes_children.emplace_back ();
 
     return node_id;
+  }
+
+  std::size_t create_node (const std::string &node_name, bool value)
+  {
+    return create_node (node_name, static_cast<int> (value));
   }
 
   template <class data_type>
@@ -89,7 +102,13 @@ public:
 
   configuration_value get_node_value (std::size_t node_id) const
   {
-    return { node_id, nodes_types[node_id], int_storage.data (), dbl_storage.data (), str_storage.data () };
+    return {
+      nodes_data_id[node_id],
+      nodes_types[node_id],
+      int_storage.data (),
+      dbl_storage.data (),
+      str_storage.data ()
+    };
   }
 
 private:
