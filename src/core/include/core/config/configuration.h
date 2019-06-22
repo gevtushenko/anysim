@@ -6,6 +6,7 @@
 #define ANYSIM_CONFIGURATION_H
 
 #include <type_traits>
+#include <algorithm>
 #include <vector>
 #include <string>
 
@@ -41,14 +42,11 @@ struct configuration_value
   operator T () const /// Implicitly convert into T
   {
     if constexpr (std::is_same<T, int>::value)              return int_storage[data_id];
-    else if constexpr (std::is_same<T, bool>::value)        return int_storage[data_id];
+    else if constexpr (std::is_same<T, bool>::value)        return static_cast<bool> (int_storage[data_id]);
     else if constexpr (std::is_same<T, double>::value)      return dbl_storage[data_id];
     else if constexpr (std::is_same<T, std::string>::value) return str_storage[data_id];
-    else
-    {
-      static_assert (dependent_false<T>::value, "Unsupported data type!");
-      return {};
-    }
+    else static_assert (dependent_false<T>::value, "Unsupported data type!");
+    return {};
   }
 };
 
@@ -62,42 +60,16 @@ class configuration
 public:
   configuration ();
 
-  std::size_t create_node (const std::string &node_name)
-  {
-    const auto node_id = nodes_count++;
-    nodes_names.emplace_back (node_name);
-    nodes_data_id.emplace_back (undefined_data_id);
-    nodes_children.emplace_back ();
-
-    return node_id;
-  }
-
-  std::size_t create_node (const std::string &node_name, bool value)
-  {
-    return create_node (node_name, static_cast<int> (value));
-  }
+  std::size_t create_group (const std::string &group_name) { return create_group_or_array (group_name, group_type); }
+  std::size_t create_array (const std::string &array_name) { return create_group_or_array (array_name, array_type); }
 
   template <class data_type>
-  std::size_t create_node (
-      const std::string &node_name,
-      const data_type &value)
+  std::size_t create_node (const std::string &node_name, const data_type &value) { return create_node (node_name, value, get_configuration_node_type<data_type> ()); }
+  std::size_t create_node (const std::string &node_name, bool value) { return create_node (node_name, static_cast<int> (value), bool_type); }
+
+  configuration_value_type get_node_type (std::size_t node_id) const
   {
-    const auto node_id = nodes_count++;
-    std::size_t data_id = undefined_data_id;
-    configuration_value_type type = get_configuration_node_type<data_type> ();
-    if (type != array_type && type != group_type)
-    {
-      auto storage = get_storage<data_type> ();
-      data_id = storage->size ();
-      storage->push_back (value);
-    }
-
-    nodes_types.emplace_back (type);
-    nodes_names.emplace_back (node_name);
-    nodes_data_id.emplace_back (data_id);
-    nodes_children.emplace_back ();
-
-    return node_id;
+    return nodes_types[node_id];
   }
 
   configuration_value get_node_value (std::size_t node_id) const
@@ -111,9 +83,36 @@ public:
     };
   }
 
+  void add_child (std::size_t parent, std::size_t child)
+  {
+    auto &children = nodes_children[parent];
+    if (std::find (children.begin (), children.end (), child) == children.end ())
+      children.push_back (child);
+  }
+
+  void add_children (std::size_t parent, const std::vector<std::size_t> &children)
+  {
+    for (auto &child: children)
+      add_child (parent, child);
+  }
+
 private:
   template <class data_type>
   std::vector<data_type> *get_storage () { static_assert (true, "Unsupported data type!"); return nullptr; }
+
+  template <class data_type>
+  std::size_t create_node (const std::string &node_name, const data_type &value, configuration_value_type type);
+
+  std::size_t create_group_or_array (const std::string &group_name, configuration_value_type type)
+  {
+    const auto node_id = nodes_count++;
+    std::size_t data_id = undefined_data_id;
+    nodes_types.emplace_back (type);
+    nodes_names.emplace_back (group_name);
+    nodes_data_id.emplace_back (data_id);
+    nodes_children.emplace_back ();
+    return node_id;
+  }
 
 private:
   std::size_t nodes_count = 0;
@@ -127,9 +126,5 @@ private:
 
   constexpr static const std::size_t undefined_data_id = std::numeric_limits<std::size_t>::max () - 1;
 };
-
-template <> inline std::vector<int>         *configuration::get_storage<int> ()         { return &int_storage; }
-template <> inline std::vector<double>      *configuration::get_storage<double> ()      { return &dbl_storage; }
-template <> inline std::vector<std::string> *configuration::get_storage<std::string> () { return &str_storage; }
 
 #endif //ANYSIM_CONFIGURATION_H
