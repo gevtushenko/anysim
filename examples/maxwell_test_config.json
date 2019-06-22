@@ -1,0 +1,17 @@
+{
+  "project_name": "Euler test",
+  "max_time": 3.14E-8,
+  "use_double_precision": true,
+  "solver_name": "fdtd_2d",
+  "configuration": {
+    "grid": {
+      "nx": 1000,
+      "ny": 1000,
+      "width": 5.0,
+      "height": 5.0
+    },
+    "solver": {
+      "cfl": 0.5
+    }
+  }
+}

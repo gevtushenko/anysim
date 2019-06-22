@@ -7,12 +7,15 @@
 #include <cuda_gl_interop.h>
 #endif
 
+#include "core/config/configuration_node.h"
 #include "core/gpu/fdtd_gpu_interface.h"
 #include "core/gpu/coloring.cuh"
 #include "core/cpu/sources_holder.h"
 #include "core/cpu/thread_pool.h"
+#include "core/solver/solver.h"
 #include "core/common/curl.h"
 #include "cpp/common_funcs.h"
+#include "core/grid/grid.h"
 
 #include <iostream>
 #include <chrono>
@@ -88,19 +91,26 @@ protected:
 };
 
 template <class float_type>
-class fdtd_2d
+class fdtd_2d : public solver
 {
   boundary_condition left_bc, bottom_bc, right_bc, top_bc;
 
-  const unsigned int nx, ny;
-  const float_type dx, dy;
-  const float_type dt;
+  unsigned int nx = 0;
+  unsigned int ny = 0;
+
+  float_type dx = 0.1;
+  float_type dy = 0.1;
+  float_type dt = 0.1;
   float_type t = 0.0;
 
-  std::unique_ptr<float_type[]> m_e, m_h;  /// Compute update coefficients
-  std::unique_ptr<float_type[]> dz;
-  std::unique_ptr<float_type[]> ez, hx, hy;
-  std::unique_ptr<float_type[]> er, hr; /// Materials properties (for now assume mu_xx = mu_yy)
+  float_type *m_e = nullptr;
+  float_type *m_h = nullptr;
+  float_type *dz = nullptr;
+  float_type *ez = nullptr;
+  float_type *hx = nullptr;
+  float_type *hy = nullptr;
+  float_type *er = nullptr;
+  float_type *hr = nullptr; /// Materials properties (for now assume mu_xx = mu_yy)
 
   float_type *d_mh = nullptr;
   float_type *d_er = nullptr;
@@ -113,53 +123,66 @@ class fdtd_2d
   float_type *d_sources_frequencies = nullptr;
   unsigned int *d_sources_offsets = nullptr;
 
-  thread_pool &threads;
-
 public:
   fdtd_2d () = delete;
   fdtd_2d (
-    unsigned int nx_arg,
-    unsigned int ny_arg,
-    float_type plane_size_x,
-    float_type plane_size_y,
-    thread_pool &threads_arg)
-  : left_bc (boundary_condition::periodic)
+    thread_pool &threads_arg,
+    workspace &solver_workspace_arg)
+  : solver (threads_arg, solver_workspace_arg)
+  , left_bc (boundary_condition::periodic)
   , bottom_bc (boundary_condition::periodic)
   , right_bc (boundary_condition::periodic)
   , top_bc (boundary_condition::periodic)
-  , nx (nx_arg)
-  , ny (ny_arg)
-  , dx (plane_size_x / nx)
-  , dy (plane_size_y / ny)
-  , dt (std::min (dx, dy) / C0 / 2.0)
-  , m_e (new float_type[nx * ny])
-  , m_h (new float_type[nx * ny])
-  , dz  (new float_type[nx * ny])
-  , ez  (new float_type[nx * ny])
-  , hx  (new float_type[nx * ny])
-  , hy  (new float_type[nx * ny])
-  , er  (new float_type[nx * ny])
-  , hr  (new float_type[nx * ny])
-  , threads (threads_arg)
-  {
-    /// Assume that we are in free space
-    std::fill_n (er.get (), nx * ny, 1.0);
-    std::fill_n (hr.get (), nx * ny, 1.0);
+  { }
 
-    std::fill_n (hx.get (), nx * ny, 0.0);
-    std::fill_n (hy.get (), nx * ny, 0.0);
-    std::fill_n (ez.get (), nx * ny, 0.0);
-    std::fill_n (dz.get (), nx * ny, 0.0);
+  void fill_configuration_scheme (configuration_node &configuration_scheme) final
+  {
+    configuration_scheme.append_node ("cfl", 0.5);
+  }
+
+  void apply_configuration (const configuration_node &config, grid &solver_grid) final
+  {
+    dx = solver_grid.dx;
+    dy = solver_grid.dy;
+
+    const float_type cfl = std::get<double> (config.child (0).value);
+    dt = cfl * std::min (dx, dy) / C0;
+
+    nx = solver_grid.nx;
+    ny = solver_grid.ny;
+
+    solver_grid.create_field<float_type> ("me", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("mh", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("dz", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("ez", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("hx", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("hy", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("er", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("hr", memory_holder_type::host, 1);
+
+    m_e = reinterpret_cast<float_type *> (solver_workspace.get ("me"));
+    m_h = reinterpret_cast<float_type *> (solver_workspace.get ("mh"));
+    dz  = reinterpret_cast<float_type *> (solver_workspace.get ("dz"));
+    ez  = reinterpret_cast<float_type *> (solver_workspace.get ("ez"));
+    hx  = reinterpret_cast<float_type *> (solver_workspace.get ("hx"));
+    hy  = reinterpret_cast<float_type *> (solver_workspace.get ("hy"));
+    er  = reinterpret_cast<float_type *> (solver_workspace.get ("er"));
+    hr  = reinterpret_cast<float_type *> (solver_workspace.get ("hr"));
+
+    std::fill_n (er, nx * ny, 1.0);
+    std::fill_n (hr, nx * ny, 1.0);
+
+    std::fill_n (hx, nx * ny, 0.0);
+    std::fill_n (hy, nx * ny, 0.0);
+    std::fill_n (ez, nx * ny, 0.0);
+    std::fill_n (dz, nx * ny, 0.0);
 
     for (unsigned int i = 0; i < nx * ny; i++)
       m_e[i] = C0 * dt / er[i];
     for (unsigned int i = 0; i < nx * ny; i++)
       m_h[i] = C0 * dt / hr[i];
-  }
 
-  void initialize_calculation_area (const region_initializer<float_type> *initializer)
-  {
-    initializer->fill_region (er.get (), hr.get ());
+    // TODO Apply initializers
   }
 
   void update_h (unsigned int thread_id, unsigned int total_threads)
@@ -170,8 +193,8 @@ public:
     {
       for (unsigned int i = 0; i < nx; i++)
       {
-        const float_type cex = update_curl_ex (i, j, nx, ny, dy, ez.get ());
-        const float_type cey = update_curl_ey (i, j, nx, dx, ez.get ());
+        const float_type cex = update_curl_ex (i, j, nx, ny, dy, ez);
+        const float_type cey = update_curl_ey (i, j, nx, dx, ez);
 
         const unsigned int idx = j * nx + i;
 
@@ -195,7 +218,7 @@ public:
       for (unsigned int i = 0; i < nx; i++)
       {
         const unsigned int idx = j * nx + i;
-        const float_type chz = update_curl_h (i, j, nx, ny, dx, dy, hx.get (), hy.get ());
+        const float_type chz = update_curl_h (i, j, nx, ny, dx, dy, hx, hy);
 
         dz[idx] += C0_p_dt * chz; // update d = C0 * dt * curl Hz
 
@@ -206,43 +229,6 @@ public:
         ez[idx] = dz[idx] / er[idx]; // update e
       }
     }
-  }
-
-  void calculate_cpu (unsigned int steps, const sources_holder<float_type> &s)
-  {
-    threads.execute ([&] (unsigned int thread_id, unsigned int total_threads) {
-      for (unsigned int step = 0; step < steps; step++)
-      {
-        const auto begin = std::chrono::high_resolution_clock::now ();
-
-        threads.barrier ();
-        if (is_main_thread (thread_id))
-        {
-          std::cout << "step: " << step << "; t: " << t << " ";
-          t += dt;
-        }
-
-        update_h (thread_id, total_threads);
-        threads.barrier ();
-        update_e (thread_id, total_threads, s);
-
-        const auto end = std::chrono::high_resolution_clock::now ();
-        const std::chrono::duration<double> duration = end - begin;
-
-        if (is_main_thread (thread_id))
-          std::cout << "in " << duration.count () << "s\n";
-      }
-    });
-  }
-
-  const float_type *get_ez () const
-  {
-    return ez.get ();
-  }
-
-  const float_type *get_d_ez () const
-  {
-    return d_ez;
   }
 
 #ifdef GPU_BUILD
@@ -261,8 +247,8 @@ public:
     cudaMalloc (&d_sources_frequencies, sources_count * sizeof (float_type));
     cudaMalloc (&d_sources_offsets, sources_count * sizeof (unsigned int));
 
-    cudaMemcpy (d_mh, m_h.get (), nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
-    cudaMemcpy (d_er, er.get (),  nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
+    cudaMemcpy (d_mh, m_h, nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
+    cudaMemcpy (d_er, er,  nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
 
     cudaMemcpy (d_sources_frequencies, s.get_sources_frequencies (), sources_count * sizeof (float_type), cudaMemcpyHostToDevice);
     cudaMemcpy (d_sources_offsets, s.get_sources_offsets (), sources_count * sizeof (unsigned int), cudaMemcpyHostToDevice);
@@ -309,23 +295,27 @@ public:
 #endif
 
   /// Ez mode
-  void calculate (unsigned int steps, const sources_holder<float_type> &s, bool use_gpu)
+  void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
   {
-    std::cout << "Time step: " << dt << std::endl;
-    std::cout << "Nx: " << nx << "; Ny: " << ny << std::endl;
+    sources_holder<float_type> s;
+    const auto begin = std::chrono::high_resolution_clock::now ();
 
-    const auto calculation_begin = std::chrono::high_resolution_clock::now ();
-#ifdef GPU_BUILD
-    if (use_gpu)
-      calculate_gpu (steps);
-    else
-#else
-      (void) use_gpu;
-#endif
-      calculate_cpu (steps, s);
-    const auto calculation_end = std::chrono::high_resolution_clock::now ();
-    const std::chrono::duration<double> duration = calculation_end - calculation_begin;
-    std::cout << "Computation completed in " << duration.count () << "s\n";
+    threads.barrier ();
+    if (is_main_thread (thread_id))
+      {
+        std::cout << "Step: " << step << "; t: " << t << " ";
+        t += dt;
+      }
+
+    update_h (thread_id, total_threads);
+    threads.barrier ();
+    update_e (thread_id, total_threads, s);
+
+    const auto end = std::chrono::high_resolution_clock::now ();
+    const std::chrono::duration<double> duration = end - begin;
+
+    if (is_main_thread (thread_id))
+      std::cout << "in " << duration.count () << "s\n";
   }
 };
 

@@ -6,6 +6,7 @@
 #include "core/sm/result_extractor.h"
 #include "core/solver/solver.h"
 #include "core/cpu/euler_2d.h"
+#include "core/cpu/fdtd_2d.h"
 
 solver *solver_abstract_method (
     const std::string &solver_arg,
@@ -22,6 +23,17 @@ solver *solver_abstract_method (
     else
     {
       return new euler_2d<float> (threads, workspace_arg);
+    }
+  }
+  if (solver_arg == "fdtd_2d")
+  {
+    if (use_double_precision_arg)
+    {
+      return new fdtd_2d<double> (threads, workspace_arg);
+    }
+    else
+    {
+      return new fdtd_2d<float> (threads, workspace_arg);
     }
   }
 
@@ -61,6 +73,7 @@ bool simulation_manager::calculate_next_time_step (result_extractor **extractors
   if (!solver_context)
     return false;
 
+  const auto calculation_begin = std::chrono::high_resolution_clock::now ();
   const unsigned int steps_until_render = 100;
 
   solver_workspace.set_active_layer ("rho", 0);
@@ -70,6 +83,10 @@ bool simulation_manager::calculate_next_time_step (result_extractor **extractors
     for (unsigned int eid = 0; eid < extractors_count; eid++)
       extractors[eid]->extract (thread_id, threads_count);
   });
+
+  const auto calculation_end = std::chrono::high_resolution_clock::now ();
+  const std::chrono::duration<double> duration = calculation_end - calculation_begin;
+  std::cout << "Computation completed in " << duration.count () << "s\n";
 
   step += steps_until_render;
 

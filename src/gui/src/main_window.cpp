@@ -69,7 +69,7 @@ void main_window::start_simulation()
 
   pm.update_project ();
   graphics->gl->update_project (pm);
-  cpu_visualizer->set_target ("rho", graphics->gl->get_colors (false));
+  cpu_visualizer->set_target ("ez", graphics->gl->get_colors (false));
 
   // use_gpu ? use_gpu->isChecked () : false, gpu_names ? gpu_names->currentData ().toInt () : 0
   renderer.render ();
