@@ -123,6 +123,9 @@ class fdtd_2d : public solver
   float_type *d_sources_frequencies = nullptr;
   unsigned int *d_sources_offsets = nullptr;
 
+
+  std::unique_ptr<sources_holder<float_type>> sources;
+
 public:
   fdtd_2d () = delete;
   fdtd_2d (
@@ -138,6 +141,13 @@ public:
   void fill_configuration_scheme (configuration_node &configuration_scheme) final
   {
     configuration_scheme.append_node ("cfl", 0.5);
+
+    configuration_node source_scheme ("source_scheme");
+    source_scheme.append_node ("frequency", 1E+8);
+    source_scheme.append_node ("x", 0.5);
+    source_scheme.append_node ("y", 0.5);
+
+    configuration_scheme.append_array ("sources", source_scheme);
   }
 
   void apply_configuration (const configuration_node &config, grid &solver_grid) final
@@ -147,9 +157,23 @@ public:
 
     const float_type cfl = std::get<double> (config.child (0).value);
     dt = cfl * std::min (dx, dy) / C0;
+    t = 0.0;
 
     nx = solver_grid.nx;
     ny = solver_grid.ny;
+
+    sources = std::make_unique<sources_holder<float_type>> ();
+    for (auto &source: config.child (1).group ())
+    {
+      const double frequency = std::get<double> (source.child (0).value);
+      const double x = std::get<double> (source.child (1).value);
+      const double y = std::get<double> (source.child (2).value);
+
+      const unsigned int grid_x = std::ceil (x / dx);
+      const unsigned int grid_y = std::ceil (y / dy);
+
+      sources->append_source (frequency, nx * grid_y + grid_x);
+    }
 
     solver_grid.create_field<float_type> ("me", memory_holder_type::host, 1);
     solver_grid.create_field<float_type> ("mh", memory_holder_type::host, 1);
@@ -297,7 +321,6 @@ public:
   /// Ez mode
   void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
   {
-    sources_holder<float_type> s;
     const auto begin = std::chrono::high_resolution_clock::now ();
 
     threads.barrier ();
@@ -309,7 +332,7 @@ public:
 
     update_h (thread_id, total_threads);
     threads.barrier ();
-    update_e (thread_id, total_threads, s);
+    update_e (thread_id, total_threads, *sources);
 
     const auto end = std::chrono::high_resolution_clock::now ();
     const std::chrono::duration<double> duration = end - begin;

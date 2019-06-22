@@ -51,6 +51,9 @@ void settings_widget::setup_configuration_node (configuration_node *root)
   clear_layout (node_layout);
   for (auto &node: root->group ())
   {
+    if (node.is_group () || node.is_array ())
+      continue;
+
     auto param_layout = new QHBoxLayout ();
     auto param_name = new QLabel (QString::fromStdString (node.name));
     auto param_value = new QLineEdit (QString::fromStdString (get_node_value (node)));

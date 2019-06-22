@@ -75,7 +75,7 @@ void configuration_node::print (unsigned int offset)
   for (unsigned int i = 0; i < offset; i++)
     offset_str += " ";
 
-  if (type == configuration_node_type::void_value)
+  if (is_group () || is_array ())
   {
     std::cout << offset_str << name << ":\n";
 
@@ -88,6 +88,8 @@ void configuration_node::print (unsigned int offset)
       std::cout << offset_str << name << " -> " << std::get<int> (value) << std::endl;
     if (type == configuration_node_type::double_value)
       std::cout << offset_str << name << " -> " << std::get<double> (value) << std::endl;
+    if (type == configuration_node_type::string_value)
+      std::cout << offset_str << name << " -> " << std::get<std::string> (value) << std::endl;
   }
 }
 

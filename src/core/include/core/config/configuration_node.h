@@ -11,7 +11,7 @@
 
 enum class configuration_node_type
 {
-  bool_value, int_value, double_value, string_value, void_value
+  bool_value, int_value, double_value, string_value, array_type, void_value
 };
 
 template <class data_type>
@@ -43,10 +43,20 @@ public:
     return *this;
   }
 
-  configuration_node &append_group (const std::string &node_name)
+  configuration_node &append_group (const std::string &array_name)
   {
     update_version ();
-    append (node_name);
+    append (array_name);
+    return *this;
+  }
+
+  configuration_node &append_array (const std::string &node_name, const configuration_node &scheme)
+  {
+    update_version ();
+    const size_t aid = children.size ();
+    append (node_name, configuration_node_type::array_type, "array");
+    auto &array = children[aid];
+    array.children.push_back (scheme);
     return *this;
   }
 
@@ -55,6 +65,14 @@ public:
     update_version ();
     const size_t gid = children.size ();
     append (node_name);
+    return children.at (gid);
+  }
+
+  configuration_node &append_and_get_array (const std::string &node_name)
+  {
+    update_version ();
+    const size_t gid = children.size ();
+    append (node_name, configuration_node_type::array_type, "array");
     return children.at (gid);
   }
 
@@ -69,6 +87,7 @@ public:
 
   bool is_leaf () const { return children.empty (); }
   bool is_group () const { return type == configuration_node_type::void_value; }
+  bool is_array () const { return type == configuration_node_type::array_type; }
 
   configuration_node &child (unsigned int child_id);
   const configuration_node &child (unsigned int child_id) const;

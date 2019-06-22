@@ -17,7 +17,7 @@ static void append_to_model (configuration_node &root, QStandardItem *parent, st
 {
   for (auto &node: root.group ())
   {
-    if (node.is_group ())
+    if (node.is_group () || node.is_array ())
     {
       auto new_item = new QStandardItem (QString::fromStdString (node.name));
       new_item->setData (static_cast<unsigned int> (linearized_tree.size ()), Qt::UserRole + 1);
@@ -86,7 +86,7 @@ void model_widget::on_tree_view_context_menu (const QPoint &pos)
   if (!index.isValid ())
     return;
 
-  if (index.data ().toString () == "Sources")
+  if (index.data ().toString () == "sources")
     {
       auto menu = new QMenu (this);
       menu->addAction (QString ("Create source"), this, SLOT (create_source_slot ()));
@@ -100,4 +100,3 @@ void model_widget::on_tree_view_clicked (const QModelIndex &index)
   auto id = index.data (Qt::UserRole + 1).toUInt ();
   emit configuration_node_selected (linearized_tree[id]);
 }
-

@@ -85,6 +85,27 @@ static bool read_node (const configuration_node &scheme_node, configuration_node
             return true;
         break;
       }
+    case configuration_node_type::array_type:
+    {
+      if (!data[name].is_array ())
+      {
+        std::cerr << "Error! Configuration field '" << name << " is supposed to be an array!" << std::endl;
+        return true;
+      }
+
+      auto &array = config.append_and_get_array (name);
+      auto &array_element_scheme = scheme_node.child (0);
+
+      unsigned int elem_id = 0;
+      for (auto &elem: data[name])
+      {
+        auto &array_elem = array.append_and_get_array (std::to_string (elem_id++));
+        for (auto &elem_field: array_element_scheme.group ())
+          if (read_node (elem_field, array_elem, elem))
+            return true;
+      }
+      break;
+    }
   }
 
   return false;
