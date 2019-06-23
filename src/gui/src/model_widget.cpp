@@ -28,7 +28,8 @@ static void append_to_model (const configuration &config, std::size_t parent_id,
   }
 }
 
-model_widget::model_widget (project_manager &pm)
+model_widget::model_widget (project_manager &pm_arg)
+  : pm (pm_arg)
 {
   auto main_layout = new QVBoxLayout ();
   auto widget_label = new QLabel ("Model");
@@ -87,27 +88,28 @@ void model_widget::on_tree_view_context_menu (const QPoint &pos)
   if (!index.isValid ())
     return;
 
-  /*
   auto id = index.data (Qt::UserRole + 1).toUInt ();
+  auto &config = pm.get_configuration ();
 
-  if (linearized_tree[id]->is_array () && linearized_tree[id]->array_child_scheme != nullptr)
+  if (config.is_array (id))
     {
       auto menu = new QMenu (this);
       auto parent = model->itemFromIndex (index);
       menu->addAction (QString ("Append element"), this, [=] () {
-        configuration_node node (*linearized_tree[id]->array_child_scheme);
-        linearized_tree[id]->append (node);
-        auto new_item = new QStandardItem (QString::fromStdString (node.name));
-        new_item->setData (static_cast<unsigned int> (linearized_tree.size ()), Qt::UserRole + 1);
+        auto &config = pm.get_configuration ();
+        const int element_scheme_id = config.get_node_value (id);
+        const auto clone_id = config.clone_node (element_scheme_id);
+        auto new_item = new QStandardItem (QString::fromStdString (config.get_node_name (clone_id)));
+        new_item->setData (static_cast<unsigned int> (clone_id), Qt::UserRole + 1);
         new_item->setEditable (false);
         parent->appendRow (new_item);
-        linearized_tree.push_back (&node);
+        config.add_child (id, clone_id);
+        config.update_version ();
 
-        append_to_model (node, new_item, linearized_tree);
+        append_to_model (config, clone_id, new_item);
       });
       menu->popup (view->viewport ()->mapToGlobal (pos));
     }
-    */
 }
 
 void model_widget::on_tree_view_clicked (const QModelIndex &index)

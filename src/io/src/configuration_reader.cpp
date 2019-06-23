@@ -93,14 +93,15 @@ static bool read_node (const configuration &scheme, std::size_t scheme_id, confi
         return true;
       }
 
-      const int array_element_scheme_id = scheme.get_node_value (scheme_id);
+      const int scheme_array_element_scheme_id = scheme.get_node_value (scheme_id);
+      const int array_element_scheme_id = config.clone_node (scheme_array_element_scheme_id, &scheme);
       auto array_id = config.create_array (config_id, name, array_element_scheme_id);
 
       unsigned int elem_id = 0;
       for (auto &elem: data[name])
       {
         auto array_elem_id = config.create_group (array_id, std::to_string (elem_id++));
-        for (auto elem_field_id: scheme.children_for (array_element_scheme_id))
+        for (auto elem_field_id: scheme.children_for (scheme_array_element_scheme_id))
           if (read_node (scheme, elem_field_id, config, array_elem_id, elem))
             return true;
       }

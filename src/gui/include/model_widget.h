@@ -29,6 +29,7 @@ private slots:
   void on_tree_view_clicked (const QModelIndex &);
 
 private:
+  project_manager &pm;
   QTreeView *view = nullptr;
   QStandardItemModel *model = nullptr;
   QStandardItem *sources = nullptr;

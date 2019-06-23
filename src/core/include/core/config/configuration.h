@@ -116,6 +116,55 @@ public:
     };
   }
 
+  std::size_t clone_node (std::size_t node_id, const configuration *config=nullptr)
+  {
+    const auto node_type = config ? config->get_node_type (node_id) : get_node_type (node_id);
+    const auto node_data_id = config ? config->nodes_data_id[node_id] : nodes_data_id[node_id];
+    const auto clone_id = nodes_count++;
+    std::size_t data_id = undefined_data_id;
+
+    if (node_type != group_type)
+    {
+      if (node_type == string_type)
+      {
+        data_id = str_storage.size ();
+
+        if (config)
+          str_storage.push_back (config->str_storage[node_data_id]);
+        else
+          str_storage.push_back (str_storage[node_data_id]);
+      }
+      else if (node_type == double_type)
+      {
+        data_id = dbl_storage.size ();
+
+        if (config)
+          dbl_storage.push_back (config->dbl_storage[node_data_id]);
+        else
+          dbl_storage.push_back (dbl_storage[node_data_id]);
+      }
+      else
+      {
+        data_id = int_storage.size ();
+
+        if (config)
+          int_storage.push_back (config->int_storage[node_data_id]);
+        else
+          int_storage.push_back (int_storage[node_data_id]);
+      }
+    }
+
+    nodes_types.emplace_back (node_type);
+    nodes_names.push_back (config ? config->get_node_name (node_id) : nodes_names[node_id]);
+    nodes_data_id.push_back (data_id);
+    nodes_children.emplace_back ();
+
+    for (auto &child: config ? config->children_for (node_id) : children_for (node_id))
+      add_child (clone_id, clone_node (child, config));
+
+    return clone_id;
+  }
+
   void update_version () { version++; }
   std::size_t get_version () const { return version; }
 
