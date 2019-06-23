@@ -14,10 +14,7 @@ matrix:
         apt:
           packages:
           - g++-7
-          - qtbase5-dev
-          - qt5-default
           - mesa-common-dev
-          - libqt5opengl5-dev
           sources:
             - ubuntu-toolchain-r-test
     - env: COMPILER=g++-7 BUILD_TYPE=Release
@@ -26,8 +23,13 @@ matrix:
 install:
   - export CXX=${COMPILER}
   - ${CXX} --version
+  - sudo add-apt-repository --yes ppa:beineri/opt-qt-5.11.1-xenial
+  - sudo apt update
+  - sudo apt-get install -qq qt511-meta-full
 
 before_script:
+  - QT_ENV_SCRIPT=$(find /opt -name 'qt*-env.sh')
+  - source /opt/qt511/bin/qt511-env.sh
   - mkdir build && cd build
   - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
