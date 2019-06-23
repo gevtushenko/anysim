@@ -62,7 +62,7 @@ TEST(configuration, leaf_nodes)
 TEST(configuration, group_nodes)
 {
   configuration config;
-  const auto sources = config.create_array ("sources");
+  const auto sources = config.create_group ("sources");
   const auto source_1 = config.create_group ("source_1");
   const auto source_2 = config.create_group ("source_2");
 
