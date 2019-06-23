@@ -10,6 +10,7 @@
 #include "core/cpu/thread_pool.h"
 #include "core/gpu/coloring.cuh"
 #include "core/grid/grid.h"
+#include "cpp/common_funcs.h"
 
 class result_extractor
 {
@@ -97,6 +98,7 @@ private:
   template <class data_type>
   void render (unsigned int thread_id, unsigned int /* threads_count */, thread_pool & /* threads */)
   {
+#ifdef GPU_BUILD
     const auto &solver_grid = pm.get_grid ();
     const auto &solver_workspace = pm.get_solver_workspace ();
     const unsigned int nx = solver_grid.nx;
@@ -108,6 +110,9 @@ private:
 
     if (is_main_thread (thread_id))
       fill_colors (nx, ny, data, colors);
+#else
+    cpp_unreferenced (thread_id);
+#endif
   }
 
 public:

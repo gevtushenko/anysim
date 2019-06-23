@@ -204,6 +204,7 @@ public:
     for (unsigned int i = 0; i < nx * ny; i++)
       m_h[i] = C0 * dt / hr[i];
 
+#ifdef GPU_BUILD
     if (use_gpu)
     {
       solver_grid.create_field<float_type> ("gpu_er", memory_holder_type::device, 1);
@@ -228,6 +229,7 @@ public:
       cudaMemcpy (d_sources_offsets, sources->get_sources_offsets (), sources_count * sizeof (unsigned int), cudaMemcpyHostToDevice);
     }
     else
+#endif
     {
       std::fill_n (hx, nx * ny, 0.0);
       std::fill_n (hy, nx * ny, 0.0);
@@ -291,12 +293,14 @@ public:
     if (is_main_thread (thread_id))
       t += dt;
 
+#ifdef GPU_BUILD
     if (use_gpu)
     {
       if (is_main_thread (thread_id))
         solve_gpu ();
     }
     else
+#endif
     {
       solve_cpu (thread_id, total_threads);
     }
