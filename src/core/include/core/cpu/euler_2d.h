@@ -63,7 +63,7 @@ public:
     // configuration_scheme->append_value ("gamma", 1.4);
   }
 
-  void apply_configuration (const configuration &, std::size_t , grid &solver_grid) final
+  void apply_configuration (const configuration &, std::size_t , grid &solver_grid, int /* gpu num */) final
   {
     // auto config = configuration_node::node (config_id);
     // cfl = std::get<double> (configuration_node::node (config->child (0))->value);

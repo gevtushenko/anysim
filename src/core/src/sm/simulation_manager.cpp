@@ -61,10 +61,25 @@ void simulation_manager::fill_configuration_scheme (configuration &scheme, std::
     solver_context->fill_configuration_scheme (scheme, scheme_id);
 }
 
-void simulation_manager::apply_configuration (const configuration &config, std::size_t config_id, grid &solver_grid)
+void simulation_manager::apply_configuration (
+    const configuration &config,
+    std::size_t config_id,
+    grid &solver_grid,
+    int gpu_num)
 {
+  // TODO cudaSetDevice (gpu_num);
+#ifdef GPU_BUILD
+  if (gpu_num >= 0)
+  {
+    threads.execute ([=] (unsigned int thread_id, unsigned int) {
+      if (is_main_thread (thread_id))
+        cudaSetDevice (gpu_num);
+    });
+  }
+#endif
+
   if (solver_context)
-    solver_context->apply_configuration (config, config_id, solver_grid);
+    solver_context->apply_configuration (config, config_id, solver_grid, gpu_num);
 }
 
 bool simulation_manager::calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count)

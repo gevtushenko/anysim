@@ -6,6 +6,10 @@
 
 #include <cstddef>
 
+#ifdef GPU_BUILD
+#include <cuda_runtime.h>
+#endif
+
 class memory_object
 {
 public:
@@ -43,6 +47,30 @@ public:
   ~cpu_memory_object () override { destroy (); }
 };
 
+#ifdef GPU_BUILD
+class gpu_memory_object : public memory_object
+{
+public:
+  gpu_memory_object () : memory_object () { holder = memory_holder_type::device; }
+
+  bool allocate (std::size_t bytes) override
+  {
+    cudaMalloc (&ptr, bytes);
+    return false;
+  }
+
+  bool destroy () override
+  {
+    if (ptr)
+      cudaFree (ptr);
+
+    return false;
+  }
+
+  ~gpu_memory_object () override { destroy (); }
+};
+#endif
+
 class layered_memory_object
 {
 public:
@@ -58,6 +86,15 @@ public:
         storage[lid] = std::make_unique<cpu_memory_object> ();
       }
     }
+#ifdef GPU_BUILD
+    else
+    {
+      for (unsigned int lid = 0; lid < layers_count; lid++)
+        {
+          storage[lid] = std::make_unique<gpu_memory_object> ();
+        }
+    }
+#endif
   }
 
   bool allocate (std::size_t bytes)

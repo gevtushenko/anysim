@@ -95,6 +95,7 @@ class fdtd_2d : public solver
 {
   boundary_condition left_bc, bottom_bc, right_bc, top_bc;
 
+  bool use_gpu = false;
   unsigned int nx = 0;
   unsigned int ny = 0;
 
@@ -103,7 +104,6 @@ class fdtd_2d : public solver
   float_type dt = 0.1;
   float_type t = 0.0;
 
-  float_type *m_e = nullptr;
   float_type *m_h = nullptr;
   float_type *dz = nullptr;
   float_type *ez = nullptr;
@@ -114,10 +114,6 @@ class fdtd_2d : public solver
 
   float_type *d_mh = nullptr;
   float_type *d_er = nullptr;
-  float_type *d_ez = nullptr;
-  float_type *d_dz = nullptr;
-  float_type *d_hx = nullptr;
-  float_type *d_hy = nullptr;
 
   unsigned int sources_count = 0;
   float_type *d_sources_frequencies = nullptr;
@@ -148,7 +144,7 @@ public:
     config.create_array(config_id, "sources", source_scheme_id);
   }
 
-  void apply_configuration (const configuration &config, std::size_t solver_id, grid &solver_grid) final
+  void apply_configuration (const configuration &config, std::size_t solver_id, grid &solver_grid, int gpu_num) final
   {
     dx = solver_grid.dx;
     dy = solver_grid.dy;
@@ -178,16 +174,17 @@ public:
       sources->append_source (frequency, nx * grid_y + grid_x);
     }
 
-    solver_grid.create_field<float_type> ("ez", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("me", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("mh", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("dz", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("hx", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("hy", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("er", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("hr", memory_holder_type::host, 1);
+    use_gpu = gpu_num >= 0;
+    memory_holder_type holder = use_gpu ? memory_holder_type::device : memory_holder_type::host;
 
-    m_e = reinterpret_cast<float_type *> (solver_workspace.get ("me"));
+    solver_grid.create_field<float_type> ("ez", holder, 1);
+    solver_grid.create_field<float_type> ("dz", holder, 1);
+    solver_grid.create_field<float_type> ("hx", holder, 1);
+    solver_grid.create_field<float_type> ("hy", holder, 1);
+    solver_grid.create_field<float_type> ("hr", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("er", memory_holder_type::host, 1);
+    solver_grid.create_field<float_type> ("mh", memory_holder_type::host, 1);
+
     m_h = reinterpret_cast<float_type *> (solver_workspace.get ("mh"));
     dz  = reinterpret_cast<float_type *> (solver_workspace.get ("dz"));
     ez  = reinterpret_cast<float_type *> (solver_workspace.get ("ez"));
@@ -199,15 +196,39 @@ public:
     std::fill_n (er, nx * ny, 1.0);
     std::fill_n (hr, nx * ny, 1.0);
 
-    std::fill_n (hx, nx * ny, 0.0);
-    std::fill_n (hy, nx * ny, 0.0);
-    std::fill_n (ez, nx * ny, 0.0);
-    std::fill_n (dz, nx * ny, 0.0);
-
-    for (unsigned int i = 0; i < nx * ny; i++)
-      m_e[i] = C0 * dt / er[i];
     for (unsigned int i = 0; i < nx * ny; i++)
       m_h[i] = C0 * dt / hr[i];
+
+    if (use_gpu)
+    {
+      solver_grid.create_field<float_type> ("gpu_er", memory_holder_type::device, 1);
+      solver_grid.create_field<float_type> ("gpu_mh", memory_holder_type::device, 1);
+
+      d_mh = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_mh"));
+      d_er = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_er"));
+
+      cudaMemset (ez, 0, nx * ny * sizeof (float_type));
+      cudaMemset (hx, 0, nx * ny * sizeof (float_type));
+      cudaMemset (hy, 0, nx * ny * sizeof (float_type));
+
+      sources_count = sources->get_sources_count ();
+
+      cudaMalloc (&d_sources_frequencies, sources_count * sizeof (float_type));
+      cudaMalloc (&d_sources_offsets, sources_count * sizeof (unsigned int));
+
+      cudaMemcpy (d_mh, m_h, nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
+      cudaMemcpy (d_er, er,  nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
+
+      cudaMemcpy (d_sources_frequencies, sources->get_sources_frequencies (), sources_count * sizeof (float_type), cudaMemcpyHostToDevice);
+      cudaMemcpy (d_sources_offsets, sources->get_sources_offsets (), sources_count * sizeof (unsigned int), cudaMemcpyHostToDevice);
+    }
+    else
+    {
+      std::fill_n (hx, nx * ny, 0.0);
+      std::fill_n (hy, nx * ny, 0.0);
+      std::fill_n (ez, nx * ny, 0.0);
+      std::fill_n (dz, nx * ny, 0.0);
+    }
 
     // TODO Apply initializers
   }
@@ -258,91 +279,45 @@ public:
     }
   }
 
-#ifdef GPU_BUILD
-  void preprocess_gpu (int gpu_num, const sources_holder<float_type> &s)
-  {
-    cudaSetDevice (gpu_num);
-
-    sources_count = s.get_sources_count ();
-
-    cudaMalloc (&d_mh, nx * ny * sizeof (float_type));
-    cudaMalloc (&d_er, nx * ny * sizeof (float_type));
-    cudaMalloc (&d_ez, nx * ny * sizeof (float_type));
-    cudaMalloc (&d_dz, nx * ny * sizeof (float_type));
-    cudaMalloc (&d_hx, nx * ny * sizeof (float_type));
-    cudaMalloc (&d_hy, nx * ny * sizeof (float_type));
-    cudaMalloc (&d_sources_frequencies, sources_count * sizeof (float_type));
-    cudaMalloc (&d_sources_offsets, sources_count * sizeof (unsigned int));
-
-    cudaMemcpy (d_mh, m_h, nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
-    cudaMemcpy (d_er, er,  nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
-
-    cudaMemcpy (d_sources_frequencies, s.get_sources_frequencies (), sources_count * sizeof (float_type), cudaMemcpyHostToDevice);
-    cudaMemcpy (d_sources_offsets, s.get_sources_offsets (), sources_count * sizeof (unsigned int), cudaMemcpyHostToDevice);
-
-    cudaMemset (d_ez, 0, nx * ny * sizeof (float_type));
-    cudaMemset (d_hx, 0, nx * ny * sizeof (float_type));
-    cudaMemset (d_hy, 0, nx * ny * sizeof (float_type));
-  }
-
-  void calculate_gpu (unsigned int steps)
-  {
-    for (unsigned int step = 0; step < steps; t += dt, step++)
-      {
-        const auto begin = std::chrono::high_resolution_clock::now();
-        std::cout << "step: " << step << "; t: " << t << " ";
-
-        fdtd_step (t, dt, nx, ny, dx, dy, d_mh, d_er, d_ez, d_dz, d_hx, d_hy, sources_count, d_sources_frequencies, d_sources_offsets);
-
-        auto cuda_error = cudaGetLastError ();
-        if (cuda_error != cudaSuccess)
-          {
-            std::cout << "Error on GPU: " << cudaGetErrorString (cuda_error) << std::endl;
-            return;
-          }
-
-        const auto end = std::chrono::high_resolution_clock::now ();
-        const std::chrono::duration<double> duration = end - begin;
-        std::cout << "in " << duration.count () << "s\n";
-
-      }
-
-    // cudaMemcpy (ez.get (), d_ez, nx * ny * sizeof (float_type), cudaMemcpyDeviceToHost);
-  }
-
-  void postprocess_gpu ()
-  {
-    cudaFree (d_mh);
-    cudaFree (d_er);
-    cudaFree (d_ez);
-    cudaFree (d_dz);
-    cudaFree (d_hx);
-    cudaFree (d_hy);
-  }
-#endif
-
   /// Ez mode
-  void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
+  void solve (unsigned int /* step */, unsigned int thread_id, unsigned int total_threads) final
   {
-    const auto begin = std::chrono::high_resolution_clock::now ();
-
     threads.barrier ();
     if (is_main_thread (thread_id))
-      {
-        std::cout << "Step: " << step << "; t: " << t << " ";
-        t += dt;
-      }
+      t += dt;
 
+    if (use_gpu)
+    {
+      if (is_main_thread (thread_id))
+        solve_gpu ();
+    }
+    else
+    {
+      solve_cpu (thread_id, total_threads);
+    }
+  }
+
+private:
+  void solve_cpu (unsigned int thread_id, unsigned int total_threads)
+  {
     update_h (thread_id, total_threads);
     threads.barrier ();
     update_e (thread_id, total_threads, *sources);
-
-    const auto end = std::chrono::high_resolution_clock::now ();
-    const std::chrono::duration<double> duration = end - begin;
-
-    if (is_main_thread (thread_id))
-      std::cout << "in " << duration.count () << "s\n";
   }
+
+#ifdef GPU_BUILD
+  void solve_gpu ()
+  {
+    fdtd_step (t, dt, nx, ny, dx, dy, d_mh, d_er, ez, dz, hx, hy, sources_count, d_sources_frequencies, d_sources_offsets);
+
+    auto cuda_error = cudaGetLastError ();
+    if (cuda_error != cudaSuccess)
+    {
+      std::cerr << "Error on GPU: " << cudaGetErrorString (cuda_error) << std::endl;
+      return;
+    }
+  }
+#endif
 };
 
 

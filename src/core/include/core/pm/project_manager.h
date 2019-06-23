@@ -40,11 +40,14 @@ public:
 
   const std::string &get_project_name () { return project_name; }
 
+  void set_gpu_num (int gpu_num_arg) { gpu_num = gpu_num_arg; version--; }
+
 private:
   unsigned int version = 0;
   std::string solver_name;
   std::string project_name;
   bool use_double_precision = true;
+  int gpu_num = -1;
 
   std::unique_ptr<grid> solver_grid;
   std::unique_ptr<workspace> solver_workspace;
