@@ -117,7 +117,7 @@ bool configuration_reader::initialize_project (project_manager &pm)
   if (!is_valid ())
     return true;
 
-  pm.initialize (project_name, solver_name, use_double_precision);
+  pm.initialize (project_name, solver_name, max_time, use_double_precision);
   auto &scheme = pm.get_configuration_scheme ();
   auto &config = pm.get_configuration ();
 

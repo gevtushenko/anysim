@@ -280,7 +280,7 @@ public:
   }
 
   /// Ez mode
-  void solve (unsigned int /* step */, unsigned int thread_id, unsigned int total_threads) final
+  double solve (unsigned int /* step */, unsigned int thread_id, unsigned int total_threads) final
   {
     threads.barrier ();
     if (is_main_thread (thread_id))
@@ -295,6 +295,8 @@ public:
     {
       solve_cpu (thread_id, total_threads);
     }
+
+    return dt;
   }
 
 private:

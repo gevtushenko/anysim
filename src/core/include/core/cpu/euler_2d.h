@@ -338,7 +338,7 @@ public:
     return (E - (u * u + v * v) / 2) * (gamma - 1) * rho;
   }
 
-  void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
+  double solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
   {
     const float_type cell_area = dx * dy;
 
@@ -416,6 +416,7 @@ public:
     }
 
     threads.barrier ();
+    return dt;
   }
 };
 

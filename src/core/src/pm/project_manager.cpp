@@ -19,6 +19,7 @@ project_manager::~project_manager () = default;
 void project_manager::initialize (
     std::string project_name_arg,
     std::string solver_arg,
+    double max_simulation_time_arg,
     bool use_double_precision_arg)
 {
   solver_name = std::move (solver_arg);
@@ -27,7 +28,11 @@ void project_manager::initialize (
 
   solver_configuration = std::make_unique<configuration> ();
   solver_configuration_scheme = std::make_unique<configuration> ();
-  simulation = std::make_unique<simulation_manager> (solver_name, use_double_precision, *solver_workspace);
+  simulation = std::make_unique<simulation_manager> (
+      solver_name,
+      max_simulation_time_arg,
+      use_double_precision,
+      *solver_workspace);
 
   auto &scheme = *solver_configuration_scheme;
   const auto grid_id = scheme.create_group (scheme.get_root (), "grid");

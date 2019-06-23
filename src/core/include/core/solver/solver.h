@@ -23,7 +23,7 @@ public:
   virtual ~solver () = default;
 
   /// Computes one step
-  virtual void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) = 0;
+  virtual double solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) = 0;
   virtual void apply_configuration (const configuration &config, std::size_t config_id, grid &solver_grid, int gpu_num) = 0;
   virtual void fill_configuration_scheme (configuration &config, std::size_t config_id) = 0;
 

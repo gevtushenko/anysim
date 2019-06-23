@@ -1,6 +1,6 @@
 {
   "project_name": "Maxwell test",
-  "max_time": 3.14E-8,
+  "max_time": 1.0E-07,
   "use_double_precision": true,
   "solver_name": "fdtd_2d",
   "configuration": {

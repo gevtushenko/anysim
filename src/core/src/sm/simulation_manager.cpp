@@ -43,9 +43,11 @@ solver *solver_abstract_method (
 
 simulation_manager::simulation_manager (
     const std::string &solver_arg,
+    double max_simulation_time_arg,
     bool use_double_precision_arg,
     workspace &workspace_arg)
-  : solver_workspace (workspace_arg)
+  : max_time (max_simulation_time_arg)
+  , solver_workspace (workspace_arg)
   , solver_context (
       solver_abstract_method (
           solver_arg,
@@ -78,6 +80,7 @@ void simulation_manager::apply_configuration (
 #endif
 
   step = 0;
+  time = 0.0;
 
   if (solver_context)
     solver_context->apply_configuration (config, config_id, solver_grid, gpu_num);
@@ -93,18 +96,27 @@ bool simulation_manager::calculate_next_time_step (result_extractor **extractors
 
   solver_workspace.set_active_layer ("rho", 0);
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
+    double report_time = 0.0;
     for (unsigned int local_step = 0; local_step < steps_until_render; local_step++)
-      solver_context->solve (step + local_step, thread_id, threads_count);
+    {
+      report_time += solver_context->solve (step + local_step, thread_id, threads_count);
+      if (time + report_time > max_time)
+        break;
+    }
+
+    threads.barrier ();
+    time += report_time;
+
     for (unsigned int eid = 0; eid < extractors_count; eid++)
       extractors[eid]->extract (thread_id, threads_count, threads);
   });
 
   const auto calculation_end = std::chrono::high_resolution_clock::now ();
   const std::chrono::duration<double> duration = calculation_end - calculation_begin;
-  std::cout << "Computation completed in " << duration.count () << "s\n";
+  std::cout << "Computation of time " << time << " completed in " << duration.count () << "s\n";
 
   step += steps_until_render;
 
-  return step < 3000;
+  return time < max_time; /// Calculation continuation condition
 }
 

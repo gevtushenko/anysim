@@ -19,8 +19,10 @@ class result_extractor;
 class simulation_manager
 {
 public:
+  simulation_manager () = delete;
   simulation_manager (
       const std::string &solver_arg,
+      double max_simulation_time_arg,
       bool use_double_precision_arg,
       workspace &workspace_arg);
   void fill_configuration_scheme (configuration &scheme, std::size_t scheme_id);
@@ -29,6 +31,8 @@ public:
 
 private:
   size_t step = 0;
+  double time = 0.0;
+  double max_time = 0.0;
   thread_pool threads;
   workspace &solver_workspace;
   std::unique_ptr<solver> solver_context;

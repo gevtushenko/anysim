@@ -23,6 +23,7 @@ public:
   void initialize (
       std::string project_name_arg,
       std::string solver_arg,
+      double max_simulation_time_arg,
       bool use_double_precision_arg);
 
   bool run ();
