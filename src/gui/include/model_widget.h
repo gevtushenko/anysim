@@ -8,10 +8,6 @@
 #include <QWidget>
 #include <QTreeView>
 
-#include <vector>
-
-#include "core/config/configuration_node.h"
-
 class QModelIndex;
 class QStandardItem;
 class QStandardItemModel;
@@ -26,7 +22,7 @@ public:
   explicit model_widget (project_manager &pm);
 
 signals:
-  void configuration_node_selected (configuration_node *node);
+  void configuration_node_selected (std::size_t node_id);
 
 private slots:
   void on_tree_view_context_menu (const QPoint &pos);
@@ -37,8 +33,6 @@ private:
   QStandardItemModel *model = nullptr;
   QStandardItem *sources = nullptr;
   unsigned int last_source_id = 0;
-
-  std::vector<configuration_node*> linearized_tree;
 };
 
 #endif //ANYSIM_MODEL_WIDGET_H

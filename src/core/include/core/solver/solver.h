@@ -7,6 +7,7 @@
 
 class grid;
 class workspace;
+class configuration;
 
 class solver
 {
@@ -23,8 +24,8 @@ public:
 
   /// Computes one step
   virtual void solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) = 0;
-  virtual void apply_configuration (std::size_t config_id, grid &solver_grid) = 0;
-  virtual void fill_configuration_scheme (std::size_t config_id) = 0;
+  virtual void apply_configuration (const configuration &config, std::size_t config_id, grid &solver_grid) = 0;
+  virtual void fill_configuration_scheme (configuration &config, std::size_t config_id) = 0;
 
 protected:
   thread_pool &threads;

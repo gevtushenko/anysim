@@ -19,7 +19,7 @@
 
 main_window::main_window (project_manager &pm_arg)
   : pm (pm_arg)
-  , settings (new settings_widget ())
+  , settings (new settings_widget (pm))
   , graphics (new graphics_widget ())
   , model (new model_widget (pm_arg))
   , cpu_visualizer (new cpu_results_visualizer (pm))
@@ -45,7 +45,7 @@ main_window::main_window (project_manager &pm_arg)
   central_widget->setLayout (layout);
   setCentralWidget (central_widget);
 
-  connect (model, SIGNAL (configuration_node_selected (configuration_node *)), settings, SLOT (setup_configuration_node (configuration_node *)));
+  connect (model, SIGNAL (configuration_node_selected (std::size_t)), settings, SLOT (setup_configuration_node (std::size_t)));
 
   connect (&renderer, SIGNAL (steps_completed (bool)), graphics->gl, SLOT (update_colors (bool)));
   connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));

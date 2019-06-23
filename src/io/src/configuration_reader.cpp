@@ -61,9 +61,9 @@ configuration_reader::configuration_reader (const std::string &filename)
   data = std::make_unique<json_wrapper> (configuration["configuration"]);
 }
 
-static bool read_node (const configuration_node &scheme_node, configuration_node &config, const json &data)
+static bool read_node (const configuration &scheme, std::size_t scheme_id, configuration &config, std::size_t config_id, const json &data)
 {
-  const auto &name = scheme_node.name;
+  const auto name = scheme.get_node_name (scheme_id);
 
   if (data.find (name) == data.end ())
   {
@@ -71,21 +71,21 @@ static bool read_node (const configuration_node &scheme_node, configuration_node
     return true;
   }
 
-  switch (scheme_node.type)
+  switch (scheme.get_node_type (scheme_id))
   {
-    case configuration_node_type::bool_value:   config.append_node (name, data[name].get<bool> ());        break;
-    case configuration_node_type::int_value:    config.append_node (name, data[name].get<int>  ());        break;
-    case configuration_node_type::double_value: config.append_node (name, data[name].get<double> ());      break;
-    case configuration_node_type::string_value: config.append_node (name, data[name].get<std::string> ()); break;
-    case configuration_node_type::void_value:
+    case bool_type:   config.create_node (config_id, name, data[name].get<bool> ());        break;
+    case int_type:    config.create_node (config_id, name, data[name].get<int>  ());        break;
+    case double_type: config.create_node (config_id, name, data[name].get<double> ());      break;
+    case string_type: config.create_node (config_id, name, data[name].get<std::string> ()); break;
+    case group_type:
       {
-        auto group = config.append_and_get_group (name);
-        for (auto &child: scheme_node.group ())
-          if (read_node (*child, *group, data[name]))
+        auto group_id = config.create_group (config_id, name);
+        for (auto &scheme_child_id: scheme.children_for (scheme_id))
+          if (read_node (scheme, scheme_child_id, config, group_id, data[name]))
             return true;
         break;
       }
-    case configuration_node_type::array_type:
+    case array_type:
     {
       if (!data[name].is_array ())
       {
@@ -93,16 +93,15 @@ static bool read_node (const configuration_node &scheme_node, configuration_node
         return true;
       }
 
-      auto &array = config.append_and_get_array (name);
-      auto &array_element_scheme = scheme_node.child (0);
-      array.array_child_scheme = &array_element_scheme;
+      const int array_element_scheme_id = scheme.get_node_value (scheme_id);
+      auto array_id = config.create_array (config_id, name, array_element_scheme_id);
 
       unsigned int elem_id = 0;
       for (auto &elem: data[name])
       {
-        auto &array_elem = array.append_and_get_array (std::to_string (elem_id++));
-        for (auto &elem_field: array_element_scheme.group ())
-          if (read_node (*elem_field, array_elem, elem))
+        auto array_elem_id = config.create_group (array_id, std::to_string (elem_id++));
+        for (auto elem_field_id: scheme.children_for (array_element_scheme_id))
+          if (read_node (scheme, elem_field_id, config, array_elem_id, elem))
             return true;
       }
       break;
@@ -121,10 +120,10 @@ bool configuration_reader::initialize_project (project_manager &pm)
   auto &scheme = pm.get_configuration_scheme ();
   auto &config = pm.get_configuration ();
 
-  for (auto &scheme_node: scheme.get_root ().group ())
-    if (read_node (*scheme_node, config.get_root (), data->json_content))
+  for (auto scheme_node_id: scheme.children_for (scheme.get_root ()))
+    if (read_node (scheme, scheme_node_id, config, config.get_root (), data->json_content))
       return true;
 
-  config.get_root ().print ();
+  config.update_version ();
   return false;
 }

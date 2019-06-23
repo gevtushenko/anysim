@@ -19,7 +19,7 @@ std::size_t configuration::create_node (
 {
   const auto node_id = nodes_count++;
   std::size_t data_id = undefined_data_id;
-  if (type != array_type && type != group_type)
+  if (type != group_type)
   {
     auto storage = get_storage<data_type> ();
     data_id = storage->size ();
@@ -38,6 +38,11 @@ template <> std::vector<int>         *configuration::get_storage<int> ()        
 template <> std::vector<double>      *configuration::get_storage<double> ()      { return &dbl_storage; }
 template <> std::vector<std::string> *configuration::get_storage<std::string> () { return &str_storage; }
 
-template std::size_t configuration::create_node<int>         (const std::string &node_name, const int &);
-template std::size_t configuration::create_node<double>      (const std::string &node_name, const double &);
-template std::size_t configuration::create_node<std::string> (const std::string &node_name, const std::string &);
+template std::size_t configuration::create_node<int>         (const std::string &node_name, const int &, configuration_value_type);
+template std::size_t configuration::create_node<double>      (const std::string &node_name, const double &, configuration_value_type);
+template std::size_t configuration::create_node<std::string> (const std::string &node_name, const std::string &, configuration_value_type);
+
+template <> std::size_t configuration::create_node<bool> (const std::string &node_name, const bool &val, configuration_value_type type)
+{
+  return create_node (node_name, static_cast<int> (val), type);
+}

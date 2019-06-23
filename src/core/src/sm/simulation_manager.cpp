@@ -3,6 +3,7 @@
 //
 
 #include "core/sm/simulation_manager.h"
+#include "core/config/configuration.h"
 #include "core/sm/result_extractor.h"
 #include "core/solver/solver.h"
 #include "core/cpu/euler_2d.h"
@@ -54,18 +55,16 @@ simulation_manager::simulation_manager (
 {
 }
 
-void simulation_manager::fill_configuration_scheme (configuration_node &)
+void simulation_manager::fill_configuration_scheme (configuration &scheme, std::size_t scheme_id)
 {
-  // if (solver_context)
-  //   solver_context->fill_configuration_scheme (solver_scheme);
+  if (solver_context)
+    solver_context->fill_configuration_scheme (scheme, scheme_id);
 }
 
-void simulation_manager::apply_configuration (
-    const configuration_node &,
-    grid &)
+void simulation_manager::apply_configuration (const configuration &config, std::size_t config_id, grid &solver_grid)
 {
-  // if (solver_context)
-  //   solver_context->apply_configuration (solver_config, solver_grid);
+  if (solver_context)
+    solver_context->apply_configuration (config, config_id, solver_grid);
 }
 
 bool simulation_manager::calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count)

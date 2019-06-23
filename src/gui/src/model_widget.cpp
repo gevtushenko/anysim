@@ -13,18 +13,17 @@
 
 #include "settings_widget.h"
 
-static void append_to_model (configuration_node &root, QStandardItem *parent, std::vector<configuration_node*> &linearized_tree)
+static void append_to_model (const configuration &config, std::size_t parent_id, QStandardItem *parent)
 {
-  for (auto &node: root.group ())
+  for (auto &node_id: config.children_for (parent_id))
   {
-    if (node->is_group () || node->is_array ())
+    if (config.is_group (node_id) || config.is_array (node_id))
     {
-      auto new_item = new QStandardItem (QString::fromStdString (node->name));
-      new_item->setData (static_cast<unsigned int> (linearized_tree.size ()), Qt::UserRole + 1);
+      auto new_item = new QStandardItem (QString::fromStdString (config.get_node_name (node_id)));
+      new_item->setData (static_cast<unsigned int> (node_id), Qt::UserRole + 1);
       new_item->setEditable (false);
       parent->appendRow (new_item);
-      linearized_tree.push_back (node);
-      append_to_model (*node, new_item, linearized_tree);
+      append_to_model (config, node_id, new_item);
     }
   }
 }
@@ -40,7 +39,8 @@ model_widget::model_widget (project_manager &pm)
   root->appendRow (project);
   project->setEditable (false);
 
-  append_to_model (pm.get_configuration ().get_root (), project, linearized_tree);
+  const auto &config = pm.get_configuration ();
+  append_to_model (config, config.get_root (), project);
 
   // auto global_definitions = new QStandardItem (QIcon (":/icons/globe.svg"), "Global Definitions");
   // auto global_definitions_parameters = new QStandardItem (QIcon (":/icons/sliders.svg"), "Parameters");
@@ -87,6 +87,7 @@ void model_widget::on_tree_view_context_menu (const QPoint &pos)
   if (!index.isValid ())
     return;
 
+  /*
   auto id = index.data (Qt::UserRole + 1).toUInt ();
 
   if (linearized_tree[id]->is_array () && linearized_tree[id]->array_child_scheme != nullptr)
@@ -106,10 +107,11 @@ void model_widget::on_tree_view_context_menu (const QPoint &pos)
       });
       menu->popup (view->viewport ()->mapToGlobal (pos));
     }
+    */
 }
 
 void model_widget::on_tree_view_clicked (const QModelIndex &index)
 {
   auto id = index.data (Qt::UserRole + 1).toUInt ();
-  emit configuration_node_selected (linearized_tree[id]);
+  emit configuration_node_selected (id);
 }
