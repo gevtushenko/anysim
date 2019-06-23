@@ -38,7 +38,7 @@ void render_thread::run()
 
   while (pm->run ())
   {
-    emit steps_completed (false);
+    emit steps_completed (pm->get_use_gpu ());
 
     {
       std::lock_guard guard (lock);

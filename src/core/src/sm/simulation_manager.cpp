@@ -67,7 +67,6 @@ void simulation_manager::apply_configuration (
     grid &solver_grid,
     int gpu_num)
 {
-  // TODO cudaSetDevice (gpu_num);
 #ifdef GPU_BUILD
   if (gpu_num >= 0)
   {
@@ -77,6 +76,8 @@ void simulation_manager::apply_configuration (
     });
   }
 #endif
+
+  step = 0;
 
   if (solver_context)
     solver_context->apply_configuration (config, config_id, solver_grid, gpu_num);
@@ -88,7 +89,7 @@ bool simulation_manager::calculate_next_time_step (result_extractor **extractors
     return false;
 
   const auto calculation_begin = std::chrono::high_resolution_clock::now ();
-  const unsigned int steps_until_render = 100;
+  const unsigned int steps_until_render = 10;
 
   solver_workspace.set_active_layer ("rho", 0);
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {

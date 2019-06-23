@@ -40,7 +40,16 @@ public:
 
   const std::string &get_project_name () { return project_name; }
 
-  void set_gpu_num (int gpu_num_arg) { gpu_num = gpu_num_arg; version--; }
+  void set_gpu_num (int gpu_num_arg)
+  {
+    if (gpu_num_arg != gpu_num)
+    {
+      gpu_num = gpu_num_arg;
+      version--;
+    }
+  }
+
+  bool get_use_gpu () const { return gpu_num >= 0; }
 
 private:
   unsigned int version = 0;

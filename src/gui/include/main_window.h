@@ -14,7 +14,7 @@
 class QCheckBox;
 class QComboBox;
 
-class cpu_results_visualizer;
+class hybrid_results_visualizer;
 class graphics_widget;
 class settings_widget;
 class project_manager;
@@ -49,7 +49,7 @@ private:
   graphics_widget *graphics;
   model_widget *model;
 
-  std::unique_ptr<cpu_results_visualizer> cpu_visualizer;
+  std::unique_ptr<hybrid_results_visualizer> cpu_visualizer;
 
   QAction *run_action = nullptr;
   QAction *stop_action = nullptr;

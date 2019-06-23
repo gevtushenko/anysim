@@ -22,7 +22,7 @@ main_window::main_window (project_manager &pm_arg)
   , settings (new settings_widget (pm))
   , graphics (new graphics_widget ())
   , model (new model_widget (pm_arg))
-  , cpu_visualizer (new cpu_results_visualizer (pm))
+  , cpu_visualizer (new hybrid_results_visualizer (pm))
   , renderer (graphics->gl, &pm)
 {
   // Set OpenGL Version information
@@ -75,7 +75,7 @@ void main_window::start_simulation()
 
   auto &grid = pm.get_grid ();
   auto first_field = grid.get_fields_names ().front ();
-  cpu_visualizer->set_target (first_field, graphics->gl->get_colors (false));
+  cpu_visualizer->set_target (first_field, graphics->gl->get_colors (pm.get_use_gpu ()));
   renderer.render ();
 }
 
@@ -103,7 +103,7 @@ void main_window::halt_simulation()
 #include <cuda_runtime.h>
 #endif
 
-void main_window::set_use_gpu (bool )
+void main_window::set_use_gpu (bool)
 {
 }
 
