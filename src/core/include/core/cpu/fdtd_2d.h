@@ -144,6 +144,11 @@ public:
     config.create_array(config_id, "sources", source_scheme_id);
   }
 
+  bool is_gpu_supported () const final
+  {
+    return true;
+  }
+
   void apply_configuration (const configuration &config, std::size_t solver_id, grid &solver_grid, int gpu_num) final
   {
     dx = solver_grid.dx;

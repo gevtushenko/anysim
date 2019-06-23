@@ -63,6 +63,11 @@ public:
     // configuration_scheme->append_value ("gamma", 1.4);
   }
 
+  bool is_gpu_supported () const final
+  {
+    return false;
+  }
+
   void apply_configuration (const configuration &, std::size_t , grid &solver_grid, int /* gpu num */) final
   {
     // auto config = configuration_node::node (config_id);

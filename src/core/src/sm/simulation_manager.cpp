@@ -86,6 +86,11 @@ void simulation_manager::apply_configuration (
     solver_context->apply_configuration (config, config_id, solver_grid, gpu_num);
 }
 
+bool simulation_manager::is_gpu_supported () const
+{
+  return solver_context->is_gpu_supported ();
+}
+
 bool simulation_manager::calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count)
 {
   if (!solver_context)

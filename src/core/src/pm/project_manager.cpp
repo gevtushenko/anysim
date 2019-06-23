@@ -80,6 +80,10 @@ void project_manager::update_project ()
     const double width  = config.get_node_value (grid_params[2]);
     const double height = config.get_node_value (grid_params[3]);
 
+    if (get_use_gpu ())
+      if (!simulation->is_gpu_supported ())
+        gpu_num = -1;
+
     solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
     simulation->apply_configuration (config, config.children_for (config.get_root ()).at (1), *solver_grid, gpu_num);
   }
