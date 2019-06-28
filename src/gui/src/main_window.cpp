@@ -11,6 +11,8 @@
 #include "core/sm/simulation_manager.h"
 #include "core/sm/result_extractor.h"
 
+#include "io/hdf5/hdf5_writer.h"
+
 #include "main_window.h"
 #include "settings_widget.h"
 #include "graphics_widget.h"
@@ -23,6 +25,7 @@ main_window::main_window (project_manager &pm_arg)
   , graphics (new graphics_widget ())
   , model (new model_widget (pm_arg))
   , cpu_visualizer (new hybrid_results_visualizer (pm))
+  , hdf5_dump (new hdf5_writer ("output.h5", pm))
   , renderer (graphics->gl, &pm)
 {
   // Set OpenGL Version information
@@ -56,6 +59,8 @@ main_window::main_window (project_manager &pm_arg)
   create_actions ();
 
   pm.append_extractor (cpu_visualizer.get ());
+  pm.append_extractor (hdf5_dump.get ());
+  hdf5_dump->open();
 
   statusBar ()->showMessage ("Ready");
 }

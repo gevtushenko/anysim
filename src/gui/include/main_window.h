@@ -19,6 +19,7 @@ class graphics_widget;
 class settings_widget;
 class project_manager;
 class model_widget;
+class hdf5_writer;
 
 class main_window : public QMainWindow
 {
@@ -50,6 +51,7 @@ private:
   model_widget *model;
 
   std::unique_ptr<hybrid_results_visualizer> cpu_visualizer;
+  std::unique_ptr<hdf5_writer> hdf5_dump;
 
   QAction *run_action = nullptr;
   QAction *stop_action = nullptr;
