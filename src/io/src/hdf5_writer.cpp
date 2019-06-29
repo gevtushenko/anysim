@@ -79,10 +79,11 @@ public:
         write_field (x.get (), x_group_name, false, nx + 1, ny + 1);
         write_field (y.get (), y_group_name, false, nx + 1, ny + 1);
 
-        write_xdmf_xml (nx, ny, solver_grid.get_fields_names());
+        write_xdmf_xml_head (nx, ny);
       }
 
       const bool use_double_precision = pm.is_double_precision_used ();
+      write_xdmf_xml_body (nx, ny, solver_grid.get_fields_names());
 
       const std::string time_step_group_name = "/simulation/" + std::to_string (step++);
       hid_t time_step_group_id = H5Gcreate2 (file_id, time_step_group_name.c_str (), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -120,6 +121,8 @@ public:
       H5Gclose (common_group_id);
       H5Gclose (simulation_group_id);
 
+      write_xdmf_xml_tail ();
+
       is_valid = false;
     }
     return false;
@@ -128,7 +131,7 @@ public:
 private:
   static bool check_if_invalid (const hid_t &id) { return static_cast<int> (id) < 0; }
 
-  void write_xdmf_xml (unsigned int nx, unsigned int ny, const std::vector<std::string> &fields)
+  void write_xdmf_xml_head (unsigned int nx, unsigned int ny)
   {
     std::string hdf_filename = filename + ".h5";
     std::string xmf_filename = filename + ".xmf";
@@ -137,24 +140,41 @@ private:
     fprintf (xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
     fprintf (xmf, "<Xdmf Version=\"2.0\">\n");
     fprintf (xmf, " <Domain>\n");
-    fprintf (xmf, "   <Grid Name=\"mesh1\" GridType=\"Uniform\">\n");
-    fprintf (xmf, "     <Topology TopologyType=\"2DSMesh\" NumberOfElements=\"%u %u\"/>\n", ny + 1, nx + 1);
-    fprintf (xmf, "     <Geometry GeometryType=\"X_Y\">\n");
-    fprintf (xmf, "       <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
-    fprintf (xmf, "        %s:/common/x\n", hdf_filename.c_str ());
-    fprintf (xmf, "       </DataItem>\n");
-    fprintf (xmf, "       <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
-    fprintf (xmf, "        %s:/common/y\n", hdf_filename.c_str ());
-    fprintf (xmf, "       </DataItem>\n");
-    fprintf (xmf, "     </Geometry>\n");
+    fprintf (xmf, "   <Topology TopologyType=\"2DSMesh\" NumberOfElements=\"%u %u\"/>\n", ny + 1, nx + 1);
+    fprintf (xmf, "   <Geometry GeometryType=\"X_Y\">\n");
+    fprintf (xmf, "     <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
+    fprintf (xmf, "      %s:/common/x\n", hdf_filename.c_str ());
+    fprintf (xmf, "     </DataItem>\n");
+    fprintf (xmf, "     <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
+    fprintf (xmf, "      %s:/common/y\n", hdf_filename.c_str ());
+    fprintf (xmf, "     </DataItem>\n");
+    fprintf (xmf, "   </Geometry>\n");
+    fprintf (xmf, "   <Grid Name=\"TimeSeries\" GridType=\"Collection\" CollectionType=\"Temporal\">\n");
+  }
+
+  void write_xdmf_xml_body (unsigned int nx, unsigned int ny, const std::vector<std::string> &fields)
+  {
+    std::string hdf_filename = filename + ".h5";
+    std::string xmf_filename = filename + ".xmf";
+
+    fprintf (xmf, "     <Grid Name=\"T%lu\" GridType=\"Uniform\">\n", step);
+    fprintf (xmf, "       <Time Value=\"%lu\"/>\n", step);
+    fprintf (xmf, "       <Topology Reference=\"/Xdmf/Domain/Topology[1]\"/>\n");
+    fprintf (xmf, "       <Geometry Reference=\"/Xdmf/Domain/Geometry[1]\"/>\n");
+
     for (auto &field: fields)
     {
-      fprintf (xmf, "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", field.c_str ());
-      fprintf (xmf, "       <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny, nx);
-      fprintf (xmf, "        %s:/simulation/0/%s\n", hdf_filename.c_str (), field.c_str ());
-      fprintf (xmf, "       </DataItem>\n");
-      fprintf (xmf, "     </Attribute>\n");
+      fprintf (xmf, "       <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", field.c_str ());
+      fprintf (xmf, "         <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny, nx);
+      fprintf (xmf, "          %s:/simulation/%lu/%s\n", hdf_filename.c_str (), step, field.c_str ());
+      fprintf (xmf, "         </DataItem>\n");
+      fprintf (xmf, "       </Attribute>\n");
     }
+    fprintf (xmf, "     </Grid>\n");
+  }
+
+  void write_xdmf_xml_tail ()
+  {
     fprintf (xmf, "   </Grid>\n");
     fprintf (xmf, " </Domain>\n");
     fprintf (xmf, "</Xdmf>\n");
