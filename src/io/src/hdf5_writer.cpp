@@ -52,6 +52,36 @@ public:
       const unsigned int nx = solver_grid.nx;
       const unsigned int ny = solver_grid.ny;
 
+      if (step == 0)
+      {
+        const double width = solver_grid.width;
+        const double height = solver_grid.height;
+        const double dx = width / nx;
+        const double dy = height / ny;
+
+        std::unique_ptr<float[]> x (new float[(nx + 1) * (ny + 1)]);
+        std::unique_ptr<float[]> y (new float[(nx + 1) * (ny + 1)]);
+
+        for (unsigned int j = 0; j < ny + 1; j++)
+        {
+          for (unsigned int i = 0; i < nx + 1; i++)
+          {
+            const unsigned int idx = j * (nx + 1) + i;
+
+            x[idx] = dx * i;
+            y[idx] = dy * j;
+          }
+        }
+
+        const std::string x_group_name = "/common/x";
+        const std::string y_group_name = "/common/y";
+
+        write_field (x.get (), x_group_name, false, nx + 1, ny + 1);
+        write_field (y.get (), y_group_name, false, nx + 1, ny + 1);
+
+        write_xdmf_xml (nx, ny, solver_grid.get_fields_names());
+      }
+
       const bool use_double_precision = pm.is_double_precision_used ();
 
       const std::string time_step_group_name = "/simulation/" + std::to_string (step++);
@@ -68,7 +98,8 @@ public:
 
   bool open ()
   {
-    file_id = H5Fcreate (filename.c_str (), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    std::string hdf5_filename = filename + ".h5";
+    file_id = H5Fcreate (hdf5_filename.c_str (), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (check_if_invalid(file_id))
       return true;
 
@@ -97,6 +128,39 @@ public:
 private:
   static bool check_if_invalid (const hid_t &id) { return static_cast<int> (id) < 0; }
 
+  void write_xdmf_xml (unsigned int nx, unsigned int ny, const std::vector<std::string> &fields)
+  {
+    std::string hdf_filename = filename + ".h5";
+    std::string xmf_filename = filename + ".xmf";
+    xmf = fopen(xmf_filename.c_str (), "w");
+    fprintf (xmf, "<?xml version=\"1.0\" ?>\n");
+    fprintf (xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
+    fprintf (xmf, "<Xdmf Version=\"2.0\">\n");
+    fprintf (xmf, " <Domain>\n");
+    fprintf (xmf, "   <Grid Name=\"mesh1\" GridType=\"Uniform\">\n");
+    fprintf (xmf, "     <Topology TopologyType=\"2DSMesh\" NumberOfElements=\"%u %u\"/>\n", ny + 1, nx + 1);
+    fprintf (xmf, "     <Geometry GeometryType=\"X_Y\">\n");
+    fprintf (xmf, "       <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
+    fprintf (xmf, "        %s:/common/x\n", hdf_filename.c_str ());
+    fprintf (xmf, "       </DataItem>\n");
+    fprintf (xmf, "       <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
+    fprintf (xmf, "        %s:/common/y\n", hdf_filename.c_str ());
+    fprintf (xmf, "       </DataItem>\n");
+    fprintf (xmf, "     </Geometry>\n");
+    for (auto &field: fields)
+    {
+      fprintf (xmf, "     <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", field.c_str ());
+      fprintf (xmf, "       <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny, nx);
+      fprintf (xmf, "        %s:/simulation/0/%s\n", hdf_filename.c_str (), field.c_str ());
+      fprintf (xmf, "       </DataItem>\n");
+      fprintf (xmf, "     </Attribute>\n");
+    }
+    fprintf (xmf, "   </Grid>\n");
+    fprintf (xmf, " </Domain>\n");
+    fprintf (xmf, "</Xdmf>\n");
+    fclose  (xmf);
+  }
+
 private:
   bool is_valid = false;
 
@@ -105,6 +169,8 @@ private:
   hid_t file_id {};
   hid_t common_group_id {};
   hid_t simulation_group_id {};
+
+  FILE *xmf = nullptr;
 
   std::string filename;
   project_manager &pm;

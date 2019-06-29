@@ -25,7 +25,7 @@ main_window::main_window (project_manager &pm_arg)
   , graphics (new graphics_widget ())
   , model (new model_widget (pm_arg))
   , cpu_visualizer (new hybrid_results_visualizer (pm))
-  , hdf5_dump (new hdf5_writer ("output.h5", pm))
+  , hdf5_dump (new hdf5_writer ("output", pm))
   , renderer (graphics->gl, &pm)
 {
   // Set OpenGL Version information
