@@ -83,7 +83,7 @@ public:
       }
 
       const bool use_double_precision = pm.is_double_precision_used ();
-      write_xdmf_xml_body (nx, ny, solver_grid.get_fields_names());
+      write_xdmf_xml_body (nx, ny, use_double_precision, solver_grid.get_fields_names());
 
       const std::string time_step_group_name = "/simulation/" + std::to_string (step++);
       hid_t time_step_group_id = H5Gcreate2 (file_id, time_step_group_name.c_str (), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -152,7 +152,7 @@ private:
     fprintf (xmf, "   <Grid Name=\"TimeSeries\" GridType=\"Collection\" CollectionType=\"Temporal\">\n");
   }
 
-  void write_xdmf_xml_body (unsigned int nx, unsigned int ny, const std::vector<std::string> &fields)
+  void write_xdmf_xml_body (unsigned int nx, unsigned int ny, bool use_double_precision, const std::vector<std::string> &fields)
   {
     std::string hdf_filename = filename + ".h5";
     std::string xmf_filename = filename + ".xmf";
@@ -165,7 +165,7 @@ private:
     for (auto &field: fields)
     {
       fprintf (xmf, "       <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", field.c_str ());
-      fprintf (xmf, "         <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny, nx);
+      fprintf (xmf, "         <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n", ny, nx, use_double_precision ? sizeof (double) : sizeof (float));
       fprintf (xmf, "          %s:/simulation/%lu/%s\n", hdf_filename.c_str (), step, field.c_str ());
       fprintf (xmf, "         </DataItem>\n");
       fprintf (xmf, "       </Attribute>\n");
