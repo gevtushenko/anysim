@@ -18,6 +18,7 @@ public:
 
   ~hdf5_impl () { close (); }
 
+#if HDF5_BUILD
   void write_field (
       const void *data,
       const std::string &name,
@@ -39,12 +40,14 @@ public:
     H5Dclose(dataset_id);
     H5Sclose (dataspace_id);
   }
+#endif
 
   void extract (
     unsigned int thread_id,
     unsigned int threads_count,
     thread_pool &threads)
   {
+#if HDF5_BUILD
     if (is_main_thread (thread_id))
     {
       const auto &solver_grid = pm.get_grid ();
@@ -95,10 +98,12 @@ public:
     }
 
     threads.barrier();
+#endif
   }
 
   bool open ()
   {
+#if HDF5_BUILD
     std::string hdf5_filename = filename + ".h5";
     file_id = H5Fcreate (hdf5_filename.c_str (), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (check_if_invalid(file_id))
@@ -110,11 +115,13 @@ public:
     if (!check_if_invalid (common_group_id) && !check_if_invalid (simulation_group_id))
       is_valid = true;
 
+#endif
     return is_valid;
   }
 
   bool close ()
   {
+#if HDF5_BUILD
     if (is_valid)
     {
       H5Fclose (file_id);
@@ -125,10 +132,12 @@ public:
 
       is_valid = false;
     }
+#endif
     return false;
   }
 
 private:
+#if HDF5_BUILD
   static bool check_if_invalid (const hid_t &id) { return static_cast<int> (id) < 0; }
 
   void write_xdmf_xml_head (unsigned int nx, unsigned int ny)
@@ -180,17 +189,20 @@ private:
     fprintf (xmf, "</Xdmf>\n");
     fclose  (xmf);
   }
+#endif
 
 private:
   bool is_valid = false;
 
   std::size_t step {};
 
+#if HDF5_BUILD
   hid_t file_id {};
   hid_t common_group_id {};
   hid_t simulation_group_id {};
 
   FILE *xmf = nullptr;
+#endif
 
   std::string filename;
   project_manager &pm;
