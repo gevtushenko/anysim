@@ -7,6 +7,7 @@
 
 #include <type_traits>
 #include <algorithm>
+#include <stdexcept>
 #include <vector>
 #include <string>
 
@@ -57,6 +58,7 @@ class configuration
 {
 public:
   configuration ();
+  configuration (const configuration &) = delete;
 
   std::size_t get_root () const { return root; }
 
@@ -171,7 +173,10 @@ public:
   template <class data_type>
   void update_value (std::size_t node_id, data_type new_value)
   {
-    get_storage<data_type> ()->at (nodes_data_id[node_id]) = new_value;
+    auto storage = get_storage<data_type> ();
+    if (!storage)
+      throw std::runtime_error ("Internal error!");
+    storage->at (nodes_data_id[node_id]) = new_value;
   }
 
   std::string to_string (std::size_t node_id)
@@ -210,7 +215,7 @@ public:
 
 private:
   template <class data_type>
-  std::vector<data_type> *get_storage () { static_assert (true, "Unsupported data type!"); return nullptr; }
+  std::vector<data_type> *get_storage ();
 
   template <class data_type>
   std::size_t create_node (const std::string &node_name, const data_type &value, configuration_value_type type);

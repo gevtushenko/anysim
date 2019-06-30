@@ -133,8 +133,10 @@ public:
 
   ~gpu_results_visualizer () final
   {
+#ifdef GPU_BUILD
     if (min_max)
       cudaFree (min_max);
+#endif
   }
 
   void set_target (const std::string &target, float *colors_arg)
