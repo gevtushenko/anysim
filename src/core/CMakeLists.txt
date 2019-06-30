@@ -17,7 +17,11 @@ set(CORE_SOURCES
         include/core/common/curl.h
         include/core/config/configuration.h
         src/config/configuration.cpp
-        include/core/solver/solver.h include/core/sm/result_extractor.h include/core/solver/workspace.h src/solver/workspace.cpp include/core/grid/grid.h src/grid.cpp)
+        include/core/solver/solver.h
+        include/core/sm/result_extractor.h
+        include/core/solver/workspace.h
+        src/solver/workspace.cpp
+        include/core/grid/grid.h src/grid.cpp)
 
 find_package(Threads REQUIRED)
 
@@ -29,11 +33,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_THREAD_LIBS_INIT})
 if(CUDA_FOUND)
     set(GPU_SOURCES
             include/core/gpu/coloring.cuh
+            include/core/gpu/reduce.cuh
             src/gpu/coloring.cu
             src/gpu/fdtd.cu
             include/core/gpu/fdtd.cuh)
     add_compile_definitions(GPU_BUILD)
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 -lineinfo")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 -lineinfo --expt-relaxed-constexpr")
     cuda_add_library(${CMAKE_PROJECT_NAME}_gpu ${GPU_SOURCES})
     target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_PROJECT_NAME}_gpu ${CUDA_LIBRARIES})
 endif()

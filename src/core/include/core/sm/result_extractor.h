@@ -12,6 +12,10 @@
 #include "core/grid/grid.h"
 #include "cpp/common_funcs.h"
 
+#ifdef GPU_BUILD
+#include <cuda_runtime.h>
+#endif
+
 class result_extractor
 {
 public:
@@ -109,7 +113,13 @@ private:
       return;
 
     if (is_main_thread (thread_id))
-      fill_colors (nx, ny, data, colors);
+    {
+      if (!min_max)
+        cudaMalloc (&min_max, 2 * sizeof (float));
+
+      find_min_max (nx, ny, data, min_max);
+      fill_colors (nx, ny, data, colors, min_max);
+    }
 #else
     cpp_unreferenced (thread_id);
 #endif
@@ -120,6 +130,12 @@ public:
     : result_extractor ()
     , pm (pm_arg)
   { }
+
+  ~gpu_results_visualizer () final
+  {
+    if (min_max)
+      cudaFree (min_max);
+  }
 
   void set_target (const std::string &target, float *colors_arg)
   {
@@ -140,6 +156,7 @@ public:
 
 private:
   float *colors = nullptr;
+  float *min_max = nullptr;
   std::string target_name;
 
   project_manager &pm;
