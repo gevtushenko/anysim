@@ -92,7 +92,7 @@ public:
       hid_t time_step_group_id = H5Gcreate2 (file_id, time_step_group_name.c_str (), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
       for (auto &field: solver_grid.get_fields_names())
-        write_field (solver_workspace.get (field), time_step_group_name + "/" + field, use_double_precision, nx, ny);
+        write_field (solver_workspace.get_host_copy (field), time_step_group_name + "/" + field, use_double_precision, nx, ny);
 
       H5Gclose (time_step_group_id);
     }
