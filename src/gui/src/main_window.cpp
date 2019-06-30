@@ -5,6 +5,7 @@
 #include <QtWidgets>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QSplitter>
 
 #include "settings/global_parameters_widget.h"
 #include "settings/source_settings_widget.h"
@@ -39,14 +40,14 @@ main_window::main_window (project_manager &pm_arg)
 
   settings->setHidden (true);
 
-  auto layout = new QHBoxLayout ();
-  layout->addWidget (model, 1);
-  layout->addWidget (settings, 1);
-  layout->addWidget (graphics, 3);
-
-  auto central_widget = new QWidget ();
-  central_widget->setLayout (layout);
-  setCentralWidget (central_widget);
+  auto splitter = new QSplitter ();
+  splitter->addWidget (model);
+  splitter->addWidget (settings);
+  splitter->addWidget (graphics);
+  splitter->setStretchFactor (0, 1);
+  splitter->setStretchFactor (1, 1);
+  splitter->setStretchFactor (2, 9);
+  setCentralWidget (splitter);
 
   connect (model, SIGNAL (configuration_node_selected (std::size_t)), settings, SLOT (setup_configuration_node (std::size_t)));
 
