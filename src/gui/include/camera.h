@@ -19,6 +19,8 @@ public:
   void zoom (int wheel_delta);
   void move (int dx, int dy);
 
+  void update_model_matrix (float width, float height);
+
   void reset ();
 
   QMatrix4x4 get_mvp ();
@@ -28,14 +30,15 @@ public:
   int view_height = 0;
 
   QMatrix4x4 scale, rotation, translation;
-  QMatrix4x4 orthographic_projection;
+  QMatrix4x4 orthographic_projection, model;
 
 private:
   void update_scaling_matrix (float scaling_coefficient);
   void calculate_orthographic_projection (
       float left, float right,
       float bottom, float top,
-      float near, float far);
+      float near, float far,
+      QMatrix4x4 &projection);
 };
 
 #endif //ANYSIM_CAMERA_H

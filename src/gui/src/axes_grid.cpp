@@ -28,11 +28,9 @@ void axes_grid::prepare (
   float left_x,
   float right_x,
   float bottom_y,
-  float top_y,
-  float x_size_arg,
-  float y_size_arg)
+  float top_y)
 {
-  x_size = x_size_arg; y_size = y_size_arg;
+  x_size = (right_x - left_x); y_size = (top_y - bottom_y);
   x_tics = x_tics_arg; y_tics = y_tics_arg;
 
   const unsigned int points_per_line = 2;
@@ -104,7 +102,7 @@ void axes_grid::prepare (
   glBufferData (GL_ARRAY_BUFFER, sizeof (GLfloat) * total_coords, coords.get (), GL_DYNAMIC_DRAW);
 }
 
-void axes_grid::draw (QMatrix4x4 &mvp)
+void axes_grid::draw (const QMatrix4x4 &mvp)
 {
   auto &tr = text_renderer::instance ();
   cpp_unreferenced (tr);
@@ -121,11 +119,12 @@ void axes_grid::draw (QMatrix4x4 &mvp)
 
   program->release ();
 
+  return;
+
   const float dx = x_size / (x_tics - 1);
   const float dy = y_size / (y_tics - 1);
 
   const char *format = "%.2e";
-
   float *p_coords = coords.get ();
   for (unsigned int y = 0; y < y_tics; y+=long_tic_each)
   {
@@ -133,7 +132,7 @@ void axes_grid::draw (QMatrix4x4 &mvp)
     int size = std::snprintf (nullptr, 0, format, number);
     std::vector<char> buf (size + 1);
     std::snprintf (buf.data (), buf.size (), format, number);
-    tr.render_text (buf.data (), p_coords[2] - long_tic_size / 4, p_coords[3], 1, mvp, text_renderer::text_anchor::right_center);
+    tr.render_text (buf.data (), p_coords[2] - long_tic_size / 4, p_coords[3], x_size, mvp, text_renderer::text_anchor::right_center);
     p_coords += 8 * long_tic_each;
   }
   for (unsigned int x = 0; x < x_tics; x+=long_tic_each)
@@ -142,7 +141,7 @@ void axes_grid::draw (QMatrix4x4 &mvp)
     int size = std::snprintf (nullptr, 0, format, number);
     std::vector<char> buf (size + 1);
     std::snprintf (buf.data (), buf.size (), format, number);
-    tr.render_text (buf.data (), p_coords[2], p_coords[3] - long_tic_size / 4, 1, mvp, text_renderer::text_anchor::bottom_center);
+    tr.render_text (buf.data (), p_coords[2], p_coords[3] - long_tic_size / 4, y_size, mvp, text_renderer::text_anchor::bottom_center);
     p_coords += 8 * long_tic_each;
   }
 }

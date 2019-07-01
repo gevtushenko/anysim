@@ -5,6 +5,7 @@
 #include "gui_application.h"
 #include "main_window.h"
 
+#include <QSurfaceFormat>
 #include <QApplication>
 #include <QFile>
 

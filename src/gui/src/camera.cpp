@@ -14,14 +14,15 @@ camera::camera()
 
 void camera::reset ()
 {
+  model.setToIdentity ();
   scale.setToIdentity ();
   rotation.setToIdentity ();
   translation.setToIdentity ();
 }
 
-QMatrix4x4 camera::get_mvp()
+QMatrix4x4 camera::get_mvp ()
 {
-  return translation * rotation * scale * orthographic_projection;
+  return translation * rotation * scale * orthographic_projection * model;
 }
 
 void camera::resize (int width, int height)
@@ -34,7 +35,18 @@ void camera::resize (int width, int height)
   calculate_orthographic_projection (
       -aspect /* left*/, aspect /* right */,
       -1.0 /* bottom */, 1.0 /* top */,
-      -1.0 /* near */, 1.0 /* far */);
+      -1.0 /* near */, 1.0 /* far */,
+      orthographic_projection);
+}
+
+void camera::update_model_matrix (float width, float height)
+{
+  const float quarter_size = 0.9;
+  const float delim = std::max (width, height);
+  model (0, 0) = 2.0 * quarter_size / delim;
+  model (1, 1) = 2.0 * quarter_size / delim;
+  model (0, 3) = -quarter_size;
+  model (1, 3) = -quarter_size;
 }
 
 void camera::zoom (int wheel_delta)
@@ -57,15 +69,14 @@ void camera::update_scaling_matrix (float scaling_coefficient)
 void camera::calculate_orthographic_projection (
     float left, float right,
     float bottom, float top,
-    float near, float far)
+    float near, float far,
+    QMatrix4x4 &projection)
 {
-  cpp_unreferenced (left, right, bottom, top, near, far);
+  projection (0, 0) =  2.0 / (right - left);
+  projection (1, 1) =  2.0 / (top - bottom);
+  projection (2, 2) = -2.0 / (far - near);
 
-  orthographic_projection (0, 0) =  2.0 / (right - left);
-  orthographic_projection (1, 1) =  2.0 / (top - bottom);
-  orthographic_projection (2, 2) = -2.0 / (far - near);
-
-  orthographic_projection (3, 0) = -static_cast<float> (right + left) / (right - left);
-  orthographic_projection (3, 1) = -static_cast<float> (top + bottom) / (top - bottom);
-  orthographic_projection (3, 2) = -static_cast<float> (far + near) / (far - near);
+  projection (3, 0) = -static_cast<float> (right + left) / (right - left);
+  projection (3, 1) = -static_cast<float> (top + bottom) / (top - bottom);
+  projection (3, 2) = -static_cast<float> (far + near) / (far - near);
 }

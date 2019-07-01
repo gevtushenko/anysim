@@ -82,12 +82,6 @@ private:
 #endif
 
   std::unique_ptr<GLfloat[]> colors;
-  std::unique_ptr<GLfloat[]> vertices;
-
-  const float l_x = -0.85f;
-  const float r_x =  0.9f;
-  const float b_y = -0.85f;
-  const float t_y =  0.9f;
 
   float x_size;
   float y_size;

@@ -22,9 +22,8 @@ public:
   void prepare (
     unsigned int x_tics_arg, unsigned int y_tics,
     float left_x, float right_x,
-    float bottom_y, float top_y,
-    float x_size, float y_size);
-  void draw (QMatrix4x4 &mvp);
+    float bottom_y, float top_y);
+  void draw (const QMatrix4x4 &mvp);
 
 private:
   float x_size, y_size;

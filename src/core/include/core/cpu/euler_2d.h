@@ -56,11 +56,8 @@ public:
 
   void fill_configuration_scheme (configuration &config, std::size_t config_id) final
   {
-    (void) config;
-    (void) config_id;
-    // auto configuration_scheme = configuration_node::node (configuration_scheme_id);
-    // configuration_scheme->append_value ("cfl", 0.1);
-    // configuration_scheme->append_value ("gamma", 1.4);
+    config.create_node (config_id, "cfl", 0.1);
+    config.create_node (config_id, "gamma", 1.4);
   }
 
   bool is_gpu_supported () const final
@@ -68,11 +65,14 @@ public:
     return false;
   }
 
-  void apply_configuration (const configuration &, std::size_t , grid &solver_grid, int /* gpu num */) final
+  void apply_configuration (const configuration &config, std::size_t solver_id, grid &solver_grid, int /* gpu num */) final
   {
-    // auto config = configuration_node::node (config_id);
-    // cfl = std::get<double> (configuration_node::node (config->child (0))->value);
-    // gamma = std::get<double> (configuration_node::node (config->child (1))->value);
+    const auto solver_children = config.children_for (solver_id);
+
+    auto cfl_id = solver_children[0];
+    auto gamma_id = solver_children[1];
+    cfl = config.get_node_value (cfl_id);
+    gamma = config.get_node_value (gamma_id);
 
     dx = solver_grid.dx;
     dy = solver_grid.dy;

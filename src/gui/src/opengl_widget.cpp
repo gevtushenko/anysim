@@ -10,6 +10,7 @@
 
 #include <QDirIterator>
 #include <QWheelEvent>
+#include <QPainter>
 
 #include <cmath>
 #include <iostream>
@@ -112,21 +113,13 @@ void opengl_widget::update_project (project_manager &pm)
   x_size = solver_grid.width;
   y_size = solver_grid.height;
 
-  axes.prepare (44, 44, l_x, r_x, b_y, t_y, x_size, y_size);
-
-  GLfloat max_width  = (r_x - l_x) * (x_size >= y_size ? 1.0f : x_size / y_size);
-  GLfloat max_height = (t_y - b_y) * (y_size >  x_size ? 1.0f : y_size / x_size);
-
-  GLfloat dx = max_width / static_cast<GLfloat> (nx);
-  GLfloat dy = max_height / static_cast<GLfloat> (ny);
+  axes.prepare (44, 44, 0.0, x_size, 0.0, y_size);
+  camera_view.update_model_matrix (solver_grid.width, solver_grid.height);
 
   elements_count = nx * ny;
 
   colors.reset ();
-  vertices.reset ();
-
   colors.reset (new GLfloat[color_data_per_element * elements_count]);
-  vertices.reset (new GLfloat[vertex_data_per_element * elements_count]);
 
   static GLfloat _colors[] =
       {
@@ -140,13 +133,6 @@ void opengl_widget::update_project (project_manager &pm)
   {
     for (unsigned int i = 0; i < nx; i++)
     {
-      const unsigned int vert_offset = static_cast<unsigned int> (vertex_data_per_element) * (j * nx + i);
-
-      vertices[vert_offset + 0] = l_x + dx * (i + 0); vertices[vert_offset + 1] = b_y + dy * (j + 1);
-      vertices[vert_offset + 2] = l_x + dx * (i + 0); vertices[vert_offset + 3] = b_y + dy * (j + 0);
-      vertices[vert_offset + 4] = l_x + dx * (i + 1); vertices[vert_offset + 5] = b_y + dy * (j + 0);
-      vertices[vert_offset + 6] = l_x + dx * (i + 1); vertices[vert_offset + 7] = b_y + dy * (j + 1);
-
       const unsigned int color_offset = static_cast<unsigned int> (color_data_per_element) * (j * nx + i);
       std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
     }
@@ -156,7 +142,7 @@ void opengl_widget::update_project (project_manager &pm)
   const int glfloat_size = sizeof (GLfloat);
   const long int vertices_array_size = elements_count * vertex_data_per_element * glfloat_size;
   glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
-  glBufferData (GL_ARRAY_BUFFER, vertices_array_size, vertices.get (), GL_DYNAMIC_DRAW);
+  glBufferData (GL_ARRAY_BUFFER, vertices_array_size, solver_grid.get_vertices_data (), GL_DYNAMIC_DRAW);
 
   const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
   glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
@@ -236,13 +222,18 @@ void opengl_widget::mouseMoveEvent (QMouseEvent *event)
 
 void opengl_widget::paintGL()
 {
-  glEnable (GL_BLEND);
-  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glClear (GL_COLOR_BUFFER_BIT);
-  glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
-
   if (!is_initialized)
     return;
+
+  QPainter painter (this);
+  painter.beginNativePainting ();
+
+  glEnable (GL_BLEND);
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_MULTISAMPLE);
+  glEnable(GL_LINE_SMOOTH);
+  glClear (GL_COLOR_BUFFER_BIT);
+  glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
 
   auto mvp = camera_view.get_mvp ();
 
@@ -256,9 +247,18 @@ void opengl_widget::paintGL()
   glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
   glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
   glDrawArrays (GL_QUADS, 0, static_cast<int> (elements_count) * 4);
+  glBindBuffer (GL_ARRAY_BUFFER, 0);
   glDisableVertexAttribArray (static_cast<GLuint> (attribute_coord2d));
   glDisableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
   program->release ();
 
-  axes.draw (mvp);
+  // axes.draw (mvp);
+  painter.endNativePainting ();
+
+  painter.setRenderHint(QPainter::Antialiasing);
+  painter.setRenderHint(QPainter::HighQualityAntialiasing);
+  painter.setPen(Qt::black);
+  painter.setFont(QFont("Arial", 16));
+  painter.drawText(0, 0, width(), height(), Qt::AlignCenter, "Hello World!");
+  painter.end ();
 }
