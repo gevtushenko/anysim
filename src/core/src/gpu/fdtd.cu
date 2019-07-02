@@ -138,6 +138,7 @@ void fdtd_step_gpu (
 
   grid_size.x = (nx + block_size.x - 1) / block_size.x;
   grid_size.y = (ny + block_size.y - 1) / block_size.y;
+  grid_size.z = 1;
 
   if (USE_SHARED_H_UPDATE)
     fdtd_update_h_shared_kernel<float_type, tile_size><<<grid_size, block_size>>> (nx, ny, dx, dy, ez, mh, hx, hy);

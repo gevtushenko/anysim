@@ -59,7 +59,7 @@ main_window::main_window (project_manager &pm_arg)
   create_actions ();
 
   pm.append_extractor (cpu_visualizer.get ());
-  pm.append_extractor (hdf5_dump.get ());
+  // pm.append_extractor (hdf5_dump.get ());
   hdf5_dump->open();
 
   statusBar ()->showMessage ("Ready");

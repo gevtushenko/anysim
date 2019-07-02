@@ -51,8 +51,8 @@ void find_min_max (unsigned int cells_number, const float_type *data, float *min
   cudaMemset (min_max, 0, 2 * sizeof (float));
 
   int blocks = std::min ((cells_number + threads_per_block - 1) / threads_per_block, 1024u);
-  block_atomic_reduce<reduce_operation::min, warps_per_block> <<<blocks, threads_per_block>>> (data, min_max + 0, cells_number);
-  block_atomic_reduce<reduce_operation::max, warps_per_block> <<<blocks, threads_per_block>>> (data, min_max + 1, cells_number);
+  block_atomic_reduce_kernel<reduce_operation::min, warps_per_block> <<<blocks, threads_per_block>>> (data, min_max + 0, cells_number);
+  block_atomic_reduce_kernel<reduce_operation::max, warps_per_block> <<<blocks, threads_per_block>>> (data, min_max + 1, cells_number);
 }
 
 template void fill_colors<float>  (unsigned int cells_number, const float *ez, float *colors, const float *min_max);

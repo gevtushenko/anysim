@@ -110,8 +110,32 @@ __device__ static float atomicMin (float* address, float val)
   return __int_as_float(old);
 }
 
+__device__ static double atomicMax (double* address, double val)
+{
+  unsigned long long int* address_as_i = (unsigned long long int*) address;
+  unsigned long long int old = *address_as_i, assumed;
+  do {
+      assumed = old;
+      old = ::atomicCAS(address_as_i, assumed, __double_as_longlong(::fmaxf(val, __longlong_as_double(assumed))));
+    }
+  while (assumed != old);
+  return __longlong_as_double(old);
+}
+
+__device__ static double atomicMin (double* address, double val)
+{
+  unsigned long long int* address_as_i = (unsigned long long int*) address;
+  unsigned long long int old = *address_as_i, assumed;
+  do {
+      assumed = old;
+      old = ::atomicCAS(address_as_i, assumed, __double_as_longlong(::fminf(val, __longlong_as_double(assumed))));
+    }
+  while (assumed != old);
+  return __longlong_as_double(old);
+}
+
 template <reduce_operation op, int warps_count, class in_data_type, class out_data_type>
-__global__ void block_atomic_reduce (const in_data_type *in, out_data_type* out, const unsigned int n)
+__device__ void block_atomic_reduce (const in_data_type *in, out_data_type* out, const unsigned int n)
 {
   out_data_type result = reduce_identity_element<op, out_data_type> ();
 
@@ -135,6 +159,12 @@ __global__ void block_atomic_reduce (const in_data_type *in, out_data_type* out,
       else
         atomicMax (out, result);
     }
+}
+
+template <reduce_operation op, int warps_count, class in_data_type, class out_data_type>
+__global__ void block_atomic_reduce_kernel (const in_data_type *in, out_data_type* out, const unsigned int n)
+{
+  block_atomic_reduce<op, warps_count, in_data_type, out_data_type> (in, out, n);
 }
 
 #endif

@@ -1,6 +1,8 @@
 project(${CMAKE_PROJECT_NAME}_core)
 
 set(CORE_SOURCES
+        include/core/gpu/euler_2d.cuh
+        include/core/gpu/euler_2d_interface.h
         include/core/common/sources.h
         include/core/cpu/sources_holder.h
         include/core/gpu/fdtd_gpu_interface.h
@@ -21,7 +23,7 @@ set(CORE_SOURCES
         include/core/sm/result_extractor.h
         include/core/solver/workspace.h
         src/solver/workspace.cpp
-        include/core/grid/grid.h src/grid.cpp)
+        include/core/grid/grid.h src/grid.cpp src/gpu/euler_2d_gpu_interface.cpp)
 
 find_package(Threads REQUIRED)
 
@@ -34,6 +36,7 @@ if(CUDA_FOUND)
     set(GPU_SOURCES
             include/core/gpu/coloring.cuh
             include/core/gpu/reduce.cuh
+            src/gpu/euler_2d.cu
             src/gpu/coloring.cu
             src/gpu/fdtd.cu
             include/core/gpu/fdtd.cuh)
