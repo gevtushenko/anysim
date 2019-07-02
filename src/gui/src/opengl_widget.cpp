@@ -251,14 +251,11 @@ void opengl_widget::paintGL()
   glDisableVertexAttribArray (static_cast<GLuint> (attribute_coord2d));
   glDisableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
   program->release ();
-
-  // axes.draw (mvp);
   painter.endNativePainting ();
+
+  axes.draw (mvp, painter, width (), height ());
 
   painter.setRenderHint(QPainter::Antialiasing);
   painter.setRenderHint(QPainter::HighQualityAntialiasing);
-  painter.setPen(Qt::black);
-  painter.setFont(QFont("Arial", 16));
-  painter.drawText(0, 0, width(), height(), Qt::AlignCenter, "Hello World!");
   painter.end ();
 }

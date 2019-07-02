@@ -5,6 +5,9 @@
 #include "axes_grid.h"
 #include "text_renderer.h"
 #include "cpp/common_funcs.h"
+#include "core/gpu/coloring.cuh"
+
+#include <QPainter>
 
 void axes_grid::initialize_gl (QObject *parent)
 {
@@ -102,10 +105,12 @@ void axes_grid::prepare (
   glBufferData (GL_ARRAY_BUFFER, sizeof (GLfloat) * total_coords, coords.get (), GL_DYNAMIC_DRAW);
 }
 
-void axes_grid::draw (const QMatrix4x4 &mvp)
+void axes_grid::draw (const QMatrix4x4 &mvp, QPainter &painter, int window_width, int window_height)
 {
   auto &tr = text_renderer::instance ();
   cpp_unreferenced (tr);
+
+  painter.beginNativePainting ();
 
   program->bind();
   program->setUniformValue ("MVP", mvp);
@@ -116,32 +121,54 @@ void axes_grid::draw (const QMatrix4x4 &mvp)
   glLineWidth (2.2);
   glDrawArrays (GL_LINES, 0, total_coords);
   glDisableVertexAttribArray (attribute_coord2d);
+  glBindBuffer (GL_ARRAY_BUFFER, 0);
 
   program->release ();
+  painter.endNativePainting ();
 
-  return;
+  QFont font ("Arial", 10);
+  QFontMetrics fm (font);
+  painter.setPen(Qt::black);
+  painter.setFont(font);
 
   const float dx = x_size / (x_tics - 1);
   const float dy = y_size / (y_tics - 1);
 
   const char *format = "%.2e";
   float *p_coords = coords.get ();
+
+  std::vector<char> buf;
+
   for (unsigned int y = 0; y < y_tics; y+=long_tic_each)
   {
     double number = y * dy;
     int size = std::snprintf (nullptr, 0, format, number);
-    std::vector<char> buf (size + 1);
+    buf.resize (size + 1);
     std::snprintf (buf.data (), buf.size (), format, number);
-    tr.render_text (buf.data (), p_coords[2] - long_tic_size / 4, p_coords[3], x_size, mvp, text_renderer::text_anchor::right_center);
+
+    QVector4D v (p_coords[2] - long_tic_size / 4, p_coords[3], 0.0, 1.0);
+    v = mvp * v;
+
+    const int right_bottom_corner_x = map (v.x (), -1.0, 1.0, 0.0, static_cast<float> (window_width));
+    const int right_bottom_corner_y = map (v.y (),  1.0, -1.0, 0.0, static_cast<float> (window_height)) + fm.height () / 2;
+
+    painter.drawText (QRect (0, 0, right_bottom_corner_x, right_bottom_corner_y), Qt::AlignRight | Qt::AlignBottom, QString::fromStdString (buf.data ()));
     p_coords += 8 * long_tic_each;
   }
   for (unsigned int x = 0; x < x_tics; x+=long_tic_each)
   {
     double number = x * dx;
     int size = std::snprintf (nullptr, 0, format, number);
-    std::vector<char> buf (size + 1);
+    buf.resize (size + 1);
     std::snprintf (buf.data (), buf.size (), format, number);
-    tr.render_text (buf.data (), p_coords[2], p_coords[3] - long_tic_size / 4, y_size, mvp, text_renderer::text_anchor::bottom_center);
+
+    QVector4D v (p_coords[2], p_coords[3] - long_tic_size / 4, 0.0, 1.0);
+    v = mvp * v;
+
+    const int right_bottom_corner_x = map (v.x (), -1.0, 1.0, 0.0, static_cast<float> (window_width));
+    const int right_bottom_corner_y = map (v.y (),  1.0, -1.0, 0.0, static_cast<float> (window_height));
+
+    painter.drawText (QRect (right_bottom_corner_x, right_bottom_corner_y, window_width, window_height), Qt::AlignLeft | Qt::AlignTop, QString::fromStdString (buf.data ()));
     p_coords += 8 * long_tic_each;
   }
 }

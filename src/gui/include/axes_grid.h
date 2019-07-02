@@ -12,6 +12,8 @@
 
 #include <memory>
 
+class QPainter;
+
 class axes_grid : protected QOpenGLFunctions
 {
 public:
@@ -23,7 +25,7 @@ public:
     unsigned int x_tics_arg, unsigned int y_tics,
     float left_x, float right_x,
     float bottom_y, float top_y);
-  void draw (const QMatrix4x4 &mvp);
+  void draw (const QMatrix4x4 &mvp, QPainter &painter, int window_width, int window_height);
 
 private:
   float x_size, y_size;
