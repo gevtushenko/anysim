@@ -6,7 +6,6 @@
 #include "core/pm/project_manager.h"
 #include "cpp/common_funcs.h"
 #include "core/grid/grid.h"
-#include "text_renderer.h"
 
 #include <QDirIterator>
 #include <QWheelEvent>
@@ -64,7 +63,6 @@ void opengl_widget::initializeGL()
   initializeOpenGLFunctions ();
 
   axes.initialize_gl (this);
-  text_renderer::instance ().initialize (this);
 
   program = std::make_unique<QOpenGLShaderProgram> (this);
   program->addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/map_2d.vert");
@@ -85,7 +83,6 @@ float *opengl_widget::get_colors (bool use_gpu)
 void opengl_widget::resizeGL(int width, int height)
 {
   camera_view.resize (width, height);
-  text_renderer::instance ().resize (width, height);
 }
 
 void opengl_widget::update_colors (bool use_gpu)
@@ -198,11 +195,6 @@ void opengl_widget::mouseDoubleClickEvent (QMouseEvent *event)
 
   camera_view.reset ();
   update ();
-}
-
-void opengl_widget::on_close ()
-{
-  text_renderer::instance ().finalize ();
 }
 
 void opengl_widget::mouseMoveEvent (QMouseEvent *event)

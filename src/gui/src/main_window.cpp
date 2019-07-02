@@ -55,7 +55,6 @@ main_window::main_window (project_manager &pm_arg)
   connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));
 
   connect (this, SIGNAL (on_close ()), this, SLOT (halt_simulation ()));
-  connect (this, SIGNAL (on_close ()), graphics->gl, SLOT (on_close ()));
 
   create_actions ();
 

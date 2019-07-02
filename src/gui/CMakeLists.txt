@@ -7,9 +7,8 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
-find_package(Freetype REQUIRED)
 
-include_directories(include ${Qt5Widgets_INCLUDES} ${Qt5OpenGL_INCLUDES} ${FREETYPE_INCLUDE_DIRS})
+include_directories(include ${Qt5Widgets_INCLUDES} ${Qt5OpenGL_INCLUDES})
 add_definitions(${Qt5Widgets_DEFINITIONS} ${Qt5OpenGL_DEFINITIONS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 
@@ -23,8 +22,8 @@ set(GUI_SOURCES
         include/gui_application.h
         src/gui_application.cpp
         include/axes_grid.h
-        src/axes_grid.cpp include/text_renderer.h
-        src/text_renderer.cpp include/camera.h
+        src/axes_grid.cpp
+        include/camera.h
         src/camera.cpp include/model_widget.h
         src/model_widget.cpp
         include/graphics_widget.h
@@ -39,7 +38,7 @@ set(GUI_RESOURCES
         resources/resources.qrc)
 add_library(${PROJECT_NAME} STATIC ${GUI_SOURCES} ${GUI_RESOURCES})
 target_link_libraries(${PROJECT_NAME} ${CMAKE_PROJECT_NAME}_core)
-target_link_libraries(${PROJECT_NAME} Qt5::Widgets Qt5::OpenGL ${FREETYPE_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} Qt5::Widgets Qt5::OpenGL)
 
 if(CUDA_FOUND)
     target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES})

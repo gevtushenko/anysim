@@ -3,7 +3,6 @@
 //
 
 #include "axes_grid.h"
-#include "text_renderer.h"
 #include "cpp/common_funcs.h"
 #include "core/gpu/coloring.cuh"
 
@@ -107,9 +106,6 @@ void axes_grid::prepare (
 
 void axes_grid::draw (const QMatrix4x4 &mvp, QPainter &painter, int window_width, int window_height)
 {
-  auto &tr = text_renderer::instance ();
-  cpp_unreferenced (tr);
-
   painter.beginNativePainting ();
 
   program->bind();

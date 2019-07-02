@@ -1,7 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
     <qresource prefix="/">
-        <file>fonts/opensans/OpenSans-Regular.ttf</file>
-
         <file>shaders/map_2d.frag</file>
         <file>shaders/map_2d.vert</file>
         <file>shaders/axes_grid.frag</file>
