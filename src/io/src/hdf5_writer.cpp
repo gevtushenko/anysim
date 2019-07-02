@@ -22,17 +22,13 @@ public:
   void write_field (
       const void *data,
       const std::string &name,
-      bool use_double_precision,
-      unsigned int nx,
-      unsigned int ny)
+      hid_t type,
+      unsigned int cells_count)
   {
     hsize_t dims[3];
-    dims[0] = nx;
-    dims[1] = ny;
+    dims[0] = cells_count;
 
-    auto type = use_double_precision ? H5T_NATIVE_DOUBLE : H5T_NATIVE_FLOAT;
-
-    hid_t dataspace_id = H5Screate_simple(2, dims, nullptr);
+    hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
     hid_t dataset_id = H5Dcreate2 (file_id, name.c_str (), type, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     H5Dwrite (dataset_id, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
@@ -52,47 +48,34 @@ public:
     {
       const auto &solver_grid = pm.get_grid ();
       const auto &solver_workspace = pm.get_solver_workspace ();
-      const unsigned int nx = solver_grid.nx;
-      const unsigned int ny = solver_grid.ny;
+      const unsigned int cells_count = solver_grid.get_cells_number ();
 
       if (step == 0)
       {
-        const double width = solver_grid.width;
-        const double height = solver_grid.height;
-        const double dx = width / nx;
-        const double dy = height / ny;
+        const std::string v_group_name = "/common/vertices";
+        const std::string t_group_name = "/common/topology";
 
-        std::unique_ptr<float[]> x (new float[(nx + 1) * (ny + 1)]);
-        std::unique_ptr<float[]> y (new float[(nx + 1) * (ny + 1)]);
-
-        for (unsigned int j = 0; j < ny + 1; j++)
-        {
-          for (unsigned int i = 0; i < nx + 1; i++)
+        std::unique_ptr<int[]> topology (new int[cells_count * 4]);
+        for (unsigned int c = 0; c < cells_count; c++)
           {
-            const unsigned int idx = j * (nx + 1) + i;
-
-            x[idx] = dx * i;
-            y[idx] = dy * j;
+            for (unsigned int i = 0; i < 4; i++)
+              topology[4 * c + i] = 4 * c + i;
           }
-        }
 
-        const std::string x_group_name = "/common/x";
-        const std::string y_group_name = "/common/y";
-
-        write_field (x.get (), x_group_name, false, nx + 1, ny + 1);
-        write_field (y.get (), y_group_name, false, nx + 1, ny + 1);
-
-        write_xdmf_xml_head (nx, ny);
+        write_field (solver_grid.get_vertices_data (), v_group_name, H5T_NATIVE_FLOAT, cells_count * 4 * 2);
+        write_field (topology.get (), t_group_name, H5T_NATIVE_INT, cells_count * 4);
+        write_xdmf_xml_head (cells_count);
       }
 
       const bool use_double_precision = pm.is_double_precision_used ();
-      write_xdmf_xml_body (nx, ny, use_double_precision, solver_grid.get_fields_names());
+      hid_t type = use_double_precision ? H5T_NATIVE_DOUBLE : H5T_NATIVE_FLOAT;
+      write_xdmf_xml_body (cells_count, use_double_precision, solver_grid.get_fields_names());
 
       const std::string time_step_group_name = "/simulation/" + std::to_string (step++);
       hid_t time_step_group_id = H5Gcreate2 (file_id, time_step_group_name.c_str (), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
       for (auto &field: solver_grid.get_fields_names())
-        write_field (solver_workspace.get_host_copy (field), time_step_group_name + "/" + field, use_double_precision, nx, ny);
+        write_field (solver_workspace.get_host_copy (field), time_step_group_name + "/" + field, type, cells_count);
 
       H5Gclose (time_step_group_id);
     }
@@ -140,7 +123,7 @@ private:
 #if HDF5_BUILD
   static bool check_if_invalid (const hid_t &id) { return static_cast<int> (id) < 0; }
 
-  void write_xdmf_xml_head (unsigned int nx, unsigned int ny)
+  void write_xdmf_xml_head (unsigned int cells_number)
   {
     std::string hdf_filename = filename + ".h5";
     std::string xmf_filename = filename + ".xmf";
@@ -149,19 +132,20 @@ private:
     fprintf (xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
     fprintf (xmf, "<Xdmf Version=\"2.0\">\n");
     fprintf (xmf, " <Domain>\n");
-    fprintf (xmf, "   <Topology TopologyType=\"2DSMesh\" NumberOfElements=\"%u %u\"/>\n", ny + 1, nx + 1);
-    fprintf (xmf, "   <Geometry GeometryType=\"X_Y\">\n");
-    fprintf (xmf, "     <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
-    fprintf (xmf, "      %s:/common/x\n", hdf_filename.c_str ());
+    fprintf (xmf, "   <Topology TopologyType=\"Quadrilateral\" NumberOfElements=\"%u\">\n", cells_number);
+    fprintf (xmf, "     <DataItem Dimensions=\"%u 4\" NumberType=\"Int\" Format=\"HDF\">\n", cells_number);
+    fprintf (xmf, "      %s:/common/topology\n", hdf_filename.c_str ());
     fprintf (xmf, "     </DataItem>\n");
-    fprintf (xmf, "     <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", ny + 1, nx + 1);
-    fprintf (xmf, "      %s:/common/y\n", hdf_filename.c_str ());
+    fprintf (xmf, "   </Topology>\n");
+    fprintf (xmf, "   <Geometry GeometryType=\"XY\">\n");
+    fprintf (xmf, "     <DataItem Dimensions=\"%u 2\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", cells_number * 4);
+    fprintf (xmf, "      %s:/common/vertices\n", hdf_filename.c_str ());
     fprintf (xmf, "     </DataItem>\n");
     fprintf (xmf, "   </Geometry>\n");
     fprintf (xmf, "   <Grid Name=\"TimeSeries\" GridType=\"Collection\" CollectionType=\"Temporal\">\n");
   }
 
-  void write_xdmf_xml_body (unsigned int nx, unsigned int ny, bool use_double_precision, const std::vector<std::string> &fields)
+  void write_xdmf_xml_body (unsigned int cells_count, bool use_double_precision, const std::vector<std::string> &fields)
   {
     std::string hdf_filename = filename + ".h5";
     std::string xmf_filename = filename + ".xmf";
@@ -174,7 +158,7 @@ private:
     for (auto &field: fields)
     {
       fprintf (xmf, "       <Attribute Name=\"%s\" AttributeType=\"Scalar\" Center=\"Cell\">\n", field.c_str ());
-      fprintf (xmf, "         <DataItem Dimensions=\"%u %u\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n", ny, nx, use_double_precision ? sizeof (double) : sizeof (float));
+      fprintf (xmf, "         <DataItem Dimensions=\"%u\" NumberType=\"Float\" Precision=\"%lu\" Format=\"HDF\">\n", cells_count, use_double_precision ? sizeof (double) : sizeof (float));
       fprintf (xmf, "          %s:/simulation/%lu/%s\n", hdf_filename.c_str (), step, field.c_str ());
       fprintf (xmf, "         </DataItem>\n");
       fprintf (xmf, "       </Attribute>\n");
