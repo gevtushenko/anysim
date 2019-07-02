@@ -71,9 +71,9 @@ inline void fill_vertex_color (float ez, float *colors, float min_field_value, f
 }
 
 template <typename float_type>
-void fill_colors (unsigned int nx, unsigned int ny, const float_type *ez, float *colors, const float *min_max);
+void fill_colors (unsigned int cells_number, const float_type *ez, float *colors, const float *min_max);
 
 template <typename float_type>
-void find_min_max (unsigned int nx, unsigned int ny, const float_type *ez, float *min_max);
+void find_min_max (unsigned int cells_number, const float_type *ez, float *min_max);
 
 #endif // FDTD_COLORING_GPU_H

@@ -105,8 +105,6 @@ void opengl_widget::update_project (project_manager &pm)
   const auto& solver_grid = pm.get_grid ();
 
   is_initialized = false;
-  const unsigned int nx = solver_grid.nx;
-  const unsigned int ny = solver_grid.ny;
 
   x_size = solver_grid.width;
   y_size = solver_grid.height;
@@ -114,7 +112,7 @@ void opengl_widget::update_project (project_manager &pm)
   axes.prepare (0.0, x_size, 0.0, y_size);
   camera_view.update_model_matrix (solver_grid.width, solver_grid.height);
 
-  elements_count = nx * ny;
+  elements_count = solver_grid.get_cells_number ();
 
   colors.reset ();
   colors.reset (new GLfloat[color_data_per_element * elements_count]);
@@ -127,13 +125,10 @@ void opengl_widget::update_project (project_manager &pm)
           1.0, 0.0, 1.0,
       };
 
-  for (unsigned int j = 0; j < ny; j++)
+  for (unsigned int i = 0; i < elements_count; i++)
   {
-    for (unsigned int i = 0; i < nx; i++)
-    {
-      const unsigned int color_offset = static_cast<unsigned int> (color_data_per_element) * (j * nx + i);
-      std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
-    }
+    const unsigned int color_offset = static_cast<unsigned int> (color_data_per_element) * i;
+    std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
   }
 
   /// VBO Handling

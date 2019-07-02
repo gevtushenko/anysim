@@ -36,9 +36,7 @@ private:
   {
     const auto &solver_grid = pm.get_grid ();
     const auto &solver_workspace = pm.get_solver_workspace ();
-    const unsigned int nx = solver_grid.nx;
-    const unsigned int ny = solver_grid.ny;
-    auto yr = work_range::split (ny, thread_id, threads_count);
+    auto cr = work_range::split (solver_grid.get_cells_number (), thread_id, threads_count);
     auto data = reinterpret_cast<const data_type*> (solver_workspace.get (target_name));
 
     if (!data)
@@ -47,23 +45,19 @@ private:
     data_type min = std::numeric_limits<data_type>::max ();
     data_type max = std::numeric_limits<data_type>::min ();
 
-    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
+    for (unsigned int c = cr.chunk_begin; c < cr.chunk_end; c++)
     {
-      for (unsigned int i = 0; i < nx; i++)
-      {
-        const data_type val = data[j * nx + i];
-        if (val > max) max = val;
-        if (val < min) min = val;
-      }
+      const data_type val = data[c];
+      if (val > max) max = val;
+      if (val < min) min = val;
     }
 
     threads.reduce_min (thread_id, min);
     threads.reduce_max (thread_id, max);
 
-    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
-      for (unsigned int i = 0; i < nx; i++)
-        for (unsigned int k = 0; k < 4; k++)
-          fill_vertex_color (data[j * nx + i], colors + 3 * 4 * (j * nx + i) + 3 * k, min, max);
+    for (unsigned int c = cr.chunk_begin; c < cr.chunk_end; c++)
+      for (unsigned int k = 0; k < 4; k++)
+        fill_vertex_color (data[c], colors + 3 * 4 * c + 3 * k, min, max);
   }
 
 public:
@@ -105,8 +99,6 @@ private:
 #ifdef GPU_BUILD
     const auto &solver_grid = pm.get_grid ();
     const auto &solver_workspace = pm.get_solver_workspace ();
-    const unsigned int nx = solver_grid.nx;
-    const unsigned int ny = solver_grid.ny;
     auto data = reinterpret_cast<const data_type*> (solver_workspace.get (target_name));
 
     if (!data)
@@ -117,8 +109,8 @@ private:
       if (!min_max)
         cudaMalloc (&min_max, 2 * sizeof (float));
 
-      find_min_max (nx, ny, data, min_max);
-      fill_colors (nx, ny, data, colors, min_max);
+      find_min_max (solver_grid.get_cells_number (), data, min_max);
+      fill_colors (solver_grid.get_cells_number (), data, colors, min_max);
     }
 #else
     cpp_unreferenced (thread_id);
