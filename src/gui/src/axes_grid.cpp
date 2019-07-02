@@ -8,6 +8,11 @@
 
 #include <QPainter>
 
+axes_grid::axes_grid () : QOpenGLFunctions (), font ("Arial", 10)
+{
+
+}
+
 void axes_grid::initialize_gl (QObject *parent)
 {
   initializeOpenGLFunctions ();
@@ -25,16 +30,21 @@ void axes_grid::initialize_gl (QObject *parent)
 }
 
 void axes_grid::prepare (
-  unsigned int x_tics_arg,
-  unsigned int y_tics_arg,
-  float left_x,
-  float right_x,
-  float bottom_y,
-  float top_y)
+  float left_x_arg,
+  float right_x_arg,
+  float bottom_y_arg,
+  float top_y_arg)
 {
-  x_size = (right_x - left_x); y_size = (top_y - bottom_y);
-  x_tics = x_tics_arg; y_tics = y_tics_arg;
+  top_y = top_y_arg;
+  left_x = left_x_arg;
+  right_x = right_x_arg;
+  bottom_y = bottom_y_arg;
+  x_size = (right_x - left_x);
+  y_size = (top_y - bottom_y);
+}
 
+void axes_grid::init_data ()
+{
   const unsigned int points_per_line = 2;
   const unsigned int coords_per_point = 2;
   const unsigned int coords_per_oxs = 2 * x_tics * points_per_line * coords_per_point;
@@ -104,9 +114,62 @@ void axes_grid::prepare (
   glBufferData (GL_ARRAY_BUFFER, sizeof (GLfloat) * total_coords, coords.get (), GL_DYNAMIC_DRAW);
 }
 
-void axes_grid::draw (const QMatrix4x4 &mvp, QPainter &painter, int window_width, int window_height)
+void axes_grid::resize (int window_width_arg, int window_height_arg)
 {
+  window_width = window_width_arg;
+  window_height = window_height_arg;
+}
+
+void axes_grid::draw (const QMatrix4x4 &mvp, QPainter &painter)
+{
+  QFontMetrics fm (font);
   painter.beginNativePainting ();
+
+  const char *format = "%.2e";
+
+  const double x_max_number = x_size;
+
+  QVector4D lbc (left_x, bottom_y, 0.0, 1.0);
+  QVector4D rtc (right_x, top_y, 0.0, 1.0);
+
+  lbc = mvp * lbc;
+  rtc = mvp * rtc;
+
+  // TODO Get ticks count
+  unsigned int new_tick_count_x = 1;
+  unsigned int new_tick_count_y = 1;
+
+  {
+    int size = std::snprintf (nullptr, 0, format, x_max_number);
+    buf.resize (size + 1);
+    std::snprintf (buf.data (), buf.size (), format, x_max_number);
+
+    const int max_text_height = fm.height ();
+    const int max_text_width = fm.width (QString::fromStdString (buf.data ()));
+
+    const float right_bottom_corner_x = map (rtc.x (), -1.0, 1.0, 0.0, static_cast<float> (window_width));
+    const float right_bottom_corner_y = map (lbc.y (), -1.0, 1.0, 0.0, static_cast<float> (window_height));
+
+    const float left_top_corner_x = map (lbc.x (), -1.0, 1.0, 0.0, static_cast<float> (window_width));
+    const float left_top_corner_y = map (rtc.y (), -1.0, 1.0, 0.0, static_cast<float> (window_height));
+
+    const int screen_width = (right_bottom_corner_x - left_top_corner_x);
+    const int screen_height = (left_top_corner_y - right_bottom_corner_y);
+
+    const int text_fits_y = screen_height / max_text_height;
+    const int text_fits_x = screen_width / max_text_width;
+
+    new_tick_count_x = long_tic_each * text_fits_x / 2;
+    new_tick_count_y = long_tic_each * text_fits_y / 2;
+  }
+
+  if (new_tick_count_x != x_tics || new_tick_count_y != y_tics)
+  {
+    x_tics = new_tick_count_x;
+    y_tics = new_tick_count_y;
+
+    init_data ();
+  }
 
   program->bind();
   program->setUniformValue ("MVP", mvp);
@@ -122,23 +185,18 @@ void axes_grid::draw (const QMatrix4x4 &mvp, QPainter &painter, int window_width
   program->release ();
   painter.endNativePainting ();
 
-  QFont font ("Arial", 10);
-  QFontMetrics fm (font);
   painter.setPen(Qt::black);
   painter.setFont(font);
 
   const float dx = x_size / (x_tics - 1);
   const float dy = y_size / (y_tics - 1);
 
-  const char *format = "%.2e";
   float *p_coords = coords.get ();
-
-  std::vector<char> buf;
 
   for (unsigned int y = 0; y < y_tics; y+=long_tic_each)
   {
-    double number = y * dy;
-    int size = std::snprintf (nullptr, 0, format, number);
+    const double number = y * dy;
+    const int size = std::snprintf (nullptr, 0, format, number);
     buf.resize (size + 1);
     std::snprintf (buf.data (), buf.size (), format, number);
 
@@ -151,10 +209,11 @@ void axes_grid::draw (const QMatrix4x4 &mvp, QPainter &painter, int window_width
     painter.drawText (QRect (0, 0, right_bottom_corner_x, right_bottom_corner_y), Qt::AlignRight | Qt::AlignBottom, QString::fromStdString (buf.data ()));
     p_coords += 8 * long_tic_each;
   }
+  p_coords = coords.get () + 8 * y_tics;
   for (unsigned int x = 0; x < x_tics; x+=long_tic_each)
   {
-    double number = x * dx;
-    int size = std::snprintf (nullptr, 0, format, number);
+    const double number = x * dx;
+    const int size = std::snprintf (nullptr, 0, format, number);
     buf.resize (size + 1);
     std::snprintf (buf.data (), buf.size (), format, number);
 

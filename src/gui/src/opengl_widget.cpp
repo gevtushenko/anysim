@@ -83,6 +83,7 @@ float *opengl_widget::get_colors (bool use_gpu)
 void opengl_widget::resizeGL(int width, int height)
 {
   camera_view.resize (width, height);
+  axes.resize (width, height);
 }
 
 void opengl_widget::update_colors (bool use_gpu)
@@ -110,7 +111,7 @@ void opengl_widget::update_project (project_manager &pm)
   x_size = solver_grid.width;
   y_size = solver_grid.height;
 
-  axes.prepare (44, 44, 0.0, x_size, 0.0, y_size);
+  axes.prepare (0.0, x_size, 0.0, y_size);
   camera_view.update_model_matrix (solver_grid.width, solver_grid.height);
 
   elements_count = nx * ny;
@@ -215,7 +216,11 @@ void opengl_widget::mouseMoveEvent (QMouseEvent *event)
 void opengl_widget::paintGL()
 {
   if (!is_initialized)
+  {
+    glClear (GL_COLOR_BUFFER_BIT);
+    glClearColor (1.0f, 1.0f, 1.0f, 1.0f);
     return;
+  }
 
   QPainter painter (this);
   painter.beginNativePainting ();
@@ -245,7 +250,7 @@ void opengl_widget::paintGL()
   program->release ();
   painter.endNativePainting ();
 
-  axes.draw (mvp, painter, width (), height ());
+  axes.draw (mvp, painter);
 
   painter.setRenderHint(QPainter::Antialiasing);
   painter.setRenderHint(QPainter::HighQualityAntialiasing);
