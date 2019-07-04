@@ -147,6 +147,9 @@ private:
 
   void write_xdmf_xml_body (unsigned int cells_count, bool use_double_precision, const std::vector<std::string> &fields)
   {
+    if (!xmf)
+      return;
+
     std::string hdf_filename = filename + ".h5";
     std::string xmf_filename = filename + ".xmf";
 
@@ -168,6 +171,9 @@ private:
 
   void write_xdmf_xml_tail ()
   {
+    if (!xmf)
+      return;
+
     fprintf (xmf, "   </Grid>\n");
     fprintf (xmf, " </Domain>\n");
     fprintf (xmf, "</Xdmf>\n");
