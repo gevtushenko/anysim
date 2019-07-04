@@ -6,10 +6,12 @@ class grid_geometry;
 
 template <class float_type>
 float_type euler_2d_calculate_dt_gpu_interface (
-  unsigned int n_cells,
   float_type gamma,
   float_type cfl,
-  float_type min_len,
+
+  const grid_topology &topology,
+  const grid_geometry &geometry,
+
   float_type *workspace,
   const float_type *p_rho,
   const float_type *p_u,

@@ -8,10 +8,12 @@
 
 template <class float_type>
 float_type euler_2d_calculate_dt_gpu_interface (
-    unsigned int n_cells,
     float_type gamma,
     float_type cfl,
-    float_type min_len,
+
+    const grid_topology &topology,
+    const grid_geometry &geometry,
+
     float_type *workspace,
     const float_type *p_rho,
     const float_type *p_u,
@@ -19,9 +21,9 @@ float_type euler_2d_calculate_dt_gpu_interface (
     const float_type *p_p)
 {
 #ifdef GPU_BUILD
-  return euler_2d_calculate_dt_gpu (n_cells, gamma, cfl, min_len, workspace, p_rho, p_u, p_v, p_p);
+  return euler_2d_calculate_dt_gpu (gamma, cfl, topology, geometry, workspace, p_rho, p_u, p_v, p_p);
 #else
-  cpp_unreferenced (n_cells, gamma, cfl, min_len, workspace, p_rho, p_u, p_v, p_p);
+  cpp_unreferenced (gamma, cfl, topology, geometry, workspace, p_rho, p_u, p_v, p_p);
   return {};
 #endif
 }
@@ -52,7 +54,8 @@ void euler_2d_calculate_next_time_step_gpu_interface (
 
 #define GEN_EULER_2D_INTERFACE_INSTANCE_FOR(type)                 \
   template type euler_2d_calculate_dt_gpu_interface <type>(       \
-      unsigned int n_cells, type gamma, type cfl, type min_len,   \
+      type gamma, type cfl,                                       \
+      const grid_topology &, const grid_geometry &,               \
       type *workspace, const type *p_rho, const type *p_u,        \
       const type *p_v,const type *p_p);                           \
   template void euler_2d_calculate_next_time_step_gpu_interface ( \

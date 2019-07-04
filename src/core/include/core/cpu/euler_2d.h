@@ -106,9 +106,7 @@ public:
         solver_grid_arg->create_field<float_type> ("gpu_v",   memory_holder_type::device, 2);
         solver_grid_arg->create_field<float_type> ("gpu_p",   memory_holder_type::device, 2);
         solver_workspace.allocate ("gpu_edge_length", memory_holder_type::device, 4 * sizeof (float_type));
-        solver_workspace.allocate ("euler_workspace", memory_holder_type::device, sizeof (float_type));
-
-        cudaMemcpy (solver_workspace.get ("gpu_edge_length"), edge_lengths, 4 * sizeof (float_type), cudaMemcpyHostToDevice);
+        solver_workspace.allocate ("euler_workspace", memory_holder_type::device, 2 * sizeof (float_type));
       }
 #endif
 
@@ -188,6 +186,10 @@ public:
   float_type calculate_dt_cpu (
     unsigned int thread_id,
     unsigned int total_threads,
+
+    const grid_topology &topology,
+    const grid_geometry &geometry,
+
     const float_type *p_rho,
     const float_type *p_u,
     const float_type *p_v,
@@ -195,9 +197,6 @@ public:
   {
     float_type max_speed = std::numeric_limits<float_type>::min ();
     float_type min_len = std::numeric_limits<float_type>::max ();
-
-    const auto topology = solver_grid->gen_topology_wrapper ();
-    const auto geometry = solver_grid->gen_geometry_wrapper ();
 
     auto yr = work_range::split (solver_grid->get_cells_number (), thread_id, total_threads);
 
@@ -228,6 +227,10 @@ public:
   float_type calculate_dt (
     unsigned int thread_id,
     unsigned int total_threads,
+
+    const grid_topology &topology,
+    const grid_geometry &geometry,
+
     const float_type *p_rho,
     const float_type *p_u,
     const float_type *p_v,
@@ -240,10 +243,7 @@ public:
       if (is_main_thread (thread_id))
       {
         dt = euler_2d_calculate_dt_gpu_interface (
-            nx * ny,
-            gamma,
-            cfl,
-            std::min (dx, dy),
+            gamma, cfl, topology, geometry,
             reinterpret_cast<float_type *> (solver_workspace.get ("euler_workspace")),
             p_rho, p_u, p_v, p_p);
       }
@@ -253,7 +253,7 @@ public:
     else
 #endif
     {
-      return calculate_dt_cpu (thread_id, total_threads, p_rho, p_u, p_v, p_p);
+      return calculate_dt_cpu (thread_id, total_threads, topology, geometry, p_rho, p_u, p_v, p_p);
     }
   }
 
@@ -261,6 +261,10 @@ public:
       unsigned int thread_id,
       unsigned int total_threads,
       float_type dt,
+
+      const grid_topology &topology,
+      const grid_geometry &geometry,
+
       const float_type *p_rho,
       float_type *p_rho_next,
       const float_type *p_u,
@@ -270,9 +274,6 @@ public:
       const float_type *p_p,
       float_type *p_p_next)
   {
-    const auto topology = solver_grid->gen_topology_wrapper ();
-    const auto geometry = solver_grid->gen_geometry_wrapper ();
-
     auto yr = work_range::split (solver_grid->get_cells_number (), thread_id, total_threads);
 
     for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
@@ -294,14 +295,17 @@ public:
     auto p_p        = reinterpret_cast<float_type *> (solver_workspace.get (prefix + "p",   (step + 0) % 2));
     auto p_p_next   = reinterpret_cast<float_type *> (solver_workspace.get (prefix + "p",   (step + 1) % 2));
 
-    const float_type dt = calculate_dt (thread_id, total_threads, p_rho, p_u, p_v, p_p);
+    const auto topology = solver_grid->gen_topology_wrapper ();
+    const auto geometry = solver_grid->gen_geometry_wrapper ();
+
+    const float_type dt = calculate_dt (thread_id, total_threads, topology, geometry, p_rho, p_u, p_v, p_p);
 
 #ifdef GPU_BUILD
     if (use_gpu)
     {
       if (is_main_thread (thread_id))
         euler_2d_calculate_next_time_step_gpu_interface (
-            dt, gamma, solver_grid->gen_topology_wrapper (), solver_grid->gen_geometry_wrapper (),
+            dt, gamma, topology, geometry,
             p_rho, p_rho_next, p_u, p_u_next,
             p_v, p_v_next, p_p, p_p_next);
     }
@@ -310,6 +314,7 @@ public:
     {
       solve_cpu (
           thread_id, total_threads, dt,
+          topology, geometry,
           p_rho, p_rho_next, p_u, p_u_next, p_v,
           p_v_next, p_p, p_p_next);
     }

@@ -7,62 +7,85 @@
 
 template <class float_type, int warps_count>
 __global__ void euler_2d_calculate_dt_gpu_kernel (
-  unsigned int n_cells,
   float_type gamma,
+
+  const grid_topology topology,
+  const grid_geometry geometry,
+
   float_type *workspace,
   const float_type *p_rho,
   const float_type *p_u,
   const float_type *p_v,
   const float_type *p_p)
 {
-  const unsigned int first_idx = blockDim.x * blockIdx.x + threadIdx.x;
+  const unsigned int first_cell_id = blockDim.x * blockIdx.x + threadIdx.x;
   const unsigned int stride = blockDim.x * gridDim.x;
 
-  float_type max_speed {};
+  float_type min_len = std::numeric_limits<float_type>::max ();
+  float_type max_speed = std::numeric_limits<float_type>::min ();
 
-  for (unsigned int idx = first_idx; idx < n_cells; idx += stride)
+  for (unsigned int cell_id = first_cell_id; cell_id < topology.get_cells_count (); cell_id += stride)
     {
-      const float_type rho = p_rho[idx];
-      const float_type p = p_p[idx];
+      const float_type rho = p_rho[cell_id];
+      const float_type p = p_p[cell_id];
       const float_type a = speed_of_sound_in_gas (gamma, p, rho);
-      const float_type u = p_u[idx];
-      const float_type v = p_v[idx];
+      const float_type u = p_u[cell_id];
+      const float_type v = p_v[cell_id];
 
       max_speed = fmax (max_speed, fmax (fabs (u + a), fabs (u - a)));
       max_speed = fmax (max_speed, fmax (fabs (v + a), fabs (v - a)));
+
+      for (unsigned int edge_id = 0; edge_id < topology.get_edges_count (cell_id); edge_id++)
+      {
+        const float_type edge_len = geometry.get_edge_area (cell_id, edge_id);
+        if (edge_len < min_len)
+          min_len = edge_len;
+      }
     }
 
+  min_len   = block_reduce <float_type, reduce_operation::min, warps_count> (min_len);
   max_speed = block_reduce <float_type, reduce_operation::max, warps_count> (max_speed);
 
   if (threadIdx.x == 0)
-    atomicMax (workspace, max_speed);
+  {
+    atomicMin (workspace + 0, min_len);
+    atomicMax (workspace + 1, max_speed);
+  }
 }
 
 template <class float_type>
 float_type euler_2d_calculate_dt_gpu (
-  unsigned int n_cells,
   float_type gamma,
   float_type cfl,
-  float_type min_len,
+
+  const grid_topology &topology,
+  const grid_geometry &geometry,
+
   float_type *workspace,
   const float_type *p_rho,
   const float_type *p_u,
   const float_type *p_v,
   const float_type *p_p)
 {
-  cudaMemset (workspace, 0, sizeof (float_type));
+  float_type cpu_workspace_copy[2];
+  float_type &min_len = cpu_workspace_copy[0];
+  float_type &max_speed = cpu_workspace_copy[1];
+
+  min_len = std::numeric_limits<float_type>::max ();
+  max_speed = std::numeric_limits<float_type>::min ();
+
+  cudaMemcpy (workspace, cpu_workspace_copy, 2 * sizeof (float_type), cudaMemcpyHostToDevice);
 
   constexpr int warps_per_block = 32;
   constexpr int warp_size = 32;
   constexpr int threads_per_block = warps_per_block * warp_size;
 
-  const int blocks = std::min ((n_cells + threads_per_block - 1) / threads_per_block, 1024u);
+  const int blocks = std::min ((topology.get_cells_count () + threads_per_block - 1) / threads_per_block, 1024u);
 
   euler_2d_calculate_dt_gpu_kernel<float_type, warp_size> <<<blocks, threads_per_block>>> (
-      n_cells, gamma, workspace, p_rho, p_u, p_v, p_p);
+      gamma, topology, geometry, workspace, p_rho, p_u, p_v, p_p);
 
-  float_type max_speed {};
-  cudaMemcpy (&max_speed, workspace, sizeof (float_type), cudaMemcpyDeviceToHost);
+  cudaMemcpy (cpu_workspace_copy, workspace, 2 * sizeof (float_type), cudaMemcpyDeviceToHost);
 
   float_type new_dt = cfl * min_len / max_speed;
   return new_dt;
@@ -120,8 +143,9 @@ void euler_2d_calculate_next_time_step_gpu (
 
 #define GEN_EULER_2D_INSTANCE_FOR(type)                     \
   template type euler_2d_calculate_dt_gpu <type>(           \
-      unsigned int n_cells, type gamma, type cfl,           \
-      type min_len, type *workspace, const type *p_rho,     \
+      type gamma, type cfl,                                 \
+      const grid_topology &, const grid_geometry &,         \
+      type *workspace, const type *p_rho,                   \
       const type *p_u, const type *p_v, const type *p_p);   \
   template void euler_2d_calculate_next_time_step_gpu (     \
       type dt, type gamma,                                  \
