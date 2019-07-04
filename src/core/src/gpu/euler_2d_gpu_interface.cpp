@@ -28,12 +28,12 @@ float_type euler_2d_calculate_dt_gpu_interface (
 
 template <class float_type>
 void euler_2d_calculate_next_time_step_gpu_interface (
-    unsigned int nx,
-    unsigned int ny,
     float_type dt,
     float_type gamma,
-    float_type cell_area,
-    const float_type *edge_lengths,
+
+    const grid_topology &topology,
+    const grid_geometry &geometry,
+
     const float_type *p_rho,
     float_type *p_rho_next,
     const float_type *p_u,
@@ -44,9 +44,9 @@ void euler_2d_calculate_next_time_step_gpu_interface (
     float_type *p_p_next)
 {
 #ifdef GPU_BUILD
-  euler_2d_calculate_next_time_step_gpu (nx, ny, dt, gamma, cell_area, edge_lengths, p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next);
+  euler_2d_calculate_next_time_step_gpu (dt, gamma, topology, geometry, p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next);
 #else
-  cpp_unreferenced (nx, ny, dt, gamma, cell_area, edge_lengths, p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next);
+  cpp_unreferenced (nx, ny, dt, gamma, cell_area, edge_lengths, p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next, topology, geometry);
 #endif
 }
 
@@ -56,8 +56,8 @@ void euler_2d_calculate_next_time_step_gpu_interface (
       type *workspace, const type *p_rho, const type *p_u,        \
       const type *p_v,const type *p_p);                           \
   template void euler_2d_calculate_next_time_step_gpu_interface ( \
-      unsigned int nx, unsigned int ny, type dt, type gamma,      \
-      type cell_area, const type *edge_lengths,                   \
+      type dt, type gamma,                                        \
+      const grid_topology &, const grid_geometry &,               \
       const type *p_rho, type *p_rho_next,                        \
       const type *p_u, type *p_u_next, const type *p_v,           \
       type *p_v_next, const type *p_p, type *p_p_next);

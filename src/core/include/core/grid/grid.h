@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "core/common/common_defs.h"
 #include "core/solver/workspace.h"
 
 enum class side_type
@@ -21,7 +22,7 @@ enum class boundary_type
   mirror, periodic, none
 };
 
-inline unsigned int side_to_id (side_type side)
+inline CPU_GPU unsigned int side_to_id (side_type side)
 {
   switch (side)
   {
@@ -35,7 +36,7 @@ inline unsigned int side_to_id (side_type side)
   return 0;
 }
 
-inline unsigned int boundary_to_id (boundary_type boundary)
+inline CPU_GPU unsigned int boundary_to_id (boundary_type boundary)
 {
   switch (boundary)
   {
@@ -48,7 +49,7 @@ inline unsigned int boundary_to_id (boundary_type boundary)
 }
 
 constexpr unsigned int unknown_neighbor_id = std::numeric_limits<unsigned int>::max () - 1;
-inline bool does_neighbor_exist (unsigned int cell_id) { return cell_id != unknown_neighbor_id; }
+inline CPU_GPU bool does_neighbor_exist (unsigned int cell_id) { return cell_id != unknown_neighbor_id; }
 
 class vertices
 {
@@ -76,6 +77,156 @@ private:
   std::unique_ptr<float[]> v;
 };
 
+inline CPU_GPU bool is_edge_left (unsigned int edge_id) { return edge_id == side_to_id (side_type::left); }
+inline CPU_GPU bool is_edge_bottom (unsigned int edge_id) { return edge_id == side_to_id (side_type::bottom); }
+inline CPU_GPU bool is_edge_right (unsigned int edge_id) { return edge_id == side_to_id (side_type::right); }
+inline CPU_GPU bool is_edge_top (unsigned int edge_id) { return edge_id == side_to_id (side_type::top); }
+
+class grid_topology
+{
+public:
+  void initialize_for_structured_uniform_grid (
+    unsigned int nx_arg,
+    unsigned int ny_arg,
+    unsigned int bc_left,
+    unsigned int bc_bottom,
+    unsigned int bc_right,
+    unsigned int bc_top)
+  {
+    boundary_conditions[side_to_id (side_type::left)] = bc_left;
+    boundary_conditions[side_to_id (side_type::bottom)] = bc_bottom;
+    boundary_conditions[side_to_id (side_type::right)] = bc_right;
+    boundary_conditions[side_to_id (side_type::top)] = bc_top;
+
+    nx = nx_arg;
+    ny = ny_arg;
+    n_cells = nx * ny;
+
+    complex_topology = nullptr;
+    complex_topology_mapping = nullptr;
+  }
+
+  CPU_GPU unsigned int get_cells_count () const { return n_cells; }
+  CPU_GPU unsigned int get_cell_x (unsigned int cell_id) const { return cell_id % nx; }
+  CPU_GPU unsigned int get_cell_y (unsigned int cell_id) const { return cell_id / nx; }
+  CPU_GPU unsigned int get_cell_id (unsigned int x, unsigned int y) const { return y * nx + x; }
+
+  CPU_GPU unsigned int get_edges_count (unsigned int /* cell_id */) const { return 4; }
+
+  CPU_GPU unsigned int get_neighbor_id (unsigned int cell_id, unsigned int edge_id) const
+  {
+    const unsigned int x = get_cell_x (cell_id);
+    const unsigned int y = get_cell_y (cell_id);
+
+    if (is_edge_left (edge_id))
+      return is_cell_on_left_boundary (x) ? get_left_boundary_neighbor (x, y) : get_cell_id (x - 1, y);
+    else if (is_edge_bottom (edge_id))
+      return is_cell_on_bottom_boundary (y) ? get_bottom_boundary_neighbor (x, y) : get_cell_id (x, y - 1);
+    else if (is_edge_right (edge_id))
+      return is_cell_on_right_boundary (x) ? get_right_boundary_neighbor (x, y) : get_cell_id (x + 1, y);
+    else if (is_edge_top (edge_id))
+      return is_cell_on_top_boundary (y) ? get_top_boundary_neighbor (x, y) : get_cell_id (x, y + 1);
+
+    return unknown_neighbor_id;
+  }
+
+private:
+  CPU_GPU bool is_complex () const
+  {
+    return complex_topology && complex_topology_mapping;
+  }
+
+  CPU_GPU bool is_cell_on_left_boundary (unsigned int x) const { return x == 0; }
+  CPU_GPU bool is_cell_on_right_boundary (unsigned int x) const { return x == nx - 1; }
+  CPU_GPU bool is_cell_on_bottom_boundary (unsigned int y) const { return y == 0; }
+  CPU_GPU bool is_cell_on_top_boundary (unsigned int y) const { return y == ny - 1; }
+
+  CPU_GPU unsigned int get_left_boundary_neighbor (unsigned int x, unsigned int y) const
+  {
+    const auto bc = boundary_conditions[side_to_id (side_type::left)];
+    if (bc == boundary_to_id (boundary_type::mirror))
+      return get_cell_id (x, y);
+    else if (bc == boundary_to_id (boundary_type::periodic))
+      return get_cell_id (nx - 1, y);
+
+    /// none
+    return unknown_neighbor_id;
+  }
+
+  CPU_GPU unsigned int get_bottom_boundary_neighbor (unsigned int x, unsigned int y) const
+  {
+    const auto bc = boundary_conditions[side_to_id (side_type::bottom)];
+    if (bc == boundary_to_id (boundary_type::mirror))
+      return get_cell_id (x, y);
+    else if (bc == boundary_to_id (boundary_type::periodic))
+      return get_cell_id (x, ny - 1);
+
+    /// none
+    return unknown_neighbor_id;
+  }
+
+  CPU_GPU unsigned int get_right_boundary_neighbor (unsigned int x, unsigned int y) const
+  {
+    const auto bc = boundary_conditions[side_to_id (side_type::right)];
+    if (bc == boundary_to_id (boundary_type::mirror))
+      return get_cell_id (x, y);
+    else if (bc == boundary_to_id (boundary_type::periodic))
+      return get_cell_id (0, y);
+
+    /// none
+    return unknown_neighbor_id;
+  }
+
+  CPU_GPU unsigned int get_top_boundary_neighbor (unsigned int x, unsigned int y) const
+  {
+    const auto bc = boundary_conditions[side_to_id (side_type::top)];
+    if (bc == boundary_to_id (boundary_type::mirror))
+      return get_cell_id (x, y);
+    else if (bc == boundary_to_id (boundary_type::periodic))
+      return get_cell_id (x, 0);
+
+    /// none
+    return unknown_neighbor_id;
+  }
+
+private:
+  unsigned int n_cells;
+  unsigned int nx, ny;
+  unsigned int *complex_topology;
+  unsigned int *complex_topology_mapping;
+  unsigned int boundary_conditions[4];
+};
+
+class grid_geometry
+{
+public:
+  void initialize_for_structured_uniform_grid (
+    float dx_arg, float dy_arg)
+  {
+    dx = dx_arg;
+    dy = dy_arg;
+  }
+
+  CPU_GPU float get_cell_volume (unsigned int /* cell_id */) const { return dx * dy; }
+
+  CPU_GPU float get_edge_area (unsigned int /*cell_id*/, unsigned int edge_id) const
+  {
+    if (is_edge_left (edge_id) || is_edge_right (edge_id))
+      return dx;
+
+    if (is_edge_bottom (edge_id) || is_edge_top (edge_id))
+      return dy;
+
+    return {};
+  }
+
+private:
+  float dx, dy;
+};
+
+static_assert(std::is_pod<grid_topology>::value, "Class grid_topology has to be POD");
+static_assert(std::is_pod<grid_geometry>::value, "Class grid_geometry has to be POD");
+
 class grid
 {
 public:
@@ -94,12 +245,6 @@ public:
   , dy (height / ny)
   , solver_workspace (workspace_arg)
   {
-    // TODO Move to configuration
-    boundary_conditions[side_to_id (side_type::left)]   = boundary_to_id (boundary_type::periodic);
-    boundary_conditions[side_to_id (side_type::bottom)] = boundary_to_id (boundary_type::mirror);
-    boundary_conditions[side_to_id (side_type::right)]  = boundary_to_id (boundary_type::periodic);
-    boundary_conditions[side_to_id (side_type::top)]    = boundary_to_id (boundary_type::mirror);
-
     vertices_2d.allocate (nx * ny * vertices_per_cell, coordinates_per_vertex);
     float *v = vertices_2d.get_vertices ();
 
@@ -133,98 +278,23 @@ public:
 
   const float *get_vertices_data () const { return vertices_2d.get_vertices (); }
 
-  unsigned int get_cell_x (unsigned int cell_id) const { return cell_id % nx; }
-  unsigned int get_cell_y (unsigned int cell_id) const { return cell_id / nx; }
-  unsigned int get_cell_id (unsigned int x, unsigned int y) const { return y * nx + x; }
-
-  unsigned int get_edges_count (unsigned int /* cell_id */) const { return 4; }
-
-  unsigned int get_neighbor_id (unsigned int cell_id, unsigned int edge_id) const
+  grid_geometry gen_geometry_wrapper () const
   {
-    const unsigned int x = get_cell_x (cell_id);
-    const unsigned int y = get_cell_y (cell_id);
-
-    if (is_edge_left (edge_id))
-      return is_cell_on_left_boundary (x) ? get_left_boundary_neighbor (x, y) : get_cell_id (x - 1, y);
-    else if (is_edge_bottom (edge_id))
-      return is_cell_on_bottom_boundary (y) ? get_bottom_boundary_neighbor (x, y) : get_cell_id (x, y - 1);
-    else if (is_edge_right (edge_id))
-      return is_cell_on_right_boundary (x) ? get_right_boundary_neighbor (x, y) : get_cell_id (x + 1, y);
-    else if (is_edge_top (edge_id))
-      return is_cell_on_top_boundary (y) ? get_top_boundary_neighbor (x, y) : get_cell_id (x, y + 1);
-
-    return unknown_neighbor_id;
+    grid_geometry geometry;
+    geometry.initialize_for_structured_uniform_grid (dx, dy);
+    return geometry;
   }
 
-  float get_cell_volume (unsigned int /* cell_id */) const { return dx * dy; }
-
-  float get_edge_area (unsigned int edge_id) const
+  grid_topology gen_topology_wrapper () const
   {
-    if (is_edge_left (edge_id) || is_edge_right (edge_id))
-      return dx;
-
-    if (is_edge_bottom (edge_id) || is_edge_top (edge_id))
-      return dy;
-
-    return {};
-  }
-
-private:
-  bool is_edge_left (unsigned int edge_id) const { return edge_id == side_to_id (side_type::left); }
-  bool is_edge_bottom (unsigned int edge_id) const { return edge_id == side_to_id (side_type::bottom); }
-  bool is_edge_right (unsigned int edge_id) const { return edge_id == side_to_id (side_type::right); }
-  bool is_edge_top (unsigned int edge_id) const { return edge_id == side_to_id (side_type::top); }
-  bool is_cell_on_left_boundary (unsigned int x) const { return x == 0; }
-  bool is_cell_on_right_boundary (unsigned int x) const { return x == nx - 1; }
-  bool is_cell_on_bottom_boundary (unsigned int y) const { return y == 0; }
-  bool is_cell_on_top_boundary (unsigned int y) const { return y == ny - 1; }
-
-  unsigned int get_left_boundary_neighbor (unsigned int x, unsigned int y) const
-  {
-    const auto bc = boundary_conditions[side_to_id (side_type::left)];
-    if (bc == boundary_to_id (boundary_type::mirror))
-      return get_cell_id (x, y);
-    else if (bc == boundary_to_id (boundary_type::periodic))
-      return get_cell_id (nx - 1, y);
-
-    /// none
-    return unknown_neighbor_id;
-  }
-
-  unsigned int get_bottom_boundary_neighbor (unsigned int x, unsigned int y) const
-  {
-    const auto bc = boundary_conditions[side_to_id (side_type::bottom)];
-    if (bc == boundary_to_id (boundary_type::mirror))
-      return get_cell_id (x, y);
-    else if (bc == boundary_to_id (boundary_type::periodic))
-      return get_cell_id (x, ny - 1);
-
-    /// none
-    return unknown_neighbor_id;
-  }
-
-  unsigned int get_right_boundary_neighbor (unsigned int x, unsigned int y) const
-  {
-    const auto bc = boundary_conditions[side_to_id (side_type::right)];
-    if (bc == boundary_to_id (boundary_type::mirror))
-      return get_cell_id (x, y);
-    else if (bc == boundary_to_id (boundary_type::periodic))
-      return get_cell_id (0, y);
-
-    /// none
-    return unknown_neighbor_id;
-  }
-
-  unsigned int get_top_boundary_neighbor (unsigned int x, unsigned int y) const
-  {
-    const auto bc = boundary_conditions[side_to_id (side_type::top)];
-    if (bc == boundary_to_id (boundary_type::mirror))
-      return get_cell_id (x, y);
-    else if (bc == boundary_to_id (boundary_type::periodic))
-      return get_cell_id (x, 0);
-
-    /// none
-    return unknown_neighbor_id;
+    grid_topology topology;
+    topology.initialize_for_structured_uniform_grid (
+      nx, ny,
+      boundary_to_id (boundary_type::periodic),
+      boundary_to_id (boundary_type::mirror),
+      boundary_to_id (boundary_type::periodic),
+      boundary_to_id (boundary_type::mirror));
+    return topology;
   }
 
 public:
@@ -243,7 +313,6 @@ public:
 private:
   workspace &solver_workspace;
   std::vector<std::string> fields_names;
-  unsigned int boundary_conditions[4];
   vertices vertices_2d;
 };
 

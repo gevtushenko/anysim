@@ -196,6 +196,9 @@ public:
     float_type max_speed = std::numeric_limits<float_type>::min ();
     float_type min_len = std::numeric_limits<float_type>::max ();
 
+    const auto topology = solver_grid->gen_topology_wrapper ();
+    const auto geometry = solver_grid->gen_geometry_wrapper ();
+
     auto yr = work_range::split (solver_grid->get_cells_number (), thread_id, total_threads);
 
     for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
@@ -209,9 +212,9 @@ public:
       max_speed = std::max (max_speed, std::max (std::fabs (u + a), std::fabs (u - a)));
       max_speed = std::max (max_speed, std::max (std::fabs (v + a), std::fabs (v - a)));
 
-      for (unsigned int edge_id = 0; edge_id < solver_grid->get_edges_count (cell_id); edge_id++)
+      for (unsigned int edge_id = 0; edge_id < topology.get_edges_count (cell_id); edge_id++)
       {
-        const float_type edge_len = solver_grid->get_edge_area (edge_id);
+        const float_type edge_len = geometry.get_edge_area (cell_id, edge_id);
         if (edge_len < min_len)
           min_len = edge_len;
       }
@@ -279,6 +282,9 @@ public:
     float_type F_sigma[4];  /// Edge flux in local coordinate system
     float_type f_sigma[4];  /// Edge flux in global coordinate system
 
+    const auto topology = solver_grid->gen_topology_wrapper ();
+    const auto geometry = solver_grid->gen_geometry_wrapper ();
+
     auto yr = work_range::split (solver_grid->get_cells_number (), thread_id, total_threads);
 
     for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
@@ -288,9 +294,9 @@ public:
       float_type flux[4] = {0.0, 0.0, 0.0, 0.0};
 
       /// Edge flux
-      for (unsigned int edge_id = 0; edge_id < solver_grid->get_edges_count (cell_id); edge_id++)
+      for (unsigned int edge_id = 0; edge_id < topology.get_edges_count (cell_id); edge_id++)
       {
-        const unsigned int neighbor_id = solver_grid->get_neighbor_id (cell_id, edge_id);
+        const unsigned int neighbor_id = topology.get_neighbor_id (cell_id, edge_id);
 
         fill_state_vector (neighbor_id, gamma, p_rho, p_u, p_v, p_p, q_n);
         rotate_vector_to_edge_coordinates (edge_id, q_c, Q_c);
@@ -310,12 +316,12 @@ public:
         rotate_vector_from_edge_coordinates (edge_id, F_sigma, f_sigma);
 
         for (int c = 0; c < 4; c++)
-          flux[c] += solver_grid->get_edge_area (edge_id) * f_sigma[c];
+          flux[c] += geometry.get_edge_area (cell_id, edge_id) * f_sigma[c];
       }
 
       float_type new_q[4];
       for (int c = 0; c < 4; c++)
-        new_q[c] = q_c[c] - (dt / solver_grid->get_cell_volume (cell_id)) * (flux[c]);
+        new_q[c] = q_c[c] - (dt / geometry.get_cell_volume (cell_id)) * (flux[c]);
 
       const float_type rho = new_q[0];
       const float_type u   = new_q[1] / rho;
@@ -349,8 +355,7 @@ public:
     {
       if (is_main_thread (thread_id))
         euler_2d_calculate_next_time_step_gpu_interface (
-            nx, ny, dt, gamma, dx * dy,
-            reinterpret_cast<const float_type *> (solver_workspace.get ("gpu_edge_length")),
+            dt, gamma, solver_grid->gen_topology_wrapper (), solver_grid->gen_geometry_wrapper (),
             p_rho, p_rho_next, p_u, p_u_next,
             p_v, p_v_next, p_p, p_p_next);
     }

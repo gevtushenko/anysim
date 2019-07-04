@@ -6,6 +6,9 @@
 
 #include "core/common/common_defs.h"
 
+class grid_topology;
+class grid_geometry;
+
 template <class float_type>
 CPU_GPU float_type speed_of_sound_in_gas (float_type gamma, float_type p, float_type rho)
 {
@@ -209,12 +212,12 @@ float_type euler_2d_calculate_dt_gpu (
 
 template <class float_type>
 void euler_2d_calculate_next_time_step_gpu (
-    unsigned int nx,
-    unsigned int ny,
     float_type dt,
     float_type gamma,
-    float_type cell_area,
-    const float_type *edge_length,
+
+    const grid_topology &topology,
+    const grid_geometry &geometry,
+
     const float_type *p_rho,
     float_type *p_rho_next,
     const float_type *p_u,
