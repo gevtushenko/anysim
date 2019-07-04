@@ -26,7 +26,7 @@ public:
       bool use_double_precision_arg,
       workspace &workspace_arg);
   void fill_configuration_scheme (configuration &scheme, std::size_t scheme_id);
-  void apply_configuration (const configuration &config, std::size_t config_id, grid &solver_grid, int gpu_num);
+  void apply_configuration (const configuration &config, std::size_t config_id, grid *solver_grid, int gpu_num);
   bool calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count);
   bool is_gpu_supported () const;
 

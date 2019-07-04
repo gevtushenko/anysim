@@ -48,6 +48,8 @@ class euler_2d : public solver
   float_type normals_x[4];
   float_type normals_y[4];
 
+  const grid *solver_grid = nullptr;
+
 public:
   euler_2d (
       thread_pool &threads_arg,
@@ -73,7 +75,7 @@ public:
     return true;
   }
 
-  void apply_configuration (const configuration &config, std::size_t solver_id, grid &solver_grid, int gpu_num) final
+  void apply_configuration (const configuration &config, std::size_t solver_id, grid *solver_grid_arg, int gpu_num) final
   {
     cpp_unreferenced (gpu_num);
 
@@ -84,24 +86,25 @@ public:
     cfl = config.get_node_value (cfl_id);
     gamma = config.get_node_value (gamma_id);
 
-    dx = solver_grid.dx;
-    dy = solver_grid.dy;
+    solver_grid = solver_grid_arg;
+    dx = solver_grid->dx;
+    dy = solver_grid->dy;
 
     edge_lengths[LEFT] = edge_lengths[RIGHT] = dx;
     edge_lengths[BOTTOM] = edge_lengths[TOP] = dy;
 
-    nx = solver_grid.nx;
-    ny = solver_grid.ny;
+    nx = solver_grid->nx;
+    ny = solver_grid->ny;
 
 #ifdef GPU_BUILD
     use_gpu = gpu_num >= 0;
 
     if (use_gpu)
       {
-        solver_grid.create_field<float_type> ("gpu_rho", memory_holder_type::device, 2);
-        solver_grid.create_field<float_type> ("gpu_u",   memory_holder_type::device, 2);
-        solver_grid.create_field<float_type> ("gpu_v",   memory_holder_type::device, 2);
-        solver_grid.create_field<float_type> ("gpu_p",   memory_holder_type::device, 2);
+        solver_grid_arg->create_field<float_type> ("gpu_rho", memory_holder_type::device, 2);
+        solver_grid_arg->create_field<float_type> ("gpu_u",   memory_holder_type::device, 2);
+        solver_grid_arg->create_field<float_type> ("gpu_v",   memory_holder_type::device, 2);
+        solver_grid_arg->create_field<float_type> ("gpu_p",   memory_holder_type::device, 2);
         solver_workspace.allocate ("gpu_edge_length", memory_holder_type::device, 4 * sizeof (float_type));
         solver_workspace.allocate ("euler_workspace", memory_holder_type::device, sizeof (float_type));
 
@@ -109,10 +112,10 @@ public:
       }
 #endif
 
-    solver_grid.create_field<float_type> ("rho", memory_holder_type::host, 2);
-    solver_grid.create_field<float_type> ("u",   memory_holder_type::host, 2);
-    solver_grid.create_field<float_type> ("v",   memory_holder_type::host, 2);
-    solver_grid.create_field<float_type> ("p",   memory_holder_type::host, 2);
+    solver_grid_arg->create_field<float_type> ("rho", memory_holder_type::host, 2);
+    solver_grid_arg->create_field<float_type> ("u",   memory_holder_type::host, 2);
+    solver_grid_arg->create_field<float_type> ("v",   memory_holder_type::host, 2);
+    solver_grid_arg->create_field<float_type> ("p",   memory_holder_type::host, 2);
 
     auto rho_1 = reinterpret_cast<float_type *> (solver_workspace.get ("rho", 0));
     auto u_1   = reinterpret_cast<float_type *> (solver_workspace.get ("u", 0));
@@ -190,25 +193,27 @@ public:
     const float_type *p_v,
     const float_type *p_p) const
   {
-    float_type min_len = std::min (dx, dy);
-    float_type max_speed = 0.0;
+    float_type max_speed = std::numeric_limits<float_type>::min ();
+    float_type min_len = std::numeric_limits<float_type>::max ();
 
-    auto yr = work_range::split (ny, thread_id, total_threads);
+    auto yr = work_range::split (solver_grid->get_cells_number (), thread_id, total_threads);
 
-    for (unsigned int y = yr.chunk_begin; y < yr.chunk_end; y++)
+    for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
     {
-      for (unsigned int x = 0; x < nx; x++)
+      const float_type rho = p_rho[cell_id];
+      const float_type p = p_p[cell_id];
+      const float_type a = speed_of_sound_in_gas (gamma, p, rho);
+      const float_type u = p_u[cell_id];
+      const float_type v = p_v[cell_id];
+
+      max_speed = std::max (max_speed, std::max (std::fabs (u + a), std::fabs (u - a)));
+      max_speed = std::max (max_speed, std::max (std::fabs (v + a), std::fabs (v - a)));
+
+      for (unsigned int edge_id = 0; edge_id < solver_grid->get_edges_count (cell_id); edge_id++)
       {
-        auto i = y * nx + x;
-
-        const float_type rho = p_rho[i];
-        const float_type p = p_p[i];
-        const float_type a = speed_of_sound_in_gas (gamma, p, rho);
-        const float_type u = p_u[i];
-        const float_type v = p_v[i];
-
-        max_speed = std::max (max_speed, std::max (std::fabs (u + a), std::fabs (u - a)));
-        max_speed = std::max (max_speed, std::max (std::fabs (v + a), std::fabs (v - a)));
+        const float_type edge_len = solver_grid->get_edge_area (edge_id);
+        if (edge_len < min_len)
+          min_len = edge_len;
       }
     }
 
@@ -253,7 +258,6 @@ public:
       unsigned int thread_id,
       unsigned int total_threads,
       float_type dt,
-      float_type cell_area,
       const float_type *p_rho,
       float_type *p_rho_next,
       const float_type *p_u,
@@ -275,61 +279,58 @@ public:
     float_type F_sigma[4];  /// Edge flux in local coordinate system
     float_type f_sigma[4];  /// Edge flux in global coordinate system
 
-    auto yr = work_range::split (ny, thread_id, total_threads);
+    auto yr = work_range::split (solver_grid->get_cells_number (), thread_id, total_threads);
 
-    for (unsigned int y = yr.chunk_begin; y < yr.chunk_end; ++y)
+    for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
     {
-      for (unsigned int x = 0; x < nx; ++x)
+      fill_state_vector (cell_id, gamma, p_rho, p_u, p_v, p_p, q_c);
+
+      float_type flux[4] = {0.0, 0.0, 0.0, 0.0};
+
+      /// Edge flux
+      for (unsigned int edge_id = 0; edge_id < solver_grid->get_edges_count (cell_id); edge_id++)
       {
-        auto i = y * nx + x;
+        const unsigned int neighbor_id = solver_grid->get_neighbor_id (cell_id, edge_id);
 
-        fill_state_vector (i, gamma, p_rho, p_u, p_v, p_p, q_c);
+        fill_state_vector (neighbor_id, gamma, p_rho, p_u, p_v, p_p, q_n);
+        rotate_vector_to_edge_coordinates (edge_id, q_c, Q_c);
+        rotate_vector_to_edge_coordinates (edge_id, q_n, Q_n);
+        fill_flux_vector (Q_c, F_c, gamma);
+        fill_flux_vector (Q_n, F_n, gamma);
 
-        float_type flux[4] = {0.0, 0.0, 0.0, 0.0};
+        const float_type U_c = Q_c[1] / Q_c[0];
+        const float_type U_n = Q_n[1] / Q_n[0];
 
-        /// Edge flux
-        for (int edge = 0; edge < 4; edge++)
-        {
-          const unsigned int j = get_neighbor_index (x, y, nx, ny, edge);
+        rusanov_scheme (
+            gamma,
+            p_p[cell_id], p_p[neighbor_id],
+            p_rho[cell_id], p_rho[neighbor_id],
+            U_c, U_n, F_c, F_n, Q_n, Q_c, F_sigma);
 
-          fill_state_vector (j, gamma, p_rho, p_u, p_v, p_p, q_n);
-          rotate_vector_to_edge_coordinates (edge, q_c, Q_c);
-          rotate_vector_to_edge_coordinates (edge, q_n, Q_n);
-          fill_flux_vector (Q_c, F_c, gamma);
-          fill_flux_vector (Q_n, F_n, gamma);
+        rotate_vector_from_edge_coordinates (edge_id, F_sigma, f_sigma);
 
-          const float_type U_c = Q_c[1] / Q_c[0];
-          const float_type U_n = Q_n[1] / Q_n[0];
-
-          rusanov_scheme (gamma, p_p[i], p_p[j], p_rho[i], p_rho[j], U_c, U_n, F_c, F_n, Q_n, Q_c, F_sigma);
-
-          rotate_vector_from_edge_coordinates (edge, F_sigma, f_sigma);
-
-          for (int c = 0; c < 4; c++)
-            flux[c] += edge_lengths[edge] * f_sigma[c];
-        }
-
-        float_type new_q[4];
         for (int c = 0; c < 4; c++)
-          new_q[c] = q_c[c] - (dt / cell_area) * (flux[c]);
-
-        const float_type rho = new_q[0];
-        const float_type u   = new_q[1] / rho;
-        const float_type v   = new_q[2] / rho;
-        const float_type E   = new_q[3] / rho;
-
-        p_rho_next[i] = rho;
-        p_u_next[i] = u;
-        p_v_next[i] = v;
-        p_p_next[i] = calculate_p (gamma, E, u, v, rho);
+          flux[c] += solver_grid->get_edge_area (edge_id) * f_sigma[c];
       }
-    }
 
+      float_type new_q[4];
+      for (int c = 0; c < 4; c++)
+        new_q[c] = q_c[c] - (dt / solver_grid->get_cell_volume (cell_id)) * (flux[c]);
+
+      const float_type rho = new_q[0];
+      const float_type u   = new_q[1] / rho;
+      const float_type v   = new_q[2] / rho;
+      const float_type E   = new_q[3] / rho;
+
+      p_rho_next[cell_id] = rho;
+      p_u_next[cell_id] = u;
+      p_v_next[cell_id] = v;
+      p_p_next[cell_id] = calculate_p (gamma, E, u, v, rho);
+    }
   }
 
   double solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
   {
-    const float_type cell_area = dx * dy;
     const std::string prefix = use_gpu ? "gpu_" : "";
 
     auto p_rho      = reinterpret_cast<float_type *> (solver_workspace.get (prefix + "rho", (step + 0) % 2));
@@ -348,7 +349,7 @@ public:
     {
       if (is_main_thread (thread_id))
         euler_2d_calculate_next_time_step_gpu_interface (
-            nx, ny, dt, gamma, cell_area,
+            nx, ny, dt, gamma, dx * dy,
             reinterpret_cast<const float_type *> (solver_workspace.get ("gpu_edge_length")),
             p_rho, p_rho_next, p_u, p_u_next,
             p_v, p_v_next, p_p, p_p_next);
@@ -357,7 +358,7 @@ public:
 #endif
     {
       solve_cpu (
-          thread_id, total_threads, dt, cell_area,
+          thread_id, total_threads, dt,
           p_rho, p_rho_next, p_u, p_u_next, p_v,
           p_v_next, p_p, p_p_next);
     }

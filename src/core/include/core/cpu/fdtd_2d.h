@@ -149,10 +149,10 @@ public:
     return true;
   }
 
-  void apply_configuration (const configuration &config, std::size_t solver_id, grid &solver_grid, int gpu_num) final
+  void apply_configuration (const configuration &config, std::size_t solver_id, grid *solver_grid, int gpu_num) final
   {
-    dx = solver_grid.dx;
-    dy = solver_grid.dy;
+    dx = solver_grid->dx;
+    dy = solver_grid->dy;
 
     const auto solver_children = config.children_for (solver_id);
 
@@ -162,8 +162,8 @@ public:
     dt = cfl * std::min (dx, dy) / C0;
     t = 0.0; /// Reset time
 
-    nx = solver_grid.nx;
-    ny = solver_grid.ny;
+    nx = solver_grid->nx;
+    ny = solver_grid->ny;
 
     sources = std::make_unique<sources_holder<float_type>> ();
     for (auto &source_id: config.children_for (sources_id))
@@ -182,13 +182,13 @@ public:
     use_gpu = gpu_num >= 0;
     memory_holder_type holder = use_gpu ? memory_holder_type::device : memory_holder_type::host;
 
-    solver_grid.create_field<float_type> ("ez", holder, 1);
-    solver_grid.create_field<float_type> ("dz", holder, 1);
-    solver_grid.create_field<float_type> ("hx", holder, 1);
-    solver_grid.create_field<float_type> ("hy", holder, 1);
-    solver_grid.create_field<float_type> ("hr", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("er", memory_holder_type::host, 1);
-    solver_grid.create_field<float_type> ("mh", memory_holder_type::host, 1);
+    solver_grid->create_field<float_type> ("ez", holder, 1);
+    solver_grid->create_field<float_type> ("dz", holder, 1);
+    solver_grid->create_field<float_type> ("hx", holder, 1);
+    solver_grid->create_field<float_type> ("hy", holder, 1);
+    solver_grid->create_field<float_type> ("hr", memory_holder_type::host, 1);
+    solver_grid->create_field<float_type> ("er", memory_holder_type::host, 1);
+    solver_grid->create_field<float_type> ("mh", memory_holder_type::host, 1);
 
     m_h = reinterpret_cast<float_type *> (solver_workspace.get ("mh"));
     dz  = reinterpret_cast<float_type *> (solver_workspace.get ("dz"));
@@ -207,8 +207,8 @@ public:
 #ifdef GPU_BUILD
     if (use_gpu)
     {
-      solver_grid.create_field<float_type> ("gpu_er", memory_holder_type::device, 1);
-      solver_grid.create_field<float_type> ("gpu_mh", memory_holder_type::device, 1);
+      solver_grid->create_field<float_type> ("gpu_er", memory_holder_type::device, 1);
+      solver_grid->create_field<float_type> ("gpu_mh", memory_holder_type::device, 1);
 
       d_mh = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_mh"));
       d_er = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_er"));

@@ -66,7 +66,7 @@ void simulation_manager::fill_configuration_scheme (configuration &scheme, std::
 void simulation_manager::apply_configuration (
     const configuration &config,
     std::size_t config_id,
-    grid &solver_grid,
+    grid *solver_grid,
     int gpu_num)
 {
 #ifdef GPU_BUILD

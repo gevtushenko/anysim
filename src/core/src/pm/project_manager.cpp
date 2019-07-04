@@ -85,7 +85,7 @@ void project_manager::update_project ()
         gpu_num = -1;
 
     solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
-    simulation->apply_configuration (config, config.children_for (config.get_root ()).at (1), *solver_grid, gpu_num);
+    simulation->apply_configuration (config, config.children_for (config.get_root ()).at (1), solver_grid.get (), gpu_num);
   }
 }
 
