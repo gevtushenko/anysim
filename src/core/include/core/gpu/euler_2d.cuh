@@ -85,40 +85,12 @@ inline CPU_GPU unsigned int get_neighbor_index (
 }
 
 template <class float_type>
-CPU_GPU float_type get_normal_x (unsigned int edge)
-{
-  switch (edge)
-  {
-    case 0: return -1.0;
-    case 1: return  0.0;
-    case 2: return  1.0;
-    case 3: return  0.0;
-    default: return 0.0;
-  }
-}
-
-template <class float_type>
-CPU_GPU float_type get_normal_y (unsigned int edge)
-{
-  switch (edge)
-  {
-    case 0: return  0.0;
-    case 1: return -1.0;
-    case 2: return  0.0;
-    case 3: return  1.0;
-    default: return 0.0;
-  }
-}
-
-template <class float_type>
 CPU_GPU void rotate_vector_to_edge_coordinates (
-    const unsigned int edge,
+    const float_type normal_x,
+    const float_type normal_y,
     const float_type *v,
     float_type *V)
 {
-  const float_type normal_x = get_normal_x<float_type> (edge);
-  const float_type normal_y = get_normal_y<float_type> (edge);
-
   V[0] =  v[0];
   V[1] =  v[1] * normal_x + v[2] * normal_y;
   V[2] = -v[1] * normal_y + v[2] * normal_x;
@@ -127,13 +99,11 @@ CPU_GPU void rotate_vector_to_edge_coordinates (
 
 template <class float_type>
 CPU_GPU void rotate_vector_from_edge_coordinates (
-    const unsigned int edge,
+    const float_type normal_x,
+    const float_type normal_y,
     const float_type *V,
     float_type *v)
 {
-  const float_type normal_x = get_normal_x<float_type> (edge);
-  const float_type normal_y = get_normal_y<float_type> (edge);
-
   v[0] = V[0];
   v[1] = V[1] * normal_x - V[2] * normal_y;
   v[2] = V[1] * normal_y + V[2] * normal_x;
@@ -238,10 +208,11 @@ CPU_GPU void euler_2d_calculate_next_cell_values (
   for (unsigned int edge_id = 0; edge_id < topology.get_edges_count (cell_id); edge_id++)
   {
     const unsigned int neighbor_id = topology.get_neighbor_id (cell_id, edge_id);
-
     fill_state_vector (neighbor_id, gamma, p_rho, p_u, p_v, p_p, q_n);
-    rotate_vector_to_edge_coordinates (edge_id, q_c, Q_c);
-    rotate_vector_to_edge_coordinates (edge_id, q_n, Q_n);
+    const float_type normal_x = geometry.get_normal_x (cell_id, edge_id);
+    const float_type normal_y = geometry.get_normal_y (cell_id, edge_id);
+    rotate_vector_to_edge_coordinates (normal_x, normal_y, q_c, Q_c);
+    rotate_vector_to_edge_coordinates (normal_x, normal_y, q_n, Q_n);
     fill_flux_vector (Q_c, F_c, gamma);
     fill_flux_vector (Q_n, F_n, gamma);
 
@@ -254,7 +225,7 @@ CPU_GPU void euler_2d_calculate_next_cell_values (
         p_rho[cell_id], p_rho[neighbor_id],
         U_c, U_n, F_c, F_n, Q_n, Q_c, F_sigma);
 
-    rotate_vector_from_edge_coordinates (edge_id, F_sigma, f_sigma);
+    rotate_vector_from_edge_coordinates (normal_x, normal_y, F_sigma, f_sigma);
 
     for (int c = 0; c < 4; c++)
       flux[c] += geometry.get_edge_area (cell_id, edge_id) * f_sigma[c];

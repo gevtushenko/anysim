@@ -235,6 +235,30 @@ public:
     return y * dy + dy / 2.0;
   }
 
+  CPU_GPU float get_normal_x (unsigned int /* cell_id */, unsigned int edge_id) const
+  {
+    if (is_edge_left (edge_id))
+      return -1.0;
+    else if (is_edge_bottom (edge_id) || is_edge_top (edge_id))
+      return 0.0;
+    else if (is_edge_right (edge_id))
+      return 1.0;
+
+    return 0.0;
+  }
+
+  CPU_GPU float get_normal_y (unsigned int /* cell_id */, unsigned int edge_id) const
+  {
+    if (is_edge_left (edge_id) || is_edge_right (edge_id))
+      return 0.0;
+    else if (is_edge_bottom (edge_id))
+      return -1.0;
+    else if (is_edge_top (edge_id))
+      return 1.0;
+
+    return 0.0;
+  }
+
 private:
   float dx, dy;
   unsigned int nx, ny;

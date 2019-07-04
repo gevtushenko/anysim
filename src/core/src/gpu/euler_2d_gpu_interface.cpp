@@ -48,7 +48,7 @@ void euler_2d_calculate_next_time_step_gpu_interface (
 #ifdef GPU_BUILD
   euler_2d_calculate_next_time_step_gpu (dt, gamma, topology, geometry, p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next);
 #else
-  cpp_unreferenced (nx, ny, dt, gamma, cell_area, edge_lengths, p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next, topology, geometry);
+  cpp_unreferenced (dt, gamma, topology, geometry, p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next);
 #endif
 }
 

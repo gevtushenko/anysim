@@ -28,18 +28,10 @@
 template<class float_type>
 class euler_2d : public solver
 {
-  constexpr static int LEFT = 0;
-  constexpr static int BOTTOM = 1;
-  constexpr static int RIGHT = 2;
-  constexpr static int TOP = 3;
-
   bool use_gpu = false;
 
   float_type cfl = 0.1;
   float_type gamma = 1.4;
-
-  float_type normals_x[4];
-  float_type normals_y[4];
 
   const grid *solver_grid = nullptr;
 
@@ -48,12 +40,7 @@ public:
       thread_pool &threads_arg,
       workspace &solver_workspace_arg)
     : solver (threads_arg, solver_workspace_arg)
-  {
-    normals_x[LEFT] = -1.0f;  normals_y[LEFT] = 0.0f;
-    normals_x[BOTTOM] = 0.0f; normals_y[BOTTOM] = -1.0f;
-    normals_x[RIGHT] = 1.0f;  normals_y[RIGHT] = 0.0f;
-    normals_x[TOP] = 0.0f;    normals_y[TOP] = 1.0f;
-  }
+  { }
 
   ~euler_2d () override = default;
 
@@ -90,7 +77,6 @@ public:
         solver_grid_arg->create_field<float_type> ("gpu_u",   memory_holder_type::device, 2);
         solver_grid_arg->create_field<float_type> ("gpu_v",   memory_holder_type::device, 2);
         solver_grid_arg->create_field<float_type> ("gpu_p",   memory_holder_type::device, 2);
-        solver_workspace.allocate ("gpu_edge_length", memory_holder_type::device, 4 * sizeof (float_type));
         solver_workspace.allocate ("euler_workspace", memory_holder_type::device, 2 * sizeof (float_type));
       }
 #endif
