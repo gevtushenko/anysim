@@ -270,69 +270,15 @@ public:
       const float_type *p_p,
       float_type *p_p_next)
   {
-    float_type q_c[4];
-    float_type q_n[4];
-
-    float_type Q_c[4];
-    float_type Q_n[4];
-
-    float_type F_c[4];
-    float_type F_n[4];
-
-    float_type F_sigma[4];  /// Edge flux in local coordinate system
-    float_type f_sigma[4];  /// Edge flux in global coordinate system
-
     const auto topology = solver_grid->gen_topology_wrapper ();
     const auto geometry = solver_grid->gen_geometry_wrapper ();
 
     auto yr = work_range::split (solver_grid->get_cells_number (), thread_id, total_threads);
 
     for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
-    {
-      fill_state_vector (cell_id, gamma, p_rho, p_u, p_v, p_p, q_c);
-
-      float_type flux[4] = {0.0, 0.0, 0.0, 0.0};
-
-      /// Edge flux
-      for (unsigned int edge_id = 0; edge_id < topology.get_edges_count (cell_id); edge_id++)
-      {
-        const unsigned int neighbor_id = topology.get_neighbor_id (cell_id, edge_id);
-
-        fill_state_vector (neighbor_id, gamma, p_rho, p_u, p_v, p_p, q_n);
-        rotate_vector_to_edge_coordinates (edge_id, q_c, Q_c);
-        rotate_vector_to_edge_coordinates (edge_id, q_n, Q_n);
-        fill_flux_vector (Q_c, F_c, gamma);
-        fill_flux_vector (Q_n, F_n, gamma);
-
-        const float_type U_c = Q_c[1] / Q_c[0];
-        const float_type U_n = Q_n[1] / Q_n[0];
-
-        rusanov_scheme (
-            gamma,
-            p_p[cell_id], p_p[neighbor_id],
-            p_rho[cell_id], p_rho[neighbor_id],
-            U_c, U_n, F_c, F_n, Q_n, Q_c, F_sigma);
-
-        rotate_vector_from_edge_coordinates (edge_id, F_sigma, f_sigma);
-
-        for (int c = 0; c < 4; c++)
-          flux[c] += geometry.get_edge_area (cell_id, edge_id) * f_sigma[c];
-      }
-
-      float_type new_q[4];
-      for (int c = 0; c < 4; c++)
-        new_q[c] = q_c[c] - (dt / geometry.get_cell_volume (cell_id)) * (flux[c]);
-
-      const float_type rho = new_q[0];
-      const float_type u   = new_q[1] / rho;
-      const float_type v   = new_q[2] / rho;
-      const float_type E   = new_q[3] / rho;
-
-      p_rho_next[cell_id] = rho;
-      p_u_next[cell_id] = u;
-      p_v_next[cell_id] = v;
-      p_p_next[cell_id] = calculate_p (gamma, E, u, v, rho);
-    }
+      euler_2d_calculate_next_cell_values (
+          cell_id, dt, gamma, topology, geometry,
+          p_rho, p_rho_next, p_u, p_u_next, p_v, p_v_next, p_p, p_p_next);
   }
 
   double solve (unsigned int step, unsigned int thread_id, unsigned int total_threads) final
