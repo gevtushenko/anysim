@@ -201,8 +201,11 @@ class grid_geometry
 {
 public:
   void initialize_for_structured_uniform_grid (
+    unsigned int nx_arg, unsigned int ny_arg,
     float dx_arg, float dy_arg)
   {
+    nx = nx_arg;
+    ny = ny_arg;
     dx = dx_arg;
     dy = dy_arg;
   }
@@ -220,8 +223,21 @@ public:
     return {};
   }
 
+  CPU_GPU float get_cell_center_x (unsigned int cell_id) const
+  {
+    const unsigned int x = cell_id % nx;
+    return x * dx + dx / 2.0;
+  }
+
+  CPU_GPU float get_cell_center_y (unsigned int cell_id) const
+  {
+    const unsigned int y = cell_id / nx;
+    return y * dy + dy / 2.0;
+  }
+
 private:
   float dx, dy;
+  unsigned int nx, ny;
 };
 
 static_assert(std::is_pod<grid_topology>::value, "Class grid_topology has to be POD");
@@ -281,7 +297,7 @@ public:
   grid_geometry gen_geometry_wrapper () const
   {
     grid_geometry geometry;
-    geometry.initialize_for_structured_uniform_grid (dx, dy);
+    geometry.initialize_for_structured_uniform_grid (nx, ny, dx, dy);
     return geometry;
   }
 

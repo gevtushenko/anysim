@@ -35,16 +35,9 @@ class euler_2d : public solver
 
   bool use_gpu = false;
 
-  unsigned int nx = 0;
-  unsigned int ny = 0;
-
   float_type cfl = 0.1;
   float_type gamma = 1.4;
 
-  float_type dx = 1.0;
-  float_type dy = 1.0;
-
-  float_type edge_lengths[4];
   float_type normals_x[4];
   float_type normals_y[4];
 
@@ -87,14 +80,6 @@ public:
     gamma = config.get_node_value (gamma_id);
 
     solver_grid = solver_grid_arg;
-    dx = solver_grid->dx;
-    dy = solver_grid->dy;
-
-    edge_lengths[LEFT] = edge_lengths[RIGHT] = dx;
-    edge_lengths[BOTTOM] = edge_lengths[TOP] = dy;
-
-    nx = solver_grid->nx;
-    ny = solver_grid->ny;
 
 #ifdef GPU_BUILD
     use_gpu = gpu_num >= 0;
@@ -131,38 +116,36 @@ public:
     const float_type x_0 = 1.0;
     const float_type y_0 = 1.5;
 
-    for (unsigned int y = 0; y < ny; ++y)
+    const auto topology = solver_grid->gen_topology_wrapper ();
+    const auto geometry = solver_grid->gen_geometry_wrapper ();
+
+    for (unsigned int cell_id = 0; cell_id < topology.get_cells_count (); cell_id++)
     {
-      for (unsigned int x = 0; x < nx; ++x)
+      const float_type cx = geometry.get_cell_center_x (cell_id);
+      const float_type cy = geometry.get_cell_center_y (cell_id);
+
+      if (cx < x_0)
       {
-        auto i = y * nx + x;
-
-        const float_type lbx = x * dx;
-        const float_type lby = y * dy;
-
-        if (lbx < x_0)
+        rho_1[cell_id] = 1.0;
+        p_1[cell_id] = 1.0;
+        v_1[cell_id] = 0.0;
+        u_1[cell_id] = 0.0;
+      }
+      else
+      {
+        if (cy < y_0)
         {
-          rho_1[i] = 1.0;
-          p_1[i] = 1.0;
-          v_1[i] = 0.0;
-          u_1[i] = 0.0;
+          rho_1[cell_id] = 1.0;
+          p_1[cell_id] = 0.1;
+          v_1[cell_id] = 0.0;
+          u_1[cell_id] = 0.0;
         }
         else
         {
-          if (lby < y_0)
-          {
-            rho_1[i] = 1.0;
-            p_1[i] = 0.1;
-            v_1[i] = 0.0;
-            u_1[i] = 0.0;
-          }
-          else
-          {
-            rho_1[i] = 0.125;
-            p_1[i] = 0.1;
-            v_1[i] = 0.0;
-            u_1[i] = 0.0;
-          }
+          rho_1[cell_id] = 0.125;
+          p_1[cell_id] = 0.1;
+          v_1[cell_id] = 0.0;
+          u_1[cell_id] = 0.0;
         }
       }
     }
@@ -175,10 +158,12 @@ public:
         auto v   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_v", 0));
         auto p   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_p", 0));
 
-        cudaMemcpyAsync (rho, rho_1, nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync (u,   u_1,   nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync (v,   v_1,   nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync (p,   p_1,   nx * ny * sizeof (float_type), cudaMemcpyHostToDevice);
+        const unsigned int cells_count = topology.get_cells_count ();
+
+        cudaMemcpyAsync (rho, rho_1, cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
+        cudaMemcpyAsync (u,   u_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
+        cudaMemcpyAsync (v,   v_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
+        cudaMemcpyAsync (p,   p_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
       }
 #endif
   }
