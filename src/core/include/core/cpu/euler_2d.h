@@ -91,50 +91,8 @@ public:
     auto v_1   = reinterpret_cast<float_type *> (solver_workspace.get ("v", 0));
     auto p_1   = reinterpret_cast<float_type *> (solver_workspace.get ("p", 0));
 
-    // TODO Extract initialization
-#if 0
-    const float_type circle_x = 0.5;
-    const float_type circle_y = 0.5;
-    const float_type circle_rad = 0.1;
-#endif
-
-    ///
-    const float_type x_0 = 2.0;
-    const float_type y_0 = 2.0;
 
     const auto topology = solver_grid->gen_topology_wrapper ();
-    const auto geometry = solver_grid->gen_geometry_wrapper ();
-
-    for (unsigned int cell_id = 0; cell_id < topology.get_cells_count (); cell_id++)
-    {
-      const float_type cx = geometry.get_cell_center_x (cell_id);
-      const float_type cy = geometry.get_cell_center_y (cell_id);
-
-      if (cx > x_0)
-      {
-        rho_1[cell_id] = 1.0;
-        p_1[cell_id] = 1.0;
-        v_1[cell_id] = 0.0;
-        u_1[cell_id] = 0.0;
-      }
-      else
-      {
-        if (cy > y_0)
-        {
-          rho_1[cell_id] = 1.0;
-          p_1[cell_id] = 0.1;
-          v_1[cell_id] = 0.0;
-          u_1[cell_id] = 0.0;
-        }
-        else
-        {
-          rho_1[cell_id] = 0.125;
-          p_1[cell_id] = 0.1;
-          v_1[cell_id] = 0.0;
-          u_1[cell_id] = 0.0;
-        }
-      }
-    }
 
 #ifdef GPU_BUILD
     if (use_gpu)

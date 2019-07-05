@@ -15,8 +15,6 @@ matrix:
           packages:
           - g++-7
           - mesa-common-dev
-          - pybind11-dev
-          - python2.7-dev
           sources:
             - ubuntu-toolchain-r-test
     - env: COMPILER=g++-7 BUILD_TYPE=Release

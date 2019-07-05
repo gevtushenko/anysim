@@ -40,17 +40,21 @@ main_window::main_window (project_manager &pm_arg)
 
   settings->setHidden (true);
 
-  python = new QTextEdit ();
   tabs = new QTabWidget ();
-  tabs->addTab (python, "Python");
 
   auto graphics_and_tabs = new QSplitter (Qt::Orientation::Vertical);
   graphics_and_tabs->addWidget (graphics);
+
+#ifdef PYTHON_BUILD
+  python = new QTextEdit ();
+  tabs->addTab (python, "Python");
+
   graphics_and_tabs->addWidget (tabs);
   graphics_and_tabs->setStretchFactor (0, 9);
   graphics_and_tabs->setStretchFactor (1, 1);
 
   python->setText (QString::fromStdString (pm.get_initializer_script ()));
+#endif
 
   auto splitter = new QSplitter ();
   splitter->addWidget (model);
@@ -87,7 +91,9 @@ main_window::~main_window() = default;
 
 void main_window::update_project ()
 {
+#ifdef PYTHON_BUILD
   pm.set_initializer_script (python->toPlainText ().toStdString ());
+#endif
 
   if (use_gpu && gpu_names)
     pm.set_gpu_num (use_gpu->isChecked () ? gpu_names->currentData ().toInt () : -1);

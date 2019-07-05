@@ -13,11 +13,13 @@
 
 #include <iostream>
 
+#ifdef PYTHON_BUILD
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
 
 namespace py = pybind11;
 using namespace py::literals;
+#endif
 
 project_manager::project_manager ()
   : solver_workspace (new workspace ())
@@ -74,6 +76,7 @@ configuration &project_manager::get_configuration ()
   return *solver_configuration;
 }
 
+#ifdef PYTHON_BUILD
 PYBIND11_EMBEDDED_MODULE(anysim_py, m) {
   // `m` is a `py::module` which is used to bind functions and classes
   m.def("add", [](int i, int j) {
@@ -95,6 +98,7 @@ py::array_t<data_type> create_py_array (size_t n, void *data_ptr)
   py::capsule free_when_done(data_ptr, [](void *f) { (void) f; });
   return py::array_t<data_type> (n, reinterpret_cast<data_type *> (data_ptr), free_when_done);
 }
+#endif
 
 void project_manager::update_project ()
 {
@@ -118,6 +122,7 @@ void project_manager::update_project ()
     solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
     simulation->apply_configuration (config, config.children_for (config.get_root ()).at (1), solver_grid.get (), gpu_num);
 
+#ifdef PYTHON_BUILD
     if (!python_initializer.empty ())
       {
         auto topology = solver_grid->gen_topology_wrapper ();
@@ -140,6 +145,7 @@ void project_manager::update_project ()
         anysim_py_module.attr ("fields") = kwargs;
         py::exec(python_initializer);
       }
+#endif
   }
 }
 

@@ -27,14 +27,15 @@ set(CORE_SOURCES
 
 
 find_package(Threads REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
 
-message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
-
-include_directories(include ${pybind11_INCLUDE_DIRS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -g")
 add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
-target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_THREAD_LIBS_INIT} pybind11::embed)
+target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_THREAD_LIBS_INIT})
+
+if(pybind11_FOUND)
+    include_directories(include ${pybind11_INCLUDE_DIRS})
+    target_link_libraries(${CMAKE_PROJECT_NAME}_core pybind11::embed)
+endif()
 
 if(CUDA_FOUND)
     set(GPU_SOURCES
