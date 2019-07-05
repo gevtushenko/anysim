@@ -118,6 +118,7 @@ void project_manager::update_project ()
     solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
     simulation->apply_configuration (config, config.children_for (config.get_root ()).at (1), solver_grid.get (), gpu_num);
 
+    if (!python_initializer.empty ())
       {
         auto topology = solver_grid->gen_topology_wrapper ();
         auto geometry = solver_grid->gen_geometry_wrapper ();
@@ -137,15 +138,7 @@ void project_manager::update_project ()
           }
 
         anysim_py_module.attr ("fields") = kwargs;
-
-        py::exec(R"(
-          from anysim_py import *
-
-          for cell_id in range (topology.get_cells_count ()):
-            if geometry.get_cell_center_x (cell_id) < 3:
-              if geometry.get_cell_center_y (cell_id) > 1:
-                fields["rho"][cell_id] = 1.4
-        )");
+        py::exec(python_initializer);
       }
   }
 }

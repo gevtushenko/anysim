@@ -50,6 +50,15 @@ main_window::main_window (project_manager &pm_arg)
   graphics_and_tabs->setStretchFactor (0, 9);
   graphics_and_tabs->setStretchFactor (1, 1);
 
+  python->setText (R"(
+from anysim_py import *
+
+for cell_id in range (topology.get_cells_count ()):
+  if geometry.get_cell_center_x (cell_id) < 3:
+    if geometry.get_cell_center_y (cell_id) > 1:
+      fields["rho"][cell_id] = 1.4
+)");
+
   auto splitter = new QSplitter ();
   splitter->addWidget (model);
   splitter->addWidget (settings);
@@ -59,6 +68,10 @@ main_window::main_window (project_manager &pm_arg)
   splitter->setStretchFactor (2, 9);
   setCentralWidget (splitter);
 
+  auto apply_script = new QAction (this);
+  apply_script->setShortcut (Qt::Key_R | Qt::CTRL);
+  addAction (apply_script);
+
   connect (model, SIGNAL (configuration_node_selected (std::size_t)), settings, SLOT (setup_configuration_node (std::size_t)));
 
   connect (&renderer, SIGNAL (steps_completed (bool)), graphics->gl, SLOT (update_colors (bool)));
@@ -66,6 +79,7 @@ main_window::main_window (project_manager &pm_arg)
 
   connect (this, SIGNAL (on_close ()), this, SLOT (halt_simulation ()));
   connect (graphics->gl, SIGNAL (widget_is_ready ()), this, SLOT (update_project ()));
+  connect (apply_script, SIGNAL (triggered ()), this, SLOT (update_project ()));
 
   create_actions ();
 
@@ -80,6 +94,8 @@ main_window::~main_window() = default;
 
 void main_window::update_project ()
 {
+  pm.set_initializer_script (python->toPlainText ().toStdString ());
+
   if (use_gpu && gpu_names)
     pm.set_gpu_num (use_gpu->isChecked () ? gpu_names->currentData ().toInt () : -1);
 

@@ -51,6 +51,8 @@ public:
     }
   }
 
+  void set_initializer_script (const std::string &script) { python_initializer = script; version--; }
+
   bool get_use_gpu () const { return gpu_num >= 0; }
 
 private:
@@ -60,6 +62,7 @@ private:
   bool use_double_precision = true;
   int gpu_num = -1;
 
+  std::string python_initializer;
   std::unique_ptr<grid> solver_grid;
   std::unique_ptr<workspace> solver_workspace;
   std::unique_ptr<configuration> solver_configuration;
