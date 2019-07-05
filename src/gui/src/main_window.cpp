@@ -79,6 +79,7 @@ void main_window::update_project ()
   auto &grid = pm.get_grid ();
   auto first_field = grid.get_fields_names ().front ();
   cpu_visualizer->set_target (first_field, graphics->gl->get_colors (pm.get_use_gpu ()));
+  renderer.extract ();
 }
 
 void main_window::start_simulation()

@@ -20,10 +20,25 @@ render_thread::~render_thread() = default;
 
 void render_thread::render ()
 {
-  halt_execution = false;
+  {
+    std::lock_guard guard (lock);
+    halt_execution = false;
+    extract_only = false;
+  }
 
   if (!isRunning ())
     start (LowPriority); ///< Caller thread starts new thread (run)
+}
+
+void render_thread::extract ()
+{
+  {
+    std::lock_guard guard (lock);
+    extract_only = true;
+  }
+
+  if (!isRunning ())
+    start (LowPriority);
 }
 
 void render_thread::halt ()
@@ -34,19 +49,26 @@ void render_thread::halt ()
 
 void render_thread::run()
 {
-  // bool use_gpu = pm->get_use_gpu ();
-
-  while (pm->run ())
+  if (extract_only)
   {
-    emit steps_completed (pm->get_use_gpu ());
-
-    {
-      std::lock_guard guard (lock);
-
-      if (halt_execution)
-        break;
-    }
+    pm->extract ();
+    extract_only = false;
+    emit steps_completed (pm->get_use_gpu ()); ///< Inform GL that frame is ready
   }
+  else
+  {
+    while (pm->run ())
+    {
+      emit steps_completed (pm->get_use_gpu ());
 
-  emit simulation_completed ();
+      {
+        std::lock_guard guard (lock);
+
+        if (halt_execution)
+          break;
+      }
+    }
+
+    emit simulation_completed ();
+  }
 }

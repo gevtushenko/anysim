@@ -24,6 +24,7 @@ public:
   ~render_thread () override;
 
   void render ();
+  void extract ();
   void halt ();
 
 signals:
@@ -36,6 +37,7 @@ protected:
 protected:
   std::mutex lock;
   bool halt_execution = false;
+  bool extract_only = false;
 
   opengl_widget *gl = nullptr;
   project_manager *pm = nullptr;

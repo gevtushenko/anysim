@@ -156,6 +156,12 @@ bool project_manager::run ()
   return simulation->calculate_next_time_step (extractors.data (), extractors.size ());
 }
 
+void project_manager::extract ()
+{
+  update_project ();
+  simulation->extract (extractors.data (), extractors.size ());
+}
+
 const workspace &project_manager::get_solver_workspace () const
 {
   return *solver_workspace;

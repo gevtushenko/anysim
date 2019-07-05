@@ -91,6 +91,14 @@ bool simulation_manager::is_gpu_supported () const
   return solver_context->is_gpu_supported ();
 }
 
+void simulation_manager::extract (result_extractor **extractors, unsigned int extractors_count)
+{
+  threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
+    for (unsigned int eid = 0; eid < extractors_count; eid++)
+      extractors[eid]->extract (thread_id, threads_count, threads);
+  });
+}
+
 bool simulation_manager::calculate_next_time_step (result_extractor **extractors, unsigned int extractors_count)
 {
   if (!solver_context)
