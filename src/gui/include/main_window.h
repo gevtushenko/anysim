@@ -13,6 +13,7 @@
 
 class QCheckBox;
 class QComboBox;
+class QTextEdit;
 
 class hybrid_results_visualizer;
 class graphics_widget;
@@ -58,6 +59,8 @@ private:
   QAction *stop_action = nullptr;
   QCheckBox *use_gpu = nullptr;
   QComboBox *gpu_names = nullptr;
+  QTextEdit *python = nullptr;
+  QTabWidget *tabs = nullptr;
   render_thread renderer;
 };
 

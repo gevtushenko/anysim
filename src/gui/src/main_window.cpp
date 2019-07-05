@@ -40,10 +40,20 @@ main_window::main_window (project_manager &pm_arg)
 
   settings->setHidden (true);
 
+  python = new QTextEdit ();
+  tabs = new QTabWidget ();
+  tabs->addTab (python, "Python");
+
+  auto graphics_and_tabs = new QSplitter (Qt::Orientation::Vertical);
+  graphics_and_tabs->addWidget (graphics);
+  graphics_and_tabs->addWidget (tabs);
+  graphics_and_tabs->setStretchFactor (0, 9);
+  graphics_and_tabs->setStretchFactor (1, 1);
+
   auto splitter = new QSplitter ();
   splitter->addWidget (model);
   splitter->addWidget (settings);
-  splitter->addWidget (graphics);
+  splitter->addWidget (graphics_and_tabs);
   splitter->setStretchFactor (0, 1);
   splitter->setStretchFactor (1, 1);
   splitter->setStretchFactor (2, 9);
