@@ -31,6 +31,7 @@ public:
   ~main_window () override;
 
 private slots:
+  void update_project ();
   void start_simulation ();
   void simulation_completed ();
   void halt_simulation ();

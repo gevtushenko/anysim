@@ -73,6 +73,8 @@ void opengl_widget::initializeGL()
 
   glGenBuffers (1, &vbo_vertices);
   glGenBuffers (1, &vbo_colors);
+
+  emit widget_is_ready ();
 }
 
 float *opengl_widget::get_colors (bool use_gpu)

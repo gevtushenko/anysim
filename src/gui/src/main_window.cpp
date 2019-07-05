@@ -55,6 +55,7 @@ main_window::main_window (project_manager &pm_arg)
   connect (&renderer, SIGNAL (simulation_completed ()), this, SLOT (simulation_completed ()));
 
   connect (this, SIGNAL (on_close ()), this, SLOT (halt_simulation ()));
+  connect (graphics->gl, SIGNAL (widget_is_ready ()), this, SLOT (update_project ()));
 
   create_actions ();
 
@@ -67,11 +68,8 @@ main_window::main_window (project_manager &pm_arg)
 
 main_window::~main_window() = default;
 
-void main_window::start_simulation()
+void main_window::update_project ()
 {
-  run_action->setEnabled (false);
-  stop_action->setEnabled (true);
-
   if (use_gpu && gpu_names)
     pm.set_gpu_num (use_gpu->isChecked () ? gpu_names->currentData ().toInt () : -1);
 
@@ -81,12 +79,21 @@ void main_window::start_simulation()
   auto &grid = pm.get_grid ();
   auto first_field = grid.get_fields_names ().front ();
   cpu_visualizer->set_target (first_field, graphics->gl->get_colors (pm.get_use_gpu ()));
+}
+
+void main_window::start_simulation()
+{
+  run_action->setEnabled (false);
+  stop_action->setEnabled (true);
+
+  update_project ();
   renderer.render ();
 }
 
 void main_window::closeEvent (QCloseEvent *event)
 {
   emit on_close ();
+  renderer.wait ();
   event->accept ();
 }
 

@@ -38,6 +38,9 @@ public:
   float * preprocess_before_colors_fill ();
   void postprocess_after_colors_fill ();
 
+signals:
+  void widget_is_ready ();
+
 public slots:
   void update_colors (bool use_gpu);
   void update_project (project_manager &pm);

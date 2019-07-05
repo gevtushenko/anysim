@@ -5,6 +5,7 @@
 #include "core/pm/project_manager.h"
 #include "core/config/configuration.h"
 #include "core/sm/simulation_manager.h"
+#include "core/sm/result_extractor.h"
 #include "core/solver/solver.h"
 #include "core/grid/grid.h"
 #include "core/cpu/euler_2d.h"
@@ -139,12 +140,11 @@ void project_manager::update_project ()
 
         py::exec(R"(
           from anysim_py import *
-          # for field in fields:
-          #   print(field)
 
           for cell_id in range (topology.get_cells_count ()):
             if geometry.get_cell_center_x (cell_id) < 3:
-              fields["p"][cell_id] = 1.4
+              if geometry.get_cell_center_y (cell_id) > 1:
+                fields["rho"][cell_id] = 1.4
         )");
       }
   }
