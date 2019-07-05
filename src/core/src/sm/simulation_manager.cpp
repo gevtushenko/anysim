@@ -63,6 +63,12 @@ void simulation_manager::fill_configuration_scheme (configuration &scheme, std::
     solver_context->fill_configuration_scheme (scheme, scheme_id);
 }
 
+void simulation_manager::handle_grid_change ()
+{
+  if (solver_context)
+    solver_context->handle_grid_change ();
+}
+
 void simulation_manager::apply_configuration (
     const configuration &config,
     std::size_t config_id,

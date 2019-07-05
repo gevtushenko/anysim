@@ -85,30 +85,33 @@ public:
     solver_grid_arg->create_field<float_type> ("u",   memory_holder_type::host, 2);
     solver_grid_arg->create_field<float_type> ("v",   memory_holder_type::host, 2);
     solver_grid_arg->create_field<float_type> ("p",   memory_holder_type::host, 2);
+  }
 
-    auto rho_1 = reinterpret_cast<float_type *> (solver_workspace.get ("rho", 0));
-    auto u_1   = reinterpret_cast<float_type *> (solver_workspace.get ("u", 0));
-    auto v_1   = reinterpret_cast<float_type *> (solver_workspace.get ("v", 0));
-    auto p_1   = reinterpret_cast<float_type *> (solver_workspace.get ("p", 0));
-
-
-    const auto topology = solver_grid->gen_topology_wrapper ();
-
+  void handle_grid_change () final
+  {
 #ifdef GPU_BUILD
     if (use_gpu)
-      {
-        auto rho = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_rho", 0));
-        auto u   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_u", 0));
-        auto v   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_v", 0));
-        auto p   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_p", 0));
+    {
+      auto rho_1 = reinterpret_cast<float_type *> (solver_workspace.get ("rho", 0));
+      auto u_1   = reinterpret_cast<float_type *> (solver_workspace.get ("u", 0));
+      auto v_1   = reinterpret_cast<float_type *> (solver_workspace.get ("v", 0));
+      auto p_1   = reinterpret_cast<float_type *> (solver_workspace.get ("p", 0));
 
-        const unsigned int cells_count = topology.get_cells_count ();
 
-        cudaMemcpyAsync (rho, rho_1, cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync (u,   u_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync (v,   v_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync (p,   p_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
-      }
+      const auto topology = solver_grid->gen_topology_wrapper ();
+
+      auto rho = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_rho", 0));
+      auto u   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_u", 0));
+      auto v   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_v", 0));
+      auto p   = reinterpret_cast<float_type *> (solver_workspace.get ("gpu_p", 0));
+
+      const unsigned int cells_count = topology.get_cells_count ();
+
+      cudaMemcpyAsync (rho, rho_1, cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
+      cudaMemcpyAsync (u,   u_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
+      cudaMemcpyAsync (v,   v_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
+      cudaMemcpyAsync (p,   p_1,   cells_count * sizeof (float_type), cudaMemcpyHostToDevice);
+    }
 #endif
   }
 

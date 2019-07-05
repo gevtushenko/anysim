@@ -240,6 +240,8 @@ public:
     // TODO Apply initializers
   }
 
+  void handle_grid_change () final { }
+
   void update_h (unsigned int thread_id, unsigned int total_threads)
   {
     auto yr = work_range::split (ny, thread_id, total_threads);

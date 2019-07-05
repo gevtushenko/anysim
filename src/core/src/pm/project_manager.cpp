@@ -144,6 +144,7 @@ void project_manager::update_project ()
 
         anysim_py_module.attr ("fields") = kwargs;
         py::exec(python_initializer);
+        simulation->handle_grid_change ();
       }
 #endif
   }
