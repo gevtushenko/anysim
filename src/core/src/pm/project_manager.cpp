@@ -10,6 +10,14 @@
 #include "core/cpu/euler_2d.h"
 #include "core/solver/workspace.h"
 
+#include <iostream>
+
+#include <pybind11/embed.h>
+#include <pybind11/numpy.h>
+
+namespace py = pybind11;
+using namespace py::literals;
+
 project_manager::project_manager ()
   : solver_workspace (new workspace ())
 { }
@@ -65,6 +73,28 @@ configuration &project_manager::get_configuration ()
   return *solver_configuration;
 }
 
+PYBIND11_EMBEDDED_MODULE(anysim_py, m) {
+  // `m` is a `py::module` which is used to bind functions and classes
+  m.def("add", [](int i, int j) {
+    return i + j;
+  });
+  py::class_<grid_topology>(m, "grid_topology")
+    .def(py::init<>())
+    .def("get_cells_count", &grid_topology::get_cells_count);
+  py::class_<grid_geometry>(m, "grid_geometry")
+    .def(py::init<>())
+    .def("get_cell_center_x", &grid_geometry::get_cell_center_x)
+    .def("get_cell_center_y", &grid_geometry::get_cell_center_y);
+}
+
+template<class data_type>
+py::array_t<data_type> create_py_array (size_t n, void *data_ptr)
+{
+  /// Specify 'owner' for data to prevent numpy from copying arrays
+  py::capsule free_when_done(data_ptr, [](void *f) { (void) f; });
+  return py::array_t<data_type> (n, reinterpret_cast<data_type *> (data_ptr), free_when_done);
+}
+
 void project_manager::update_project ()
 {
   const auto &config = *solver_configuration;
@@ -86,6 +116,37 @@ void project_manager::update_project ()
 
     solver_grid = std::make_unique<grid> (*solver_workspace, nx, ny, width, height);
     simulation->apply_configuration (config, config.children_for (config.get_root ()).at (1), solver_grid.get (), gpu_num);
+
+      {
+        auto topology = solver_grid->gen_topology_wrapper ();
+        auto geometry = solver_grid->gen_geometry_wrapper ();
+
+        py::scoped_interpreter guard{};
+        auto anysim_py_module = py::module::import ("anysim_py");
+        anysim_py_module.attr ("topology") = py::cast (topology);
+        anysim_py_module.attr ("geometry") = py::cast (geometry);
+
+        py::dict kwargs;
+        for (auto &field: solver_grid->get_fields_names ())
+          {
+            if (use_double_precision)
+              kwargs[field.c_str ()] = create_py_array<double> (topology.get_cells_count (), solver_workspace->get (field));
+            else
+              kwargs[field.c_str ()] = create_py_array<float> (topology.get_cells_count (), solver_workspace->get (field));
+          }
+
+        anysim_py_module.attr ("fields") = kwargs;
+
+        py::exec(R"(
+          from anysim_py import *
+          # for field in fields:
+          #   print(field)
+
+          for cell_id in range (topology.get_cells_count ()):
+            if geometry.get_cell_center_x (cell_id) < 3:
+              fields["p"][cell_id] = 1.4
+        )");
+      }
   }
 }
 
