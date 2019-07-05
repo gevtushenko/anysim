@@ -27,7 +27,7 @@ private:
   };
 
   QVector<HighlightingRule> highlighting_rules;
-  QTextCharFormat keyword_format, operator_format, braces_format;
+  QTextCharFormat keyword_format, operator_format, braces_format, numbers_format;
 };
 
 #endif //ANYSIM_PYTHON_SYNTAX_HIGHLIGHTER_H

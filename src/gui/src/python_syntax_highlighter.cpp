@@ -32,6 +32,10 @@ python_syntax_highlighter::python_syntax_highlighter (QTextDocument *parent)
       QStringLiteral("{"), QStringLiteral("}"), QStringLiteral("\\("), QStringLiteral("\\)")
   };
 
+  const QString numbers_patterns[] = {
+      QStringLiteral("(\\d+)\\.(\\d+)")
+  };
+
   keyword_format.setForeground(Qt::darkBlue);
   keyword_format.setFontWeight(QFont::Bold);
 
@@ -39,7 +43,10 @@ python_syntax_highlighter::python_syntax_highlighter (QTextDocument *parent)
   operator_format.setFontWeight(QFont::Bold);
 
   braces_format.setForeground(Qt::black);
-  braces_format.setFontWeight (QFont::Bold);
+  braces_format.setFontWeight(QFont::Bold);
+
+  numbers_format.setForeground(Qt::darkGreen);
+  numbers_format.setFontWeight(QFont::Bold);
 
   HighlightingRule rule;
 
@@ -61,6 +68,13 @@ python_syntax_highlighter::python_syntax_highlighter (QTextDocument *parent)
   {
     rule.format = braces_format;
     rule.pattern = QRegularExpression (brace);
+    highlighting_rules.push_back (rule);
+  }
+
+  for (auto &num: numbers_patterns)
+  {
+    rule.format = numbers_format;
+    rule.pattern = QRegularExpression (num);
     highlighting_rules.push_back (rule);
   }
 }
