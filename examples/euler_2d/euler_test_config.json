@@ -3,6 +3,7 @@
   "max_time": 10.0,
   "use_double_precision": false,
   "solver_name": "euler_2d",
+  "grid_initializer": "grid_initializer.py",
   "configuration": {
     "grid": {
       "nx": 400,

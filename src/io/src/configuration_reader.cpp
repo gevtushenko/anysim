@@ -53,6 +53,28 @@ configuration_reader::configuration_reader (const std::string &filename)
     }
   }
 
+  if (configuration.find ("grid_initializer") != configuration.end ())
+  {
+    auto get_dir_name = [](const std::string &file) {
+      std::size_t found = file.find_last_of ("/\\");
+      return file.substr (0, found);
+    };
+
+    const std::string script_filename = configuration["grid_initializer"];
+    const auto script_filepath = get_dir_name (filename) + "/" + script_filename;
+    std::ifstream initializer (script_filepath);
+
+    if (initializer.is_open ())
+    {
+      std::string file_content ((std::istreambuf_iterator<char>(initializer)), std::istreambuf_iterator<char>());
+      initializer_script = std::move (file_content);
+    }
+    else
+    {
+      std::cerr << "Can't read initializer script from " << script_filepath << std::endl;
+    }
+  }
+
   max_time = configuration["max_time"];
   use_double_precision = configuration["use_double_precision"];
   solver_name = configuration["solver_name"];
@@ -118,6 +140,10 @@ bool configuration_reader::initialize_project (project_manager &pm)
     return true;
 
   pm.initialize (project_name, solver_name, max_time, use_double_precision);
+
+  if (!initializer_script.empty ())
+    pm.set_initializer_script (initializer_script);
+
   auto &scheme = pm.get_configuration_scheme ();
   auto &config = pm.get_configuration ();
 

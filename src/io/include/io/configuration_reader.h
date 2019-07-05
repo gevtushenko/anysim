@@ -26,6 +26,7 @@ private:
   /// Required options
   std::string solver_name;
   std::string project_name;
+  std::string initializer_script;
   double max_time = 1.0;
   bool use_double_precision = true;
 

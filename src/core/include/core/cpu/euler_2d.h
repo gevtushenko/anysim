@@ -99,8 +99,8 @@ public:
 #endif
 
     ///
-    const float_type x_0 = 1.0;
-    const float_type y_0 = 1.5;
+    const float_type x_0 = 2.0;
+    const float_type y_0 = 2.0;
 
     const auto topology = solver_grid->gen_topology_wrapper ();
     const auto geometry = solver_grid->gen_geometry_wrapper ();
@@ -110,7 +110,7 @@ public:
       const float_type cx = geometry.get_cell_center_x (cell_id);
       const float_type cy = geometry.get_cell_center_y (cell_id);
 
-      if (cx < x_0)
+      if (cx > x_0)
       {
         rho_1[cell_id] = 1.0;
         p_1[cell_id] = 1.0;
@@ -119,7 +119,7 @@ public:
       }
       else
       {
-        if (cy < y_0)
+        if (cy > y_0)
         {
           rho_1[cell_id] = 1.0;
           p_1[cell_id] = 0.1;

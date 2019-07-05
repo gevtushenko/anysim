@@ -50,14 +50,7 @@ main_window::main_window (project_manager &pm_arg)
   graphics_and_tabs->setStretchFactor (0, 9);
   graphics_and_tabs->setStretchFactor (1, 1);
 
-  python->setText (R"(
-from anysim_py import *
-
-for cell_id in range (topology.get_cells_count ()):
-  if geometry.get_cell_center_x (cell_id) < 3:
-    if geometry.get_cell_center_y (cell_id) > 1:
-      fields["rho"][cell_id] = 1.4
-)");
+  python->setText (QString::fromStdString (pm.get_initializer_script ()));
 
   auto splitter = new QSplitter ();
   splitter->addWidget (model);

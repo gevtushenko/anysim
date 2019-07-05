@@ -52,6 +52,7 @@ public:
   }
 
   void set_initializer_script (const std::string &script) { python_initializer = script; version--; }
+  const std::string &get_initializer_script () const { return python_initializer; }
 
   bool get_use_gpu () const { return gpu_num >= 0; }
 
