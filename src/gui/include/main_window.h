@@ -15,6 +15,7 @@ class QCheckBox;
 class QComboBox;
 class QTextEdit;
 
+class python_syntax_highlighter;
 class hybrid_results_visualizer;
 class graphics_widget;
 class settings_widget;
@@ -60,6 +61,7 @@ private:
   QCheckBox *use_gpu = nullptr;
   QComboBox *gpu_names = nullptr;
   QTextEdit *python = nullptr;
+  python_syntax_highlighter *highlighter = nullptr;
   QTabWidget *tabs = nullptr;
   render_thread renderer;
 };

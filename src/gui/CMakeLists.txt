@@ -33,7 +33,8 @@ set(GUI_SOURCES
         include/settings/source_settings_widget.h
         src/settings/source_settings_widget.cpp
         include/settings/global_parameters_widget.h
-        src/settings/global_parameters_widget.cpp)
+        src/settings/global_parameters_widget.cpp
+        include/python_syntax_highlighter.h src/python_syntax_highlighter.cpp)
 set(GUI_RESOURCES
         resources/resources.qrc)
 add_library(${PROJECT_NAME} STATIC ${GUI_SOURCES} ${GUI_RESOURCES})

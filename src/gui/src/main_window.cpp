@@ -2,10 +2,13 @@
 // Created by egi on 5/11/19.
 //
 
+#include "main_window.h"
+
 #include <QtWidgets>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QSplitter>
+#include <QTextDocument>
 
 #include "settings/global_parameters_widget.h"
 #include "settings/source_settings_widget.h"
@@ -14,7 +17,7 @@
 
 #include "io/hdf5/hdf5_writer.h"
 
-#include "main_window.h"
+#include "python_syntax_highlighter.h"
 #include "settings_widget.h"
 #include "graphics_widget.h"
 #include "opengl_widget.h"
@@ -47,13 +50,25 @@ main_window::main_window (project_manager &pm_arg)
 
 #ifdef PYTHON_BUILD
   python = new QTextEdit ();
+
+  QFont font;
+  font.setFamily("Courier");
+  font.setFixedPitch(true);
+  font.setPointSize(10);
+  python->setFont (font);
+
+  highlighter = new python_syntax_highlighter (python->document());
+  python->setPlainText (QString::fromStdString (pm.get_initializer_script ()));
+
+  QTextOption option;
+  option.setFlags(QTextOption::ShowTabsAndSpaces);
+  python->document ()->setDefaultTextOption (option);
+
   tabs->addTab (python, "Python");
 
   graphics_and_tabs->addWidget (tabs);
   graphics_and_tabs->setStretchFactor (0, 9);
   graphics_and_tabs->setStretchFactor (1, 1);
-
-  python->setText (QString::fromStdString (pm.get_initializer_script ()));
 #endif
 
   auto splitter = new QSplitter ();
