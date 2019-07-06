@@ -5,9 +5,9 @@
 template <typename float_type>
 void fdtd_step(
     float_type t,
-    float_type dt,
-    unsigned int nx, unsigned int ny,
-    float_type dx, float_type dy,
+    float_type C0_p_dt,
+    const grid_topology &topology,
+    const grid_geometry &geometry,
     const float_type *mh,
     const float_type *er,
     float_type *ez,
@@ -19,16 +19,16 @@ void fdtd_step(
     const unsigned int *sources_offsets)
 {
 #ifdef GPU_BUILD
-  fdtd_step_gpu<float_type> (t, dt, nx, ny, dx, dy, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
+  fdtd_step_gpu<float_type> (t, C0_p_dt, topology, geometry, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
 #else
   cpp_unreferenced(t, dt, nx, ny, dx, dy, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
 #endif
 }
 
-#define GEN_FDTD_INTERFACE_INSTANCE_FOR(type)                                              \
-  template void fdtd_step<type>(                                                           \
-      type t, type dt, unsigned int nx, unsigned int ny, type dx, type dy, const type *mh, \
-      const type *er, type *ez, type *dz, type *hx, type *hy, unsigned int sources_count,  \
+#define GEN_FDTD_INTERFACE_INSTANCE_FOR(type)                                             \
+  template void fdtd_step<type>(                                                          \
+      type, type, const grid_topology &, const grid_geometry &, const type *mh,           \
+      const type *er, type *ez, type *dz, type *hx, type *hy, unsigned int sources_count, \
       const type *sources_frequencies, const unsigned int *sources_offsets);
 
 GEN_FDTD_INTERFACE_INSTANCE_FOR (float)

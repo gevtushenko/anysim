@@ -259,6 +259,16 @@ public:
     return 0.0;
   }
 
+  CPU_GPU float get_distance_between_cells_x (unsigned int first_cell, unsigned int second_cell) const
+  {
+    return std::abs (get_cell_center_x (first_cell) - get_cell_center_x (second_cell));
+  }
+
+  CPU_GPU float get_distance_between_cells_y (unsigned int first_cell, unsigned int second_cell) const
+  {
+    return std::abs (get_cell_center_y (first_cell) - get_cell_center_y (second_cell));
+  }
+
 private:
   float dx, dy;
   unsigned int nx, ny;
@@ -331,9 +341,9 @@ public:
     topology.initialize_for_structured_uniform_grid (
       nx, ny,
       boundary_to_id (boundary_type::periodic),
-      boundary_to_id (boundary_type::mirror),
       boundary_to_id (boundary_type::periodic),
-      boundary_to_id (boundary_type::mirror));
+      boundary_to_id (boundary_type::periodic),
+      boundary_to_id (boundary_type::periodic));
     return topology;
   }
 

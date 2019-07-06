@@ -15,6 +15,7 @@
 #include "core/solver/solver.h"
 #include "core/common/curl.h"
 #include "cpp/common_funcs.h"
+#include "core/gpu/fdtd.cuh"
 #include "core/grid/grid.h"
 
 #include <iostream>
@@ -119,6 +120,7 @@ class fdtd_2d : public solver
   float_type *d_sources_frequencies = nullptr;
   unsigned int *d_sources_offsets = nullptr;
 
+  grid *solver_grid = nullptr;
 
   std::unique_ptr<sources_holder<float_type>> sources;
 
@@ -149,8 +151,10 @@ public:
     return true;
   }
 
-  void apply_configuration (const configuration &config, std::size_t solver_id, grid *solver_grid, int gpu_num) final
+  void apply_configuration (const configuration &config, std::size_t solver_id, grid *solver_grid_arg, int gpu_num) final
   {
+    solver_grid = solver_grid_arg;
+
     dx = solver_grid->dx;
     dy = solver_grid->dy;
 
@@ -242,50 +246,34 @@ public:
 
   void handle_grid_change () final { }
 
-  void update_h (unsigned int thread_id, unsigned int total_threads)
+  void update_h (
+    unsigned int thread_id,
+    unsigned int total_threads,
+    const grid_topology &topology,
+    const grid_geometry &geometry)
   {
-    auto yr = work_range::split (ny, thread_id, total_threads);
-
-    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
-    {
-      for (unsigned int i = 0; i < nx; i++)
-      {
-        const float_type cex = update_curl_ex (i, j, nx, ny, dy, ez);
-        const float_type cey = update_curl_ey (i, j, nx, dx, ez);
-
-        const unsigned int idx = j * nx + i;
-
-        // update_h
-        hx[idx] -= m_h[idx] * cex;
-        hy[idx] -= m_h[idx] * cey;
-      }
-    }
+    auto yr = work_range::split (topology.get_cells_count (), thread_id, total_threads);
+    for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
+      fdtd_2d_update_h (cell_id, topology, geometry, ez, m_h, hx, hy);
   }
 
-  void update_e (unsigned int thread_id, unsigned int total_threads, const sources_holder<float_type> &s)
+  void update_e (
+    unsigned int thread_id,
+    unsigned int total_threads,
+    const sources_holder<float_type> &s,
+    const grid_topology &topology,
+    const grid_geometry &geometry)
   {
-    auto yr = work_range::split (ny, thread_id, total_threads);
     const float_type C0_p_dt = C0 * dt;
 
     auto sources_offsets = s.get_sources_offsets ();
     auto sources_frequencies = s.get_sources_frequencies ();
 
-    for (unsigned int j = yr.chunk_begin; j < yr.chunk_end; j++)
-    {
-      for (unsigned int i = 0; i < nx; i++)
-      {
-        const unsigned int idx = j * nx + i;
-        const float_type chz = update_curl_h (i, j, nx, ny, dx, dy, hx, hy);
-
-        dz[idx] += C0_p_dt * chz; // update d = C0 * dt * curl Hz
-
-        for (unsigned int source_id = 0; source_id < s.get_sources_count (); source_id++)
-          if (sources_offsets[source_id] == idx)
-            dz[idx] += calculate_source (t, sources_frequencies[source_id]);
-
-        ez[idx] = dz[idx] / er[idx]; // update e
-      }
-    }
+    auto yr = work_range::split (topology.get_cells_count (), thread_id, total_threads);
+    for (unsigned int cell_id = yr.chunk_begin; cell_id < yr.chunk_end; cell_id++)
+      fdtd_2d_update_e (
+          cell_id, t, C0_p_dt, topology, geometry, er, hx, hy, dz, ez,
+          s.get_sources_count (), sources_frequencies, sources_offsets);
   }
 
   /// Ez mode
@@ -295,33 +283,42 @@ public:
     if (is_main_thread (thread_id))
       t += dt;
 
+    const auto topology = solver_grid->gen_topology_wrapper ();
+    const auto geometry = solver_grid->gen_geometry_wrapper ();
+
 #ifdef GPU_BUILD
     if (use_gpu)
     {
       if (is_main_thread (thread_id))
-        solve_gpu ();
+        solve_gpu (topology, geometry);
     }
     else
 #endif
     {
-      solve_cpu (thread_id, total_threads);
+      solve_cpu (thread_id, total_threads, topology, geometry);
     }
 
     return dt;
   }
 
 private:
-  void solve_cpu (unsigned int thread_id, unsigned int total_threads)
+  void solve_cpu (
+      unsigned int thread_id,
+      unsigned int total_threads,
+      const grid_topology &topology,
+      const grid_geometry &geometry)
   {
-    update_h (thread_id, total_threads);
+    update_h (thread_id, total_threads, topology, geometry);
     threads.barrier ();
-    update_e (thread_id, total_threads, *sources);
+    update_e (thread_id, total_threads, *sources, topology, geometry);
   }
 
 #ifdef GPU_BUILD
-  void solve_gpu ()
+  void solve_gpu (
+      const grid_topology &topology,
+      const grid_geometry &geometry)
   {
-    fdtd_step (t, dt, nx, ny, dx, dy, d_mh, d_er, ez, dz, hx, hy, sources_count, d_sources_frequencies, d_sources_offsets);
+    fdtd_step<float_type> (t, C0 * dt, topology, geometry, d_mh, d_er, ez, dz, hx, hy, sources_count, d_sources_frequencies, d_sources_offsets);
 
     auto cuda_error = cudaGetLastError ();
     if (cuda_error != cudaSuccess)
