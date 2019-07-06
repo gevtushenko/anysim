@@ -5,12 +5,12 @@
 #ifndef ANYSIM_GRAPHICS_WIDGET_H
 #define ANYSIM_GRAPHICS_WIDGET_H
 
-#include <QWidget>
+#include <QFrame>
 #include <QTreeView>
 
 class opengl_widget;
 
-class graphics_widget : public QWidget
+class graphics_widget : public QFrame
 {
   Q_OBJECT
 
