@@ -7,6 +7,7 @@
 #include "settings/source_settings_widget.h"
 #include "core/config/configuration.h"
 #include "core/pm/project_manager.h"
+#include "section_name.h"
 
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -19,7 +20,7 @@ settings_widget::settings_widget (project_manager &pm_arg)
 {
   main_layout = new QVBoxLayout ();
   node_layout = new QVBoxLayout ();
-  auto widget_label = new QLabel ("Settings");
+  auto widget_label = new section_name ("Settings");
 
   main_layout->addWidget (widget_label);
   main_layout->addLayout (node_layout);
