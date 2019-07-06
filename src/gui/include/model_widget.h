@@ -13,7 +13,7 @@ class QStandardItem;
 class QStandardItemModel;
 class project_manager;
 
-class model_widget : public QWidget
+class model_widget : public QFrame
 {
   Q_OBJECT
 

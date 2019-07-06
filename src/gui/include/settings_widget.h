@@ -5,14 +5,14 @@
 #ifndef ANYSIM_SETTINGS_WIDGET_H
 #define ANYSIM_SETTINGS_WIDGET_H
 
-#include <QWidget>
+#include <QFrame>
 
 class project_manager;
 class QVBoxLayout;
 
-class settings_widget : public QWidget
+class settings_widget : public QFrame
 {
-Q_OBJECT
+  Q_OBJECT
 
 public:
   settings_widget (project_manager &pm_arg);

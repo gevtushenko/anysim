@@ -12,6 +12,7 @@
 #include <QMenu>
 
 #include "settings_widget.h"
+#include "section_name.h"
 
 static void append_to_model (const configuration &config, std::size_t parent_id, QStandardItem *parent)
 {
@@ -29,10 +30,11 @@ static void append_to_model (const configuration &config, std::size_t parent_id,
 }
 
 model_widget::model_widget (project_manager &pm_arg)
-  : pm (pm_arg)
+  : QFrame ()
+  , pm (pm_arg)
 {
   auto main_layout = new QVBoxLayout ();
-  auto widget_label = new QLabel ("Model");
+  auto widget_label = new section_name ("Model");
 
   model = new QStandardItemModel ();
   auto root = model->invisibleRootItem ();

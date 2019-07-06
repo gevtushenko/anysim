@@ -14,7 +14,8 @@
 #include <QLabel>
 
 settings_widget::settings_widget (project_manager &pm_arg)
-  : pm (pm_arg)
+  : QFrame ()
+  , pm (pm_arg)
 {
   main_layout = new QVBoxLayout ();
   node_layout = new QVBoxLayout ();
