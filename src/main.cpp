@@ -27,7 +27,7 @@ int start_application (bool console_run, project_manager &pm, int argc, char *ar
 
 int main (int argc, char *argv[])
 {
-  project_manager pm;
+  project_manager pm (argc, argv);
 
   con_parser args;
   if (args.parse (argc, argv, true /* require configuration */, pm))

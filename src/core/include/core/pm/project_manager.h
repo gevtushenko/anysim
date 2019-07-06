@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+#include "core/sm/multiprocess.h"
+
 class grid;
 class workspace;
 class configuration;
@@ -17,7 +19,8 @@ class result_extractor;
 class project_manager
 {
 public:
-  project_manager ();
+  project_manager () = delete;
+  project_manager (int argc, char *argv[]);
   ~project_manager ();
 
   void initialize (
@@ -62,6 +65,8 @@ private:
   std::string project_name;
   bool use_double_precision = true;
   int gpu_num = -1;
+
+  multiprocess process_manager;
 
   std::string python_initializer;
   std::unique_ptr<grid> solver_grid;

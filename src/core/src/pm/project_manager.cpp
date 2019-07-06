@@ -21,8 +21,9 @@ namespace py = pybind11;
 using namespace py::literals;
 #endif
 
-project_manager::project_manager ()
-  : solver_workspace (new workspace ())
+project_manager::project_manager (int argc, char *argv[])
+  : process_manager (argc, argv)
+  , solver_workspace (new workspace ())
 { }
 
 project_manager::~project_manager () = default;
