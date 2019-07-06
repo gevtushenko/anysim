@@ -21,7 +21,7 @@ void fdtd_step(
 #ifdef GPU_BUILD
   fdtd_step_gpu<float_type> (t, C0_p_dt, topology, geometry, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
 #else
-  cpp_unreferenced(t, dt, nx, ny, dx, dy, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
+  cpp_unreferenced (t, C0_p_dt, topology, geometry, mh, er, ez, dz, hx, hy, sources_count, sources_frequencies, sources_offsets);
 #endif
 }
 
