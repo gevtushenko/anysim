@@ -6,10 +6,7 @@ QWidget
 
 section_name QLabel
 {
-
-    font-size: 20px;
     color: #336B87;
-    /*color: #92bde5;*/
 }
 
 model_widget, model_widget QTreeView, settings_widget, graphics_widget
