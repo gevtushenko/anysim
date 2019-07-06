@@ -108,11 +108,11 @@ void opengl_widget::update_project (project_manager &pm)
 
   is_initialized = false;
 
-  x_size = solver_grid.width;
-  y_size = solver_grid.height;
+  x_size = solver_grid.get_bounding_box_width ();
+  y_size = solver_grid.get_bounding_box_height ();
 
   axes.prepare (0.0, x_size, 0.0, y_size);
-  camera_view.update_model_matrix (solver_grid.width, solver_grid.height);
+  camera_view.update_model_matrix (x_size, y_size);
 
   elements_count = solver_grid.get_cells_number ();
 

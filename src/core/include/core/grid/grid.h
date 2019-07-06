@@ -5,6 +5,7 @@
 #ifndef ANYSIM_GRID_H
 #define ANYSIM_GRID_H
 
+#include <cmath>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -269,6 +270,13 @@ public:
     return std::abs (get_cell_center_y (first_cell) - get_cell_center_y (second_cell));
   }
 
+  CPU_GPU unsigned int get_cell_id_by_coordinates (float x, float y) const
+  {
+    const unsigned int grid_x = std::ceil (x / dx);
+    const unsigned int grid_y = std::ceil (y / dy);
+    return nx * grid_y + grid_x;
+  }
+
 private:
   float dx, dy;
   unsigned int nx, ny;
@@ -347,7 +355,15 @@ public:
     return topology;
   }
 
+  float get_bounding_box_width () const { return width; }
+  float get_bounding_box_height () const { return height; }
+
 public:
+  const std::size_t vertices_per_cell = 4;
+  const std::size_t coordinates_per_vertex = 2;
+  const std::size_t vertex_data_per_element = vertices_per_cell * coordinates_per_vertex;
+
+private:
   const unsigned int nx;
   const unsigned int ny;
   const unsigned int size;
@@ -356,11 +372,6 @@ public:
   const double dx;
   const double dy;
 
-  const std::size_t vertices_per_cell = 4;
-  const std::size_t coordinates_per_vertex = 2;
-  const std::size_t vertex_data_per_element = vertices_per_cell * coordinates_per_vertex;
-
-private:
   workspace &solver_workspace;
   std::vector<std::string> fields_names;
   vertices vertices_2d;
