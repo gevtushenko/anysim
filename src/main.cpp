@@ -22,7 +22,9 @@ int start_application (bool console_run, project_manager &pm, int argc, char *ar
     return gui_application (pm, argc, argv).run ();
 #endif
 
-  return pm.run ();
+  while (pm.run ())
+  { }
+  return 0;
 }
 
 int main (int argc, char *argv[])

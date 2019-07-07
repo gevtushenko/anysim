@@ -7,12 +7,19 @@
 
 #include "cpp/common_funcs.h"
 
+#include <memory>
+
 constexpr inline unsigned int get_main_process () { return 0; }
 inline bool is_main_process (int rank) { return rank == get_main_process (); }
 
-class transaction_id : private non_copyable<transaction_id>
+class transaction_id;
+class transaction_id_holder : private non_copyable<transaction_id>
 {
+public:
+  transaction_id_holder ();
 
+private:
+  std::unique_ptr<transaction_id> request;
 };
 
 class multiprocess

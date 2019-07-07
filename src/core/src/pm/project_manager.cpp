@@ -177,3 +177,9 @@ void project_manager::append_extractor (result_extractor *extractor)
 {
   extractors.push_back (extractor);
 }
+
+void project_manager::append_extractor_to_own (result_extractor *extractor)
+{
+  own_extractors.emplace_back (extractor);
+  extractors.push_back (extractor);
+}

@@ -40,6 +40,7 @@ public:
   const grid &get_grid () const;
 
   void append_extractor (result_extractor *extractor);
+  void append_extractor_to_own (result_extractor *extractor);
 
   bool is_double_precision_used () { return use_double_precision; }
 
@@ -75,6 +76,7 @@ private:
   std::unique_ptr<configuration> solver_configuration_scheme;
   std::unique_ptr<simulation_manager> simulation;
   std::vector<result_extractor*> extractors;
+  std::vector<std::unique_ptr<result_extractor>> own_extractors;
 };
 
 #endif //ANYSIM_PROJECT_MANAGER_H
