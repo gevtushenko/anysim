@@ -33,6 +33,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -g")
 add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_THREAD_LIBS_INIT})
 
+target_compile_definitions(${CMAKE_PROJECT_NAME}_core PUBLIC VTUNE_BUILD)
+target_link_libraries(${CMAKE_PROJECT_NAME}_core cpp_itt)
+
 if(MPI_FOUND)
     add_compile_definitions(MPI_BUILD)
     include_directories(${MPI_INCLUDE_PATH})

@@ -25,6 +25,10 @@
 #include "core/solver/solver.h"
 #include "cpp/common_funcs.h"
 
+#ifdef VTUNE_BUILD
+#include "cpp_itt.h"
+#endif
+
 template<class float_type>
 class euler_2d : public solver
 {
@@ -166,8 +170,11 @@ public:
     const float_type *p_rho,
     const float_type *p_u,
     const float_type *p_v,
-    const float_type *p_p) const
+    const float_type *p_p,
+    cpp_itt::domain &profiling_domain) const
   {
+    auto task = profiling_domain.create_task ("calculate_dt");
+
 #ifdef GPU_BUILD
     if (use_gpu)
     {
@@ -218,6 +225,8 @@ public:
   {
     const std::string prefix = use_gpu ? "gpu_" : "";
 
+    auto domain = cpp_itt::create_domain ("euler.2d.solve");
+
     auto p_rho      = reinterpret_cast<float_type *> (solver_workspace.get (prefix + "rho", (step + 0) % 2));
     auto p_rho_next = reinterpret_cast<float_type *> (solver_workspace.get (prefix + "rho", (step + 1) % 2));
     auto p_u        = reinterpret_cast<float_type *> (solver_workspace.get (prefix + "u",   (step + 0) % 2));
@@ -230,7 +239,7 @@ public:
     const auto topology = solver_grid->gen_topology_wrapper ();
     const auto geometry = solver_grid->gen_geometry_wrapper ();
 
-    const float_type dt = calculate_dt (thread_id, total_threads, topology, geometry, p_rho, p_u, p_v, p_p);
+    const float_type dt = calculate_dt (thread_id, total_threads, topology, geometry, p_rho, p_u, p_v, p_p, domain);
 
 #ifdef GPU_BUILD
     if (use_gpu)
@@ -244,6 +253,8 @@ public:
     else
 #endif
     {
+      auto next_cell_calculation_task = domain.create_task ("update_cells_values");
+
       solve_cpu (
           thread_id, total_threads, dt,
           topology, geometry,

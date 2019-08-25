@@ -103,9 +103,13 @@ py::array_t<data_type> create_py_array (size_t n, void *data_ptr)
 
 void project_manager::update_project ()
 {
+  auto domain = cpp_itt::create_domain ("project_manager");
+
   const auto &config = *solver_configuration;
   if (version != config.get_version ())
   {
+    auto task = domain.create_task ("apply_configuration");
+
     version = config.get_version ();
 
     auto grid_node_id = config.children_for (config.get_root ()).front ();
@@ -126,6 +130,7 @@ void project_manager::update_project ()
 #ifdef PYTHON_BUILD
     if (!python_initializer.empty ())
       {
+        auto task = domain.create_task ("python_data_initialization");
         auto topology = solver_grid->gen_topology_wrapper ();
         auto geometry = solver_grid->gen_geometry_wrapper ();
 

@@ -29,6 +29,7 @@ int start_application (bool console_run, project_manager &pm, int argc, char *ar
 
 int main (int argc, char *argv[])
 {
+  auto thread_profiler = cpp_itt::create_thread_collector ("Main Thread");
   project_manager pm (argc, argv);
 
   con_parser args;

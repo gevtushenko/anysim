@@ -8,6 +8,8 @@
 #include <hdf5.h>
 #endif
 
+#include "cpp_itt.h"
+
 class hdf5_writer::hdf5_impl
 {
 public:
@@ -43,6 +45,9 @@ public:
     unsigned int threads_count,
     thread_pool &threads)
   {
+    auto domain = cpp_itt::create_domain ("io.hdf5");
+    auto task = domain.create_task ("write_results");
+
 #if HDF5_BUILD
     if (is_main_thread (thread_id))
     {

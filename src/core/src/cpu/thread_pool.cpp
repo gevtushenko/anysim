@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include <xmmintrin.h> // For _mm_pause
+#include "cpp_itt.h"
 
 thread_pool::thread_pool () : thread_pool (std::thread::hardware_concurrency ()) {}
 
@@ -33,6 +34,8 @@ thread_pool::~thread_pool ()
 void thread_pool::run_thread (unsigned int thread_id)
 {
   unsigned int thread_epoch = 0;
+
+  auto thread_profiler = cpp_itt::create_thread_collector ("Calc thread " + std::to_string (thread_id));
 
   while (!finalize_pool)
   {

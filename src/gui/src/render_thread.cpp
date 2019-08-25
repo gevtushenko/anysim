@@ -4,6 +4,7 @@
 
 #include "render_thread.h"
 #include "opengl_widget.h"
+#include "cpp_itt.h"
 
 #include <iostream>
 
@@ -49,6 +50,8 @@ void render_thread::halt ()
 
 void render_thread::run()
 {
+  auto thread_profiler = cpp_itt::create_thread_collector ("GUI Calc Thread");
+
   if (extract_only)
   {
     pm->extract ();

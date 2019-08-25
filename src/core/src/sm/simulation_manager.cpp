@@ -9,6 +9,10 @@
 #include "core/cpu/euler_2d.h"
 #include "core/cpu/fdtd_2d.h"
 
+#ifdef VTUNE_BUILD
+#include "cpp_itt.h"
+#endif
+
 solver *solver_abstract_method (
     const std::string &solver_arg,
     bool use_double_precision_arg,
@@ -110,24 +114,33 @@ bool simulation_manager::calculate_next_time_step (result_extractor **extractors
   if (!solver_context)
     return false;
 
+  auto domain = cpp_itt::create_domain ("simulation_manager");
+
   const auto calculation_begin = std::chrono::high_resolution_clock::now ();
   const unsigned int steps_until_render = 10;
 
   solver_workspace.set_active_layer ("rho", 0);
   threads.execute ([&] (unsigned int thread_id, unsigned int threads_count) {
     double report_time = 0.0;
-    for (unsigned int local_step = 0; local_step < steps_until_render; local_step++)
+
     {
-      report_time += solver_context->solve (step + local_step, thread_id, threads_count);
-      if (time + report_time > max_time)
-        break;
+      auto local_steps = domain.create_task ("local_steps");
+      for (unsigned int local_step = 0; local_step < steps_until_render; local_step++)
+      {
+        report_time += solver_context->solve (step + local_step, thread_id, threads_count);
+        if (time + report_time > max_time)
+          break;
+      }
     }
 
     threads.barrier ();
     time += report_time;
 
-    for (unsigned int eid = 0; eid < extractors_count; eid++)
-      extractors[eid]->extract (thread_id, threads_count, threads);
+    {
+      auto local_steps = domain.create_task ("extract");
+      for (unsigned int eid = 0; eid < extractors_count; eid++)
+        extractors[eid]->extract (thread_id, threads_count, threads);
+    }
   });
 
   const auto calculation_end = std::chrono::high_resolution_clock::now ();

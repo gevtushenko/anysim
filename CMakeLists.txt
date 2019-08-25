@@ -11,6 +11,10 @@ else()
     message("Install CUDA library to use GPU")
 endif()
 
+if (EXISTS "${CMAKE_SOURCE_DIR}/external/cpp_itt/CMakeLists.txt")
+    add_subdirectory(external/cpp_itt)
+endif()
+
 find_package(pybind11 CONFIG QUIET)
 if(pybind11_FOUND)
     message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
