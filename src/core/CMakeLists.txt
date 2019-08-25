@@ -19,34 +19,51 @@ set(CORE_SOURCES
         include/core/common/curl.h
         include/core/config/configuration.h
         src/config/configuration.cpp
+        include/cpp/common_funcs.h
         include/core/solver/solver.h
         include/core/sm/result_extractor.h
         include/core/solver/workspace.h
         src/solver/workspace.cpp
-        include/core/grid/grid.h src/grid.cpp src/gpu/euler_2d_gpu_interface.cpp include/core/sm/multiprocess.h src/sm/multiprocess.cpp)
-
+        include/core/grid/grid.h src/grid.cpp
+        src/gpu/euler_2d_gpu_interface.cpp
+        include/core/sm/multiprocess.h
+        src/sm/multiprocess.cpp)
 
 find_package(MPI QUIET)
 find_package(Threads REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -g")
-add_library(${CMAKE_PROJECT_NAME}_core STATIC ${CORE_SOURCES})
-target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_THREAD_LIBS_INIT})
+add_library(${PROJECT_NAME} STATIC ${CORE_SOURCES})
+target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
-target_compile_definitions(${CMAKE_PROJECT_NAME}_core PUBLIC VTUNE_BUILD)
-target_link_libraries(${CMAKE_PROJECT_NAME}_core cpp_itt)
+target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_compile_definitions(${PROJECT_NAME} PUBLIC VTUNE_BUILD)
+target_link_libraries(${PROJECT_NAME} cpp_itt)
 
 if(MPI_FOUND)
     add_compile_definitions(MPI_BUILD)
     include_directories(${MPI_INCLUDE_PATH})
-    target_link_libraries(${CMAKE_PROJECT_NAME}_core ${MPI_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} ${MPI_LIBRARIES})
 else()
     message("Build without MPI support")
 endif()
 
+find_package(pybind11 CONFIG QUIET)
 if(pybind11_FOUND)
-    include_directories(include ${pybind11_INCLUDE_DIRS})
-    target_link_libraries(${CMAKE_PROJECT_NAME}_core pybind11::embed)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC PYTHON_BUILD)
+    target_link_libraries(${PROJECT_NAME} pybind11::embed)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${pybind11_INCLUDE_DIRS})
+    message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
+else ()
+    message("Build without Python support")
+endif()
+
+find_package(CUDA QUIET)
+if(CUDA_FOUND)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC GPU_BUILD)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CUDA_INCLUDE_DIRS})
+else()
+    message("Install CUDA library to use GPU")
 endif()
 
 if(CUDA_FOUND)
@@ -57,8 +74,9 @@ if(CUDA_FOUND)
             src/gpu/coloring.cu
             src/gpu/fdtd.cu
             include/core/gpu/fdtd.cuh)
-    add_compile_definitions(GPU_BUILD)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 -lineinfo --expt-relaxed-constexpr")
     cuda_add_library(${CMAKE_PROJECT_NAME}_gpu ${GPU_SOURCES})
-    target_link_libraries(${CMAKE_PROJECT_NAME}_core ${CMAKE_PROJECT_NAME}_gpu ${CUDA_LIBRARIES})
+    target_compile_definitions(${CMAKE_PROJECT_NAME}_gpu PUBLIC GPU_BUILD)
+    target_include_directories(${CMAKE_PROJECT_NAME}_gpu PRIVATE include)
+    target_link_libraries(${PROJECT_NAME} ${CMAKE_PROJECT_NAME}_gpu ${CUDA_LIBRARIES})
 endif()

@@ -4,7 +4,7 @@
 
 #include "io/con/con_parser.h"
 #include "io/configuration_reader.h"
-#include "io/include/io/con/argagg/argagg.hpp"
+#include "io/con/argagg/argagg.hpp"
 #include "io/hdf5/hdf5_writer.h"
 #include "core/pm/project_manager.h"
 

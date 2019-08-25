@@ -2,7 +2,7 @@
 // Created by egi on 5/11/19.
 //
 
-#include "gui/include/opengl_widget.h"
+#include "opengl_widget.h"
 #include "core/pm/project_manager.h"
 #include "cpp/common_funcs.h"
 #include "core/grid/grid.h"

@@ -3,33 +3,11 @@ project(anysim)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(CUDA QUIET)
-if(CUDA_FOUND)
-    add_compile_definitions(GPU_BUILD)
-    include_directories(${CUDA_INCLUDE_DIRS})
-else()
-    message("Install CUDA library to use GPU")
-endif()
-
-if (EXISTS "${CMAKE_SOURCE_DIR}/external/cpp_itt/CMakeLists.txt")
-    add_subdirectory(external/cpp_itt)
-endif()
-
-find_package(pybind11 CONFIG QUIET)
-if(pybind11_FOUND)
-    message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
-    add_compile_definitions(PYTHON_BUILD)
-else ()
-    message("Build without Python support")
-endif()
-
-include_directories(src src/core/include src/io/include)
+add_subdirectory(external/cpp_itt)
 add_subdirectory(src/core)
 add_subdirectory(src/io)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -O3 -g")
-set(SOURCES
-        src/main.cpp
-        src/cpp/common_funcs.h)
+
+set(SOURCES src/main.cpp)
 
 add_executable(${CMAKE_PROJECT_NAME}-con ${SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME}-con ${CMAKE_PROJECT_NAME}_io)
@@ -37,10 +15,9 @@ target_compile_definitions(${CMAKE_PROJECT_NAME}-con PRIVATE CON_BUILD)
 
 find_package(Qt5Widgets QUIET)
 if(Qt5Widgets_FOUND)
-    add_compile_definitions(GUI_BUILD)
-    include_directories(src/gui/include)
     add_subdirectory(src/gui)
     add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE GUI_BUILD)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_gui ${CMAKE_PROJECT_NAME}_io)
 endif()
 
