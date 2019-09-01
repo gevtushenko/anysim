@@ -51,8 +51,7 @@ public:
 #if HDF5_BUILD
     if (is_main_thread (thread_id))
     {
-      const auto &solver_grid = pm.get_grid ();
-      const auto &gl_representation = solver_grid.get_gl_representation ();
+      const auto &gl_representation = pm.get_gl_representation ();
       const auto &solver_workspace = pm.get_solver_workspace ();
       const unsigned int cells_count = gl_representation.get_elements_count ();
       const unsigned int vertices_per_cell = gl_representation.get_vertices_per_element ();
@@ -76,12 +75,12 @@ public:
 
       const bool use_double_precision = pm.is_double_precision_used ();
       hid_t type = use_double_precision ? H5T_NATIVE_DOUBLE : H5T_NATIVE_FLOAT;
-      write_xdmf_xml_body (cells_count, use_double_precision, solver_grid.get_fields_names());
+      write_xdmf_xml_body (cells_count, use_double_precision, pm.get_fields_names ());
 
       const std::string time_step_group_name = "/simulation/" + std::to_string (step++);
       hid_t time_step_group_id = H5Gcreate2 (file_id, time_step_group_name.c_str (), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-      for (auto &field: solver_grid.get_fields_names())
+      for (auto &field: pm.get_fields_names())
         write_field (solver_workspace.get_host_copy (field), time_step_group_name + "/" + field, type, cells_count);
 
       H5Gclose (time_step_group_id);

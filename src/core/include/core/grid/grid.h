@@ -340,7 +340,7 @@ public:
     return false;
   }
 
-  const std::vector<std::string> &get_fields_names () const { return fields_names; }
+  [[nodiscard]] const std::vector<std::string> &get_fields_names () const { return fields_names; }
 
   std::size_t get_cells_number () const { return nx * ny; }
 
@@ -367,7 +367,7 @@ public:
 
   float get_bounding_box_width () const { return width; }
   float get_bounding_box_height () const { return height; }
-  
+
   const geometry_representation &get_gl_representation () const;
 
 public:

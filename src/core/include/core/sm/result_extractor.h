@@ -34,9 +34,9 @@ private:
   template <class data_type>
   void render (unsigned int thread_id, unsigned int threads_count, thread_pool &threads)
   {
-    const auto &solver_grid = pm.get_grid ();
+    const auto &geometry_representation = pm.get_gl_representation ();
     const auto &solver_workspace = pm.get_solver_workspace ();
-    auto cr = work_range::split (solver_grid.get_cells_number (), thread_id, threads_count);
+    auto cr = work_range::split (geometry_representation.get_elements_count (), thread_id, threads_count);
     auto data = reinterpret_cast<const data_type*> (solver_workspace.get (target_name));
 
     if (!data)
@@ -97,7 +97,7 @@ private:
   void render (unsigned int thread_id, unsigned int /* threads_count */, thread_pool & /* threads */)
   {
 #ifdef GPU_BUILD
-    const auto &solver_grid = pm.get_grid ();
+    const auto &gl_represenntation = pm.get_gl_representation ();
     const auto &solver_workspace = pm.get_solver_workspace ();
     auto data = reinterpret_cast<const data_type*> (solver_workspace.get (target_name));
 
@@ -109,8 +109,8 @@ private:
       if (!min_max)
         cudaMalloc (&min_max, 2 * sizeof (float));
 
-      find_min_max (solver_grid.get_cells_number (), data, min_max);
-      fill_colors (solver_grid.get_cells_number (), data, colors, min_max);
+      find_min_max (gl_represenntation.get_elements_count (), data, min_max);
+      fill_colors (gl_represenntation.get_elements_count (), data, colors, min_max);
     }
 #else
     cpp_unreferenced (thread_id);

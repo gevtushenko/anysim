@@ -5,7 +5,6 @@
 #include "opengl_widget.h"
 #include "core/pm/project_manager.h"
 #include "cpp/common_funcs.h"
-#include "core/grid/grid.h"
 
 #include <QDirIterator>
 #include <QWheelEvent>
@@ -104,8 +103,7 @@ void opengl_widget::update_colors (bool use_gpu)
 
 void opengl_widget::update_project (project_manager &pm)
 {
-  const auto& solver_grid = pm.get_grid ();
-  const auto& gl_representation = solver_grid.get_gl_representation ();
+  const auto& gl_representation = pm.get_gl_representation ();
   const auto  boundary_box = gl_representation.get_boundary_box ();
 
   is_initialized = false;

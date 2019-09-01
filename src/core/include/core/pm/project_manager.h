@@ -5,6 +5,7 @@
 #ifndef ANYSIM_PROJECT_MANAGER_H
 #define ANYSIM_PROJECT_MANAGER_H
 
+#include <core/grid/geometry.h>
 #include <memory>
 #include <vector>
 
@@ -36,8 +37,9 @@ public:
   const configuration &get_configuration_scheme () const;
   configuration &get_configuration ();
 
-  const workspace &get_solver_workspace () const;
-  const grid &get_grid () const;
+  [[nodiscard]] const workspace &get_solver_workspace () const;
+  [[nodiscard]] const geometry_representation &get_gl_representation () const;
+  [[nodiscard]] const std::vector<std::string> &get_fields_names () const;
 
   void append_extractor (result_extractor *extractor);
   void append_extractor_to_own (result_extractor *extractor);

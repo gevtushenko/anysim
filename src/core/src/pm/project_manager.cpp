@@ -173,9 +173,14 @@ const workspace &project_manager::get_solver_workspace () const
   return *solver_workspace;
 }
 
-const grid &project_manager::get_grid () const
+const geometry_representation &project_manager::get_gl_representation () const
 {
-  return *solver_grid;
+  return solver_grid->get_gl_representation ();
+}
+
+const std::vector<std::string> &project_manager::get_fields_names () const
+{
+  return solver_grid->get_fields_names ();
 }
 
 void project_manager::append_extractor (result_extractor *extractor)
