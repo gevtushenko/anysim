@@ -20,6 +20,7 @@
 #include <cuda_gl_interop.h>
 #endif
 
+#include "core/grid/geometry.h"
 #include "axes_grid.h"
 #include "camera.h"
 
@@ -69,21 +70,19 @@ private:
 
   std::unique_ptr<QOpenGLShaderProgram> program;
 
-  GLint attribute_coord2d, attribute_v_color;
+  GLint attribute_coord3d, attribute_v_color;
   GLuint vbo_vertices, vbo_colors;
 
-  long int elements_count;
-  const int vertices_per_element = 4;
-  const int coords_per_vertex = 2;
-  const int vertex_data_per_element = vertices_per_element * coords_per_vertex;
-  const int colors_per_vertex = 3;
-  const int color_data_per_element = colors_per_vertex * vertices_per_element;
+  unsigned int elements_count = 0;
+  unsigned int vertices_per_element = 0;
+  static constexpr int colors_per_vertex = 3;
 
 #ifdef GPU_BUILD
   cudaGraphicsResource_t colors_res;
 #endif
 
-  std::unique_ptr<GLfloat[]> colors;
+  geometry_element_type element_type;
+  std::vector<GLfloat> colors;
 
   float x_size;
   float y_size;

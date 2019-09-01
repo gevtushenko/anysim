@@ -108,7 +108,7 @@ void project_manager::update_project ()
   const auto &config = *solver_configuration;
   if (version != config.get_version ())
   {
-    auto task = domain.create_task ("apply_configuration");
+    auto apply_task = domain.create_task ("apply_configuration");
 
     version = config.get_version ();
 
@@ -134,7 +134,7 @@ void project_manager::update_project ()
         auto topology = solver_grid->gen_topology_wrapper ();
         auto geometry = solver_grid->gen_geometry_wrapper ();
 
-        py::scoped_interpreter guard{};
+        py::scoped_interpreter guard {};
         auto anysim_py_module = py::module::import ("anysim_py");
         anysim_py_module.attr ("topology") = py::cast (topology);
         anysim_py_module.attr ("geometry") = py::cast (geometry);

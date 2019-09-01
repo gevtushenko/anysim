@@ -68,7 +68,7 @@ void opengl_widget::initializeGL()
   program->addShaderFromSourceFile (QOpenGLShader::Vertex,   ":/shaders/map_2d.vert");
   program->addShaderFromSourceFile (QOpenGLShader::Fragment, ":/shaders/map_2d.frag");
   program->link ();
-  attribute_coord2d = program->attributeLocation ("coord2d");
+  attribute_coord3d = program->attributeLocation ("coord3d");
   attribute_v_color = program->attributeLocation ("v_color");
 
   glGenBuffers (1, &vbo_vertices);
@@ -79,7 +79,7 @@ void opengl_widget::initializeGL()
 
 float *opengl_widget::get_colors (bool use_gpu)
 {
-  return use_gpu ? d_colors : colors.get ();
+  return use_gpu ? d_colors : colors.data ();
 }
 
 void opengl_widget::resizeGL(int width, int height)
@@ -93,10 +93,10 @@ void opengl_widget::update_colors (bool use_gpu)
   if (!use_gpu)
   {
     const int glfloat_size = sizeof (GLfloat);
-    const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
+    const long int colors_array_size = colors.size () * glfloat_size;
 
     glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
-    glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+    glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.data (), GL_DYNAMIC_DRAW);
   }
 
   update ();
@@ -105,43 +105,30 @@ void opengl_widget::update_colors (bool use_gpu)
 void opengl_widget::update_project (project_manager &pm)
 {
   const auto& solver_grid = pm.get_grid ();
+  const auto& gl_representation = solver_grid.get_gl_representation ();
+  const auto  boundary_box = gl_representation.get_boundary_box ();
 
   is_initialized = false;
+  element_type = gl_representation.get_element_type ();
+  elements_count = gl_representation.get_elements_count ();
+  vertices_per_element = gl_representation.get_vertices_per_element ();
 
-  x_size = solver_grid.get_bounding_box_width ();
-  y_size = solver_grid.get_bounding_box_height ();
+  x_size = boundary_box.width ();
+  y_size = boundary_box.height ();
 
   axes.prepare (0.0, x_size, 0.0, y_size);
   camera_view.update_model_matrix (x_size, y_size);
 
-  elements_count = solver_grid.get_cells_number ();
-
-  colors.reset ();
-  colors.reset (new GLfloat[color_data_per_element * elements_count]);
-
-  static GLfloat _colors[] =
-      {
-          1.0, 1.0, 0.0,
-          0.0, 0.0, 1.0,
-          1.0, 0.0, 0.0,
-          1.0, 0.0, 1.0,
-      };
-
-  for (unsigned int i = 0; i < elements_count; i++)
-  {
-    const unsigned int color_offset = static_cast<unsigned int> (color_data_per_element) * i;
-    std::copy_n (_colors, color_data_per_element, colors.get () + color_offset);
-  }
+  colors.resize (colors_per_vertex * vertices_per_element * elements_count, 0.0);
 
   /// VBO Handling
   const int glfloat_size = sizeof (GLfloat);
-  const long int vertices_array_size = elements_count * vertex_data_per_element * glfloat_size;
   glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
-  glBufferData (GL_ARRAY_BUFFER, vertices_array_size, solver_grid.get_vertices_data (), GL_DYNAMIC_DRAW);
+  glBufferData (GL_ARRAY_BUFFER, gl_representation.size () * glfloat_size, gl_representation.data (), GL_DYNAMIC_DRAW);
 
-  const long int colors_array_size = elements_count * color_data_per_element * glfloat_size;
+  const long int colors_array_size = elements_count * colors_per_vertex * vertices_per_element * glfloat_size;
   glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
-  glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.get (), GL_DYNAMIC_DRAW);
+  glBufferData (GL_ARRAY_BUFFER, colors_array_size, colors.data (), GL_DYNAMIC_DRAW);
 
 #ifdef GPU_BUILD
   cudaGraphicsGLRegisterBuffer (&colors_res, vbo_colors, cudaGraphicsMapFlagsWriteDiscard);
@@ -237,12 +224,22 @@ void opengl_widget::paintGL()
   glEnableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
   glBindBuffer (GL_ARRAY_BUFFER, vbo_colors);
   glVertexAttribPointer (static_cast<GLuint> (attribute_v_color), 3, GL_FLOAT, GL_FALSE, 0, 0);
-  glEnableVertexAttribArray (static_cast<GLuint> (attribute_coord2d));
+  glEnableVertexAttribArray (static_cast<GLuint> (attribute_coord3d));
   glBindBuffer (GL_ARRAY_BUFFER, vbo_vertices);
-  glVertexAttribPointer (static_cast<GLuint> (attribute_coord2d), 2, GL_FLOAT, GL_FALSE, 0, 0);
-  glDrawArrays (GL_QUADS, 0, static_cast<int> (elements_count) * 4);
+  glVertexAttribPointer (static_cast<GLuint> (attribute_coord3d), 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+  auto convert_geometry_type_to_gl = [] (geometry_element_type type)
+  {
+    if (type == geometry_element_type::quad)
+      return GL_QUADS;
+    return GL_POINT;
+  };
+
+  auto gl_type = convert_geometry_type_to_gl (element_type);
+  glDrawArrays (gl_type, 0, static_cast<int> (elements_count) * vertices_per_element);
+
   glBindBuffer (GL_ARRAY_BUFFER, 0);
-  glDisableVertexAttribArray (static_cast<GLuint> (attribute_coord2d));
+  glDisableVertexAttribArray (static_cast<GLuint> (attribute_coord3d));
   glDisableVertexAttribArray (static_cast<GLuint> (attribute_v_color));
   program->release ();
   painter.endNativePainting ();

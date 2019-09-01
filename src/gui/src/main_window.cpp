@@ -185,7 +185,7 @@ void main_window::create_actions()
 
   for (int gpu_id = 0; gpu_id < gpus_count; gpu_id++)
   {
-    cudaDeviceProp device;
+    cudaDeviceProp device {};
     cudaGetDeviceProperties (&device, gpu_id);
     gpu_names->addItem (device.name, QVariant (gpu_id));
   }

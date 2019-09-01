@@ -12,6 +12,7 @@
 
 #include "core/common/common_defs.h"
 #include "core/solver/workspace.h"
+#include "core/grid/geometry.h"
 
 enum class side_type
 {
@@ -302,20 +303,29 @@ public:
   , dx (width / nx)
   , dy (height / ny)
   , solver_workspace (workspace_arg)
+  , gl_representation (geometry_element_type::quad, nx * ny)
   {
     vertices_2d.allocate (nx * ny * vertices_per_cell, coordinates_per_vertex);
     float *v = vertices_2d.get_vertices ();
 
+    const auto dxf = static_cast<float> (dx);
+    const auto dyf = static_cast<float> (dy);
+
     for (unsigned int j = 0; j < ny; j++)
       {
+        const auto fj = static_cast<float> (j);
+
         for (unsigned int i = 0; i < nx; i++)
           {
+            const auto fi = static_cast<float> (i);
             const unsigned int vert_offset = vertex_data_per_element * (j * nx + i);
 
-            v[vert_offset + 0] = dx * (i + 0); v[vert_offset + 1] = dy * (j + 1);
-            v[vert_offset + 2] = dx * (i + 0); v[vert_offset + 3] = dy * (j + 0);
-            v[vert_offset + 4] = dx * (i + 1); v[vert_offset + 5] = dy * (j + 0);
-            v[vert_offset + 6] = dx * (i + 1); v[vert_offset + 7] = dy * (j + 1);
+            v[vert_offset + 0] = dxf * (fi + 0); v[vert_offset + 1] = dyf * (fj + 1);
+            v[vert_offset + 2] = dxf * (fi + 0); v[vert_offset + 3] = dyf * (fj + 0);
+            v[vert_offset + 4] = dxf * (fi + 1); v[vert_offset + 5] = dyf * (fj + 0);
+            v[vert_offset + 6] = dxf * (fi + 1); v[vert_offset + 7] = dyf * (fj + 1);
+
+            gl_representation.append_pixel (point (dxf * fi, dyf * fj), sizes_set (dxf, dyf));
           }
       }
   }
@@ -357,6 +367,8 @@ public:
 
   float get_bounding_box_width () const { return width; }
   float get_bounding_box_height () const { return height; }
+  
+  const geometry_representation &get_gl_representation () const;
 
 public:
   const std::size_t vertices_per_cell = 4;
@@ -374,7 +386,9 @@ private:
 
   workspace &solver_workspace;
   std::vector<std::string> fields_names;
+
   vertices vertices_2d;
+  geometry_representation gl_representation;
 };
 
 #endif //ANYSIM_GRID_H

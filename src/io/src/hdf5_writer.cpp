@@ -52,24 +52,26 @@ public:
     if (is_main_thread (thread_id))
     {
       const auto &solver_grid = pm.get_grid ();
+      const auto &gl_representation = solver_grid.get_gl_representation ();
       const auto &solver_workspace = pm.get_solver_workspace ();
-      const unsigned int cells_count = solver_grid.get_cells_number ();
+      const unsigned int cells_count = gl_representation.get_elements_count ();
+      const unsigned int vertices_per_cell = gl_representation.get_vertices_per_element ();
 
       if (step == 0)
       {
         const std::string v_group_name = "/common/vertices";
         const std::string t_group_name = "/common/topology";
 
-        std::unique_ptr<int[]> topology (new int[cells_count * 4]);
+        std::unique_ptr<int[]> topology (new int[cells_count * vertices_per_cell]);
         for (unsigned int c = 0; c < cells_count; c++)
           {
-            for (unsigned int i = 0; i < 4; i++)
-              topology[4 * c + i] = 4 * c + i;
+            for (unsigned int i = 0; i < vertices_per_cell; i++)
+              topology[vertices_per_cell * c + i] = vertices_per_cell * c + i;
           }
 
-        write_field (solver_grid.get_vertices_data (), v_group_name, H5T_NATIVE_FLOAT, cells_count * 4 * 2);
-        write_field (topology.get (), t_group_name, H5T_NATIVE_INT, cells_count * 4);
-        write_xdmf_xml_head (cells_count);
+        write_field (gl_representation.data (), v_group_name, H5T_NATIVE_FLOAT, gl_representation.size ());
+        write_field (topology.get (), t_group_name, H5T_NATIVE_INT, gl_representation.get_vertices_count ());
+        write_xdmf_xml_head (cells_count, gl_representation.get_vertices_count ());
       }
 
       const bool use_double_precision = pm.is_double_precision_used ();
@@ -128,7 +130,7 @@ private:
 #if HDF5_BUILD
   static bool check_if_invalid (const hid_t &id) { return static_cast<int> (id) < 0; }
 
-  void write_xdmf_xml_head (unsigned int cells_number)
+  void write_xdmf_xml_head (unsigned int cells_number, unsigned int vertices_number)
   {
     std::string hdf_filename = filename + ".h5";
     std::string xmf_filename = filename + ".xmf";
@@ -142,8 +144,8 @@ private:
     fprintf (xmf, "      %s:/common/topology\n", hdf_filename.c_str ());
     fprintf (xmf, "     </DataItem>\n");
     fprintf (xmf, "   </Topology>\n");
-    fprintf (xmf, "   <Geometry GeometryType=\"XY\">\n");
-    fprintf (xmf, "     <DataItem Dimensions=\"%u 2\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", cells_number * 4);
+    fprintf (xmf, "   <Geometry GeometryType=\"XYZ\">\n");
+    fprintf (xmf, "     <DataItem Dimensions=\"%u 3\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", vertices_number);
     fprintf (xmf, "      %s:/common/vertices\n", hdf_filename.c_str ());
     fprintf (xmf, "     </DataItem>\n");
     fprintf (xmf, "   </Geometry>\n");

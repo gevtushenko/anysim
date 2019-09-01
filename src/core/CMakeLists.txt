@@ -24,10 +24,10 @@ set(CORE_SOURCES
         include/core/sm/result_extractor.h
         include/core/solver/workspace.h
         src/solver/workspace.cpp
-        include/core/grid/grid.h src/grid.cpp
+        include/core/grid/grid.h src/grid/grid.cpp
         src/gpu/euler_2d_gpu_interface.cpp
         include/core/sm/multiprocess.h
-        src/sm/multiprocess.cpp)
+        src/sm/multiprocess.cpp include/core/grid/geometry.h src/grid/geometry.cpp)
 
 find_package(MPI QUIET)
 find_package(Threads REQUIRED)
