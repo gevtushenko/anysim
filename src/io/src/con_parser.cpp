@@ -44,6 +44,9 @@ bool con_parser::parse (int argc, char **argv, bool require_configuration, proje
     return true;
   }
 
+  if (args["use_gpu"])
+    pm.set_gpu_num (0);
+
   if (args["help"])
   {
     std::cerr << parser_wrapper->parser;
