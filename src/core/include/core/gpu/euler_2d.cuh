@@ -19,7 +19,7 @@ CPU_GPU float_type speed_of_sound_in_gas (float_type gamma, float_type p, float_
 template <class float_type>
 CPU_GPU float_type calculate_total_energy (float_type p, float_type u, float_type v, float_type rho, float_type gamma)
 {
-  return p / ((gamma - 1) * rho) + (u*u + v*v) / 2.0;
+  return p / ((gamma - 1.0f) * rho) + (u*u + v*v) / 2.0f;
 }
 
 template <class float_type>
@@ -113,7 +113,7 @@ CPU_GPU void rotate_vector_from_edge_coordinates (
 template <class float_type>
 CPU_GPU float_type max_speed (float_type v_c, float_type v_n, float_type u_c, float_type u_n)
 {
-  const float_type zero = 0.0;
+  const float_type zero = 0.0f;
   const float_type splus  = std::max(zero, std::max(u_c + v_c, u_n + v_n));
   const float_type sminus = std::min(zero, std::min(u_c - v_c, u_n - v_n));
   return std::max (splus, -sminus);
@@ -147,13 +147,13 @@ CPU_GPU void rusanov_scheme (
 {
   for (int c = 0; c < 4; c++)
   {
-    const float_type central_difference = (F_c[c] + F_n[c]) / 2;
+    const float_type central_difference = (F_c[c] + F_n[c]) / 2.0f;
 
     const float_type ss_c = speed_of_sound_in_gas (gamma, pc, rhoc);
     const float_type ss_n = speed_of_sound_in_gas (gamma, pn, rhon);
 
     const float_type sp = max_speed (ss_c, ss_n, U_c, U_n);
-    const float_type viscosity = sp * (Q_n[c] - Q_c[c]) / 2;
+    const float_type viscosity = sp * (Q_n[c] - Q_c[c]) / 2.0f;
 
     F_sigma[c] = central_difference - viscosity;
   }
@@ -166,7 +166,7 @@ CPU_GPU void rusanov_scheme (
 template <class float_type>
 CPU_GPU float_type calculate_p (float_type gamma, float_type E, float_type u, float_type v, float_type rho)
 {
-  return (E - (u * u + v * v) / 2) * (gamma - 1) * rho;
+  return (E - (u * u + v * v) / 2.0f) * (gamma - 1.0f) * rho;
 }
 
 template <class float_type>

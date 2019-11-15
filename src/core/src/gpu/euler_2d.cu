@@ -5,6 +5,15 @@
 #include <cuda_runtime.h>
 #include <algorithm>
 
+template<>
+inline CPU_GPU float max_speed (float v_c, float v_n, float u_c, float u_n)
+{
+  const float zero = 0.0f;
+  const float splus  = fmaxf (zero, fmaxf (u_c + v_c, u_n + v_n));
+  const float sminus = fminf (zero, fminf (u_c - v_c, u_n - v_n));
+  return fmaxf (splus, -sminus);
+}
+
 template <class float_type, int warps_count>
 __global__ void euler_2d_calculate_dt_gpu_kernel (
   float_type gamma,
@@ -32,8 +41,8 @@ __global__ void euler_2d_calculate_dt_gpu_kernel (
       const float_type u = p_u[cell_id];
       const float_type v = p_v[cell_id];
 
-      max_speed = fmax (max_speed, fmax (fabs (u + a), fabs (u - a)));
-      max_speed = fmax (max_speed, fmax (fabs (v + a), fabs (v - a)));
+      max_speed = fmaxf (max_speed, fmaxf (fabsf (u + a), fabsf (u - a)));
+      max_speed = fmaxf (max_speed, fmaxf (fabsf (v + a), fabsf (v - a)));
 
       for (unsigned int edge_id = 0; edge_id < topology.get_edges_count (cell_id); edge_id++)
       {
